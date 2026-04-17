@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter (Android Emulator)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": ["--dart-define", "API_BASE_URL=http://10.0.2.2:3000"]
+    },
+    {
+      "name": "Flutter (Real Device - LAN)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": ["--dart-define", "API_BASE_URL=http://192.168.1.6:3000"]
+    }
+  ]
+}
