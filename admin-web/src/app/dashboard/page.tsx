@@ -48,15 +48,15 @@ export default function AdminHomePage() {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-bb-surface text-bb-navy">
-        <div className="h-10 w-10 animate-pulse rounded-full bg-bb-yellow/50" />
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3" style={{ backgroundColor: 'var(--color-bg-page)', color: 'var(--color-text-primary)' }}>
+        <div className="h-10 w-10 animate-pulse rounded-full" style={{ backgroundColor: 'rgba(245,166,35,0.3)' }} />
         <p className="font-medium">Đang tải…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-bb-surface text-gray-900">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-page)', color: 'var(--color-text-primary)' }}>
       <AdminHeader
         user={user}
         title="Tổng quan"
@@ -66,19 +66,19 @@ export default function AdminHomePage() {
 
       <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
         {error && (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="rounded-xl border px-4 py-3 text-sm" style={{ borderColor: 'var(--color-danger)', backgroundColor: 'rgba(220,38,38,0.05)', color: 'var(--color-danger)' }}>
             {error}
           </p>
         )}
 
-        <p className="text-sm text-gray-600">
+        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
           Dùng thanh menu phía trên để mở nhanh{" "}
           <strong>Tài khoản</strong>, <strong>Cửa hàng / chi nhánh</strong>,{" "}
           <strong>Nhật ký</strong>.
         </p>
 
         {stats && (
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="stat-grid">
             {(
               [
                 { label: "Người dùng", value: stats.users_total, href: "/dashboard/users" },
@@ -98,10 +98,10 @@ export default function AdminHomePage() {
                 key={label}
                 type="button"
                 onClick={() => router.push(href)}
-                className="group rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                className="stat-card group transition hover:-translate-y-0.5 hover:shadow-hover"
               >
-                <p className="text-xs text-gray-500 group-hover:text-bb-navy">{label}</p>
-                <p className="mt-2 text-2xl font-bold text-bb-navy">{value}</p>
+                <p className="stat-label group-hover:text-[var(--color-primary)]">{label}</p>
+                <p className="stat-value">{value}</p>
               </button>
             ))}
           </section>

@@ -5,18 +5,14 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
-import { ManagerDashboardNav } from "@/components/ManagerDashboardNav";
 import {
   fetchManagerBranchList,
   fetchManagerStats,
-  fetchManagerAppointments,
-  type ManagerAppointmentRow,
   type ManagerBranchRow,
   type ManagerStatsResponse,
 } from "@/lib/managerApi";
-import * as XLSX from "xlsx";
 
-const BRANCH_STORAGE_KEY = "manager-web-branch-id";
+const BRANCH_STORAGE_KEY = "manager-dashboard-branch-id";
 
 const APPOINTMENT_STATUS_ORDER = [
   "pending",
@@ -57,7 +53,6 @@ export default function ManagerStatsPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [stats, setStats] = useState<ManagerStatsResponse | null>(null);
-  const [appointments, setAppointments] = useState<ManagerAppointmentRow[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
 
   useEffect(() => {
@@ -88,19 +83,14 @@ export default function ManagerStatsPage() {
           const list = await fetchManagerBranchList(fb.uid);
           setBranches(list);
           if (list.length) {
-            const pick =
-              row.role === "manager"
-                ? list[0].id
-                : (() => {
-                    const saved = Number(
-                      typeof window !== "undefined"
-                        ? localStorage.getItem(BRANCH_STORAGE_KEY)
-                        : "",
-                    );
-                    return list.some((b) => b.id === saved)
-                      ? saved
-                      : list[0].id;
-                  })();
+            const saved = Number(
+              typeof window !== "undefined"
+                ? localStorage.getItem(BRANCH_STORAGE_KEY)
+                : "",
+            );
+            const pick = list.some((b) => b.id === saved)
+              ? saved
+              : list[0].id;
             setSelectedBranchId(pick);
             try {
               localStorage.setItem(BRANCH_STORAGE_KEY, String(pick));
@@ -134,8 +124,6 @@ export default function ManagerStatsPage() {
         setStats(data);
         setFrom(data.from);
         setTo(data.to);
-        const appts = await fetchManagerAppointments(uid, { status: "completed" }, selectedBranchId);
-        if (!cancelled) setAppointments(appts);
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : String(e));
@@ -160,12 +148,6 @@ export default function ManagerStatsPage() {
         to: to || undefined,
       });
       setStats(data);
-      const appts = await fetchManagerAppointments(uid, {
-        from: from || undefined,
-        to: to || undefined,
-        status: "completed"
-      }, selectedBranchId);
-      setAppointments(appts);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -177,9 +159,6 @@ export default function ManagerStatsPage() {
     await signOut(auth);
     router.replace("/");
   }
-
-  const canSwitchBranch =
-    user?.role === "owner" && branches.length > 1;
 
   const mergedRows = (() => {
     if (!stats) return [];
@@ -217,85 +196,21 @@ export default function ManagerStatsPage() {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([d, v]) => ({ d, ...v }));
   })();
-  const barberStats = (() => {
-    const map = new Map<number, { name: string; count: number; rev: number }>();
-    for (const a of appointments) {
-      if (!a.barber_id) continue;
-      const prev = map.get(a.barber_id) ?? { name: a.barber_name || `#${a.barber_id}`, count: 0, rev: 0 };
-      prev.count++;
-      prev.rev += Number(a.total_price) || 0;
-      map.set(a.barber_id, prev);
-    }
-    return [...map.values()].sort((a,b) => b.rev - a.rev);
-  })();
-
-  const serviceStats = (() => {
-    const map = new Map<number, { name: string; count: number; rev: number }>();
-    for (const a of appointments) {
-      if (!a.service_id) continue;
-      const prev = map.get(a.service_id) ?? { name: a.service_name || `#${a.service_id}`, count: 0, rev: 0 };
-      prev.count++;
-      prev.rev += Number(a.total_price) || 0;
-      map.set(a.service_id, prev);
-    }
-    return [...map.values()].sort((a,b) => b.rev - a.rev);
-  })();
-
-  const completedRevenue = (() => {
-    return appointments.reduce((sum, a) => sum + (Number(a.total_price) || 0), 0);
-  })();
-
-  function exportExcel() {
-    if (!stats) return;
-
-    // Sheet 1: Tổng quan
-    const ws1 = XLSX.utils.json_to_sheet(mergedRows.map(r => ({
-      "Ngày": r.d,
-      "Lịch hẹn": r.appt,
-      "DT Lịch hẹn": r.revAppt,
-      "Đơn shop": r.ord,
-      "DT Đơn shop": r.revShop,
-    })));
-
-    // Sheet 2: Doanh thu theo thợ
-    const ws2 = XLSX.utils.json_to_sheet(barberStats.map(b => ({
-      "Tên Thợ": b.name,
-      "Số lịch HT": b.count,
-      "Doanh thu": b.rev,
-    })));
-
-    // Sheet 3: Doanh thu theo Dịch vụ
-    const ws3 = XLSX.utils.json_to_sheet(serviceStats.map(s => ({
-      "Dịch vụ": s.name,
-      "Số lịch HT": s.count,
-      "Doanh thu": s.rev,
-    })));
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws1, "Tổng quan");
-    XLSX.utils.book_append_sheet(wb, ws2, "Theo Thợ");
-    XLSX.utils.book_append_sheet(wb, ws3, "Theo Dịch vụ");
-
-    XLSX.writeFile(wb, `Bao_cao_doanh_thu_${from || "all"}_to_${to || "all"}.xlsx`);
-  }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-page)' }}>
-      <header style={{ backgroundColor: 'var(--color-navbar-bg)' }} className="px-4 py-4 text-white shadow">
+    <div className="min-h-screen bg-bb-surface">
+      <header className="bg-bb-navy px-4 py-4 text-white shadow">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-white/80">
-              manager-web · Doanh thu &amp; báo cáo chi nhánh
-            </p>
+            <p className="text-sm text-white/80">Doanh thu &amp; báo cáo chi nhánh</p>
             <p className="text-lg font-bold">
               {user?.full_name ?? user?.email ?? "—"}
             </p>
-            <ManagerDashboardNav />
           </div>
           <button
             type="button"
             onClick={() => void logout()}
-            className="btn btn-secondary-light"
+            className="rounded-lg bg-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/25"
           >
             Đăng xuất
           </button>
@@ -314,45 +229,37 @@ export default function ManagerStatsPage() {
 
         {branches.length > 0 && selectedBranchId != null && (
           <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <label className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
               <span className="text-sm font-semibold text-bb-navy">
                 Chi nhánh
               </span>
-              {canSwitchBranch ? (
-                <select
-                  className="max-w-md rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium"
-                  value={selectedBranchId}
-                  onChange={(e) => {
-                    const id = Number(e.target.value);
-                    if (!Number.isFinite(id) || id <= 0) return;
-                    setSelectedBranchId(id);
-                    try {
-                      localStorage.setItem(BRANCH_STORAGE_KEY, String(id));
-                    } catch {
-                      /* ignore */
-                    }
-                  }}
-                >
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name?.trim() ? b.name : `Chi nhánh #${b.id}`}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <p className="max-w-md rounded-lg bg-bb-input/60 px-3 py-2 text-sm font-medium text-bb-navy">
-                  {branches.find((b) => b.id === selectedBranchId)?.name?.trim() ||
-                    `Chi nhánh #${selectedBranchId}`}
-                </p>
-              )}
-            </div>
+              <select
+                className="max-w-md rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium"
+                value={selectedBranchId}
+                onChange={(e) => {
+                  const id = Number(e.target.value);
+                  if (!Number.isFinite(id) || id <= 0) return;
+                  setSelectedBranchId(id);
+                  try {
+                    localStorage.setItem(BRANCH_STORAGE_KEY, String(id));
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+              >
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name?.trim() ? b.name : `Chi nhánh #${b.id}`}
+                  </option>
+                ))}
+              </select>
+            </label>
           </section>
         )}
 
         {branchesLoaded && branches.length === 0 && uid && !error && (
           <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Chưa có chi nhánh gắn tài khoản (Manager cần{" "}
-            <code className="rounded bg-white px-1">users.branch_id</code>).
+            Chưa có chi nhánh gắn tài khoản.
           </p>
         )}
 
@@ -400,7 +307,7 @@ export default function ManagerStatsPage() {
               <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <p className="text-sm text-gray-600">Doanh thu (lịch đã hoàn thành)</p>
                 <p className="mt-1 text-2xl font-bold text-bb-navy">
-                  {fmtMoney(completedRevenue)}
+                  {fmtMoney(stats.summary.revenue_completed)}
                 </p>
                 <p className="mt-2 text-xs text-gray-500">
                   Chi nhánh #{stats.branch_id} · {stats.from} → {stats.to}
@@ -493,66 +400,6 @@ export default function ManagerStatsPage() {
                           <td className="py-2 pr-2">{fmtMoney(row.revAppt)}</td>
                           <td className="py-2 pr-2">{row.ord}</td>
                           <td className="py-2">{fmtMoney(row.revShop)}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-            <section className="mt-8 rounded-2xl bg-white p-5 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-base font-bold text-bb-navy">Thống kê theo Thợ (lịch đã hoàn thành)</h3>
-                <button type="button" onClick={exportExcel} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-green-700">
-                  Xuất Excel (Tất cả bảng)
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200 text-gray-600">
-                      <th className="py-2 pr-2">Thợ</th>
-                      <th className="py-2 pr-2">Số lịch HT</th>
-                      <th className="py-2">Doanh thu</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {barberStats.length === 0 ? (
-                      <tr><td colSpan={3} className="py-4 text-center text-gray-500">Không có dữ liệu.</td></tr>
-                    ) : (
-                      barberStats.map((row, idx) => (
-                        <tr key={idx} className="border-b border-gray-100">
-                          <td className="py-2 pr-2 font-medium">{row.name}</td>
-                          <td className="py-2 pr-2">{row.count}</td>
-                          <td className="py-2 font-bold text-bb-navy">{fmtMoney(row.rev)}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            <section className="mt-8 rounded-2xl bg-white p-5 shadow-sm">
-              <h3 className="mb-3 text-base font-bold text-bb-navy">Thống kê theo Dịch vụ (lịch đã hoàn thành)</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200 text-gray-600">
-                      <th className="py-2 pr-2">Dịch vụ</th>
-                      <th className="py-2 pr-2">Số lịch HT</th>
-                      <th className="py-2">Doanh thu</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {serviceStats.length === 0 ? (
-                      <tr><td colSpan={3} className="py-4 text-center text-gray-500">Không có dữ liệu.</td></tr>
-                    ) : (
-                      serviceStats.map((row, idx) => (
-                        <tr key={idx} className="border-b border-gray-100">
-                          <td className="py-2 pr-2 font-medium">{row.name}</td>
-                          <td className="py-2 pr-2">{row.count}</td>
-                          <td className="py-2 font-bold text-bb-navy">{fmtMoney(row.rev)}</td>
                         </tr>
                       ))
                     )}
