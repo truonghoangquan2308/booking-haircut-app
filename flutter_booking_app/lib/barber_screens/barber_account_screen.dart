@@ -74,8 +74,9 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
               final id = (br['id'] as num?)?.toInt();
               if (id == bid) {
                 final n = br['name']?.toString().trim();
-                branchLabel =
-                    (n != null && n.isNotEmpty) ? n : 'Chi nhánh #$bid';
+                branchLabel = (n != null && n.isNotEmpty)
+                    ? n
+                    : 'Chi nhánh #$bid';
                 found = true;
                 break;
               }
@@ -101,9 +102,9 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
   }
 
   Future<void> _openNotifications() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const BarberNotificationsScreen()));
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const BarberNotificationsScreen()),
+    );
   }
 
   Future<void> _refreshAccount() async {
@@ -165,9 +166,9 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đang gọi Hotline...')),
-        ),
+        onPressed: () => ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Đang gọi Hotline...'))),
         backgroundColor: const Color(0xffffc107),
         icon: const Icon(Icons.phone, color: Colors.black),
         label: const Text(
@@ -299,8 +300,11 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
                       width: 90,
                       height: 90,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.person, size: 50, color: Colors.grey),
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.person,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
                     )
                   : const Icon(Icons.person, size: 50, color: Colors.grey),
             ),
@@ -311,10 +315,7 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
-          Text(
-            phone,
-            style: const TextStyle(color: Colors.grey, fontSize: 14),
-          ),
+          Text(phone, style: const TextStyle(color: Colors.grey, fontSize: 14)),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -448,7 +449,9 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
                   ),
                   child: Icon(
                     menu['icon'] as IconData,
-                    color: danger ? Colors.red.shade700 : const Color(0xffffa000),
+                    color: danger
+                        ? Colors.red.shade700
+                        : const Color(0xffffa000),
                     size: 22,
                   ),
                 ),

@@ -32,10 +32,7 @@ class _BarberMainScreenState extends State<BarberMainScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xffffc107),
         body: SafeArea(
-          child: IndexedStack(
-            index: _selectedIndex,
-            children: _screens,
-          ),
+          child: IndexedStack(index: _selectedIndex, children: _screens),
         ),
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,

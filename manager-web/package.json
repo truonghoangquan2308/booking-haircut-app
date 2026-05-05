@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3004",
-    "dev:127": "next dev -p 3004 -H 127.0.0.1",
+    "dev": "next dev -p 3003",
+    "dev:127": "next dev -p 3003 -H 127.0.0.1",
     "build": "next build",
-    "start": "next start -p 3004",
+    "start": "next start -p 3003",
     "lint": "next lint"
   },
   "dependencies": {

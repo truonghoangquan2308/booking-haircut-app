@@ -203,15 +203,15 @@ class _ReviewScreenState extends State<ReviewScreen> {
             : _commentController.text.trim(),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cảm ơn bạn đã đánh giá!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Cảm ơn bạn đã đánh giá!')));
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gửi đánh giá thất bại: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gửi đánh giá thất bại: $e')));
     } finally {
       if (mounted) {
         setState(() => _busy = false);

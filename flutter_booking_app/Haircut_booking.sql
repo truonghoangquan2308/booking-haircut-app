@@ -217,7 +217,22 @@ CREATE TABLE notifications (
 ) ENGINE=InnoDB;
 
 -- ================================================
--- 10. PRODUCT CATEGORIES
+-- 10. ADMIN AUDIT LOGS
+-- ================================================
+CREATE TABLE admin_audit_logs (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  admin_user_id INT NOT NULL,
+  action VARCHAR(64) NOT NULL,
+  target_type VARCHAR(32) NULL,
+  target_id BIGINT NULL,
+  detail TEXT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_admin (admin_user_id),
+  INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ================================================
+-- 11. PRODUCT CATEGORIES
 -- ================================================
 CREATE TABLE product_categories (
   id          INT AUTO_INCREMENT PRIMARY KEY,

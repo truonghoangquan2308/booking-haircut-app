@@ -7,7 +7,8 @@ class AppointmentDetailScreen extends StatefulWidget {
   final Map<String, dynamic> appointment;
 
   @override
-  State<AppointmentDetailScreen> createState() => _AppointmentDetailScreenState();
+  State<AppointmentDetailScreen> createState() =>
+      _AppointmentDetailScreenState();
 }
 
 class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
@@ -45,9 +46,9 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
       Navigator.of(context).pop(true);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lỗi cập nhật trạng thái')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Lỗi cập nhật trạng thái')));
     } finally {
       if (mounted) {
         setState(() => _busy = false);
@@ -60,15 +61,18 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
     final appt = widget.appointment;
     final status = appt['status']?.toString();
     final customerName =
-        appt['customer_name']?.toString() ?? appt['customer_full_name']?.toString() ?? '---';
+        appt['customer_name']?.toString() ??
+        appt['customer_full_name']?.toString() ??
+        '---';
     final serviceName = appt['service_name']?.toString() ?? '---';
     final startTime = appt['start_time']?.toString() ?? '';
     final endTime = appt['end_time']?.toString() ?? '';
     final apptDate = appt['appt_date']?.toString() ?? '';
     final totalPrice = appt['total_price']?.toString() ?? '';
     final note = appt['note']?.toString().trim();
-    final noteLabel =
-        (note == null || note.isEmpty) ? 'Không có ghi chú' : note;
+    final noteLabel = (note == null || note.isEmpty)
+        ? 'Không có ghi chú'
+        : note;
 
     return Scaffold(
       backgroundColor: const Color(0xfff4f5f9),
@@ -104,7 +108,10 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                 children: [
                   _buildInfoRow('Khách hàng:', customerName),
                   Divider(height: 24, color: Colors.grey.shade100),
-                  _buildInfoRow('Số điện thoại:', appt['customer_phone']?.toString() ?? '—'),
+                  _buildInfoRow(
+                    'Số điện thoại:',
+                    appt['customer_phone']?.toString() ?? '—',
+                  ),
                   Divider(height: 24, color: Colors.grey.shade100),
                   _buildInfoRow(
                     'Thời gian:',
@@ -148,7 +155,10 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.orange.shade50,
                       borderRadius: BorderRadius.circular(20),
@@ -194,7 +204,9 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                   if (status == 'in_progress')
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _busy ? null : () => _updateStatus('completed'),
+                        onPressed: _busy
+                            ? null
+                            : () => _updateStatus('completed'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.black87,
@@ -212,7 +224,9 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                   if (status == 'in_progress') const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _busy ? null : () => _updateStatus('cancelled'),
+                      onPressed: _busy
+                          ? null
+                          : () => _updateStatus('cancelled'),
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Colors.white,
                         minimumSize: const Size(double.infinity, 50),
@@ -244,7 +258,10 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
       children: [
         SizedBox(
           width: 120,
-          child: Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+          child: Text(
+            label,
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          ),
         ),
         Expanded(
           child: Text(

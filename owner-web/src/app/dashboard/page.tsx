@@ -15,39 +15,52 @@ export default function OwnerDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (fb) => {
-      if (!fb) {
-        router.replace("/");
-        return;
-      }
+    const storedUid = localStorage.getItem("bb_firebase_uid");
+
+    if (!storedUid) {
+      router.replace("/");
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
       try {
-        const row = await fetchUserByFirebaseUid(fb.uid);
+        const row = await fetchUserByFirebaseUid(storedUid);
+        if (cancelled) return;
+
         if (row.role === "manager") {
           router.replace("/dashboard/stats");
           return;
         }
         if (row.role !== "owner") {
-          await signOut(auth);
+          localStorage.removeItem("bb_firebase_token");
+          localStorage.removeItem("bb_firebase_uid");
           router.replace("/");
           return;
         }
         if (row.is_locked === 1 || row.is_locked === true) {
-          await signOut(auth);
           setError("Tài khoản Owner đã bị khóa.");
           return;
         }
         setUser(row);
-        const data = await fetchOwnerAnalytics(fb.uid);
-        setAnalytics(data);
+        const data = await fetchOwnerAnalytics(storedUid);
+        if (!cancelled) setAnalytics(data);
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : String(e));
+        }
       }
-    });
-    return () => unsub();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   async function logout() {
     await signOut(auth);
+    localStorage.removeItem("bb_firebase_token");
+    localStorage.removeItem("bb_firebase_uid");
     router.replace("/");
   }
 

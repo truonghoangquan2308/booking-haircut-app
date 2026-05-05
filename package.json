@@ -1,0 +1,28 @@
+{
+  "name": "booking-haircut-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev:all": "concurrently -n \"LOGIN,ADMIN,OWNER,MANAGER\" -c \"blue,green,magenta,yellow\" \"npm run dev --prefix login-web\" \"npm run dev --prefix admin-web\" \"npm run dev --prefix owner-web\" \"npm run dev --prefix manager-web\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/truonghoangquan2308/booking-haircut-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/truonghoangquan2308/booking-haircut-app/issues"
+  },
+  "homepage": "https://github.com/truonghoangquan2308/booking-haircut-app#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

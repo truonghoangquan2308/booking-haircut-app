@@ -17,8 +17,7 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
   String? _error;
   List<dynamic> _allAppointments = [];
 
-  String _ymd(DateTime d) =>
-      d.toIso8601String().substring(0, 10); // YYYY-MM-DD
+  String _ymd(DateTime d) => d.toIso8601String().substring(0, 10); // YYYY-MM-DD
 
   bool _isInWeek(String apptDateYmd) {
     final d = DateTime.tryParse(apptDateYmd);
@@ -83,14 +82,16 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
   Widget build(BuildContext context) {
     final todayYmd = _ymd(DateTime.now());
 
-    final filtered = _allAppointments.where((a) {
-      final d = a['appt_date']?.toString() ?? '';
-      if (d.isEmpty) return false;
-      if (_filter == 'Hôm nay') return d == todayYmd;
-      if (_filter == 'Tuần') return _isInWeek(d);
-      if (_filter == 'Tháng') return _isInMonth(d);
-      return false;
-    }).toList(growable: false);
+    final filtered = _allAppointments
+        .where((a) {
+          final d = a['appt_date']?.toString() ?? '';
+          if (d.isEmpty) return false;
+          if (_filter == 'Hôm nay') return d == todayYmd;
+          if (_filter == 'Tuần') return _isInWeek(d);
+          if (_filter == 'Tháng') return _isInMonth(d);
+          return false;
+        })
+        .toList(growable: false);
 
     return Column(
       children: [
@@ -130,34 +131,27 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
                             ],
                           )
                         : _error != null
-                            ? ListView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                children: [
-                                  Center(child: Text('Lỗi: $_error')),
-                                ],
-                              )
-                            : filtered.isEmpty
-                                ? ListView(
-                                    physics:
-                                        const AlwaysScrollableScrollPhysics(),
-                                    children: const [
-                                      SizedBox(height: 120),
-                                      Center(child: Text('Không có lịch')),
-                                    ],
-                                  )
-                                : ListView.builder(
-                                    physics:
-                                        const AlwaysScrollableScrollPhysics(),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                    ),
-                                    itemCount: filtered.length,
-                                    itemBuilder: (context, index) {
-                                      final a =
-                                          filtered[index] as Map<String, dynamic>;
-                                      return _buildHistoryTile(a);
-                                    },
-                                  ),
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [Center(child: Text('Lỗi: $_error'))],
+                          )
+                        : filtered.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [
+                              SizedBox(height: 120),
+                              Center(child: Text('Không có lịch')),
+                            ],
+                          )
+                        : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              final a = filtered[index] as Map<String, dynamic>;
+                              return _buildHistoryTile(a);
+                            },
+                          ),
                   ),
                 ),
               ],
@@ -235,7 +229,8 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
   Widget _buildHistoryTile(Map<String, dynamic> a) {
     final time = a['start_time']?.toString() ?? '';
     final timeLabel = time.length >= 5 ? time.substring(0, 5) : time;
-    final customer = a['customer_name']?.toString() ??
+    final customer =
+        a['customer_name']?.toString() ??
         a['customer_full_name']?.toString() ??
         '---';
     final service = a['service_name']?.toString() ?? '---';
@@ -262,7 +257,10 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
             children: [
               Text(
                 timeLabel,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ],
           ),
@@ -273,7 +271,10 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
               children: [
                 Text(
                   customer,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
                 Text(service, style: TextStyle(color: Colors.grey.shade600)),
               ],

@@ -143,35 +143,41 @@ export default function ManagerDashboardPage() {
   }, []);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (fb) => {
-      if (!fb) {
-        setBranchesLoaded(false);
-        setBranches([]);
-        setSelectedBranchId(null);
-        router.replace("/");
-        return;
-      }
+    const storedUid = localStorage.getItem("bb_firebase_uid");
+
+    if (!storedUid) {
+      setBranchesLoaded(false);
+      setBranches([]);
+      setSelectedBranchId(null);
+      router.replace("/");
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
       try {
-        const row = await fetchUserByFirebaseUid(fb.uid);
+        const row = await fetchUserByFirebaseUid(storedUid);
+        if (cancelled) return;
+
         if (row.role !== "manager" && row.role !== "owner") {
-          await signOut(auth);
+          localStorage.removeItem("bb_firebase_token");
+          localStorage.removeItem("bb_firebase_uid");
           router.replace("/");
           return;
         }
         if (row.is_locked === 1 || row.is_locked === true) {
-          await signOut(auth);
           setError("Tài khoản đã bị khóa.");
           return;
         }
         setUser(row);
-        setUid(fb.uid);
+        setUid(storedUid);
 
         let branchForApi: number | undefined;
         try {
-          const list = await fetchManagerBranchList(fb.uid);
+          const list = await fetchManagerBranchList(storedUid);
+          if (cancelled) return;
           setBranches(list);
           if (list.length) {
-            // Manager chỉ thuộc 1 chi nhánh — luôn dùng chi nhánh đó, không đổi qua localStorage/UI.
             const pick =
               row.role === "manager"
                 ? list[0].id
@@ -196,19 +202,26 @@ export default function ManagerDashboardPage() {
             setSelectedBranchId(null);
           }
         } catch (e) {
-          setBranches([]);
-          setSelectedBranchId(null);
-          setError(e instanceof Error ? e.message : String(e));
+          if (!cancelled) {
+            setBranches([]);
+            setSelectedBranchId(null);
+            setError(e instanceof Error ? e.message : String(e));
+          }
         } finally {
-          setBranchesLoaded(true);
+          if (!cancelled) setBranchesLoaded(true);
         }
 
-        await loadMain(fb.uid, branchForApi);
+        if (!cancelled) await loadMain(storedUid, branchForApi);
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : String(e));
+        }
       }
-    });
-    return () => unsub();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router, loadMain]);
 
   useEffect(() => {
@@ -381,6 +394,8 @@ export default function ManagerDashboardPage() {
 
   async function logout() {
     await signOut(auth);
+    localStorage.removeItem("bb_firebase_token");
+    localStorage.removeItem("bb_firebase_uid");
     router.replace("/");
   }
 

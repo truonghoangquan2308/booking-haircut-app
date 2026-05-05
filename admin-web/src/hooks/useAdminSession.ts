@@ -13,34 +13,48 @@ export function useAdminSession() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (fb) => {
-      if (!fb) {
-        router.replace("/");
-        return;
-      }
+    // Thay vì dùng onAuthStateChanged (không chia sẻ qua port), ta dùng localStorage
+    const storedUid = localStorage.getItem("bb_firebase_uid");
+
+    if (!storedUid) {
+      router.replace("/");
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
       try {
-        const row = await fetchUserByFirebaseUid(fb.uid);
+        const row = await fetchUserByFirebaseUid(storedUid);
+        if (cancelled) return;
+
         if (row.role !== "admin") {
-          await signOut(auth);
+          localStorage.removeItem("bb_firebase_token");
+          localStorage.removeItem("bb_firebase_uid");
           router.replace("/");
           return;
         }
         if (row.is_locked === 1 || row.is_locked === true) {
-          await signOut(auth);
           setError("Tài khoản Admin đã bị khóa.");
           return;
         }
         setUser(row);
-        setUid(fb.uid);
+        setUid(storedUid);
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : String(e));
+        }
       }
-    });
-    return () => unsub();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const logout = useCallback(async () => {
     await signOut(auth);
+    localStorage.removeItem("bb_firebase_token");
+    localStorage.removeItem("bb_firebase_uid");
     router.replace("/");
   }, [router]);
 

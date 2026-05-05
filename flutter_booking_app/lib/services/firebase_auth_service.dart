@@ -98,7 +98,9 @@ class FirebaseAuthService {
       phoneE164 = _normalizePhoneToE164(phone);
     } catch (_) {
       finish();
-      onError('Số điện thoại không hợp lệ. Ví dụ đúng: 0827640470 hoặc +84827640470');
+      onError(
+        'Số điện thoại không hợp lệ. Ví dụ đúng: 0827640470 hoặc +84827640470',
+      );
       return;
     }
 

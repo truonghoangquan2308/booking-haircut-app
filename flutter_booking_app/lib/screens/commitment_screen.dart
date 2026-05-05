@@ -45,7 +45,11 @@ class CommitmentScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.verified, color: Colors.orange.shade800, size: 28),
+                    Icon(
+                      Icons.verified,
+                      color: Colors.orange.shade800,
+                      size: 28,
+                    ),
                     const SizedBox(width: 10),
                     const Expanded(
                       child: Text(
@@ -66,7 +70,9 @@ class CommitmentScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('• ', style: TextStyle(fontSize: 18)),
-                        Expanded(child: Text(t, style: const TextStyle(height: 1.4))),
+                        Expanded(
+                          child: Text(t, style: const TextStyle(height: 1.4)),
+                        ),
                       ],
                     ),
                   ),

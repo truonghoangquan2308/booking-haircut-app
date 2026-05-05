@@ -56,9 +56,9 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
   }
 
   Future<void> _openNotifications() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const BarberNotificationsScreen()));
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const BarberNotificationsScreen()),
+    );
   }
 
   double _toDouble(dynamic v) {
@@ -75,11 +75,10 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
       final start = (i - 3) > 0 ? i - 3 : 0;
       parts.insert(0, s.substring(start, i));
     }
-    return '${parts.join('.') }đ';
+    return '${parts.join('.')}đ';
   }
 
-  String _todayYmd() =>
-      DateTime.now().toIso8601String().substring(0, 10);
+  String _todayYmd() => DateTime.now().toIso8601String().substring(0, 10);
 
   Future<void> _loadHomeData() async {
     if (_loadingHome) return;
@@ -93,7 +92,8 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
       // 1) Lấy barberId + rating theo userId (API nhẹ /api/barbers/by-user/:id)
       final barberRow = await ApiService.getBarberByUserId(userId);
 
-      final barberId = (barberRow['barber_id'] as num?)?.toInt() ??
+      final barberId =
+          (barberRow['barber_id'] as num?)?.toInt() ??
           (barberRow['id'] as num?)?.toInt() ??
           0;
 
@@ -104,31 +104,40 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
       final ymdToday = _todayYmd();
 
       // Loại cancelled khỏi thống kê + lịch hiển thị.
-      final valid = appts.where((a) {
-        final status = a['status']?.toString() ?? 'pending';
-        return status != 'cancelled';
-      }).toList(growable: false);
+      final valid = appts
+          .where((a) {
+            final status = a['status']?.toString() ?? 'pending';
+            return status != 'cancelled';
+          })
+          .toList(growable: false);
 
-      final todayList = valid.where((a) {
-        final d = a['appt_date']?.toString() ?? '';
-        return d == ymdToday;
-      }).toList(growable: false);
+      final todayList = valid
+          .where((a) {
+            final d = a['appt_date']?.toString() ?? '';
+            return d == ymdToday;
+          })
+          .toList(growable: false);
 
-      final futureList = valid.where((a) {
-        final d = a['appt_date']?.toString() ?? '';
-        return d.compareTo(ymdToday) > 0;
-      }).toList(growable: false);
+      final futureList = valid
+          .where((a) {
+            final d = a['appt_date']?.toString() ?? '';
+            return d.compareTo(ymdToday) > 0;
+          })
+          .toList(growable: false);
 
-      todayList.sort((a, b) =>
-          (a['start_time']?.toString() ?? '').compareTo(
-              b['start_time']?.toString() ?? ''));
+      todayList.sort(
+        (a, b) => (a['start_time']?.toString() ?? '').compareTo(
+          b['start_time']?.toString() ?? '',
+        ),
+      );
       futureList.sort((a, b) {
         final da = a['appt_date']?.toString() ?? '';
         final db = b['appt_date']?.toString() ?? '';
         final cmp = da.compareTo(db);
         if (cmp != 0) return cmp;
         return (a['start_time']?.toString() ?? '').compareTo(
-            b['start_time']?.toString() ?? '');
+          b['start_time']?.toString() ?? '',
+        );
       });
 
       // 3) Thu nhập = 60% * tổng giá theo mỗi lần đặt hôm nay.
@@ -156,10 +165,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
     setState(() {
       _profileFuture = profileFuture;
     });
-    await Future.wait([
-      profileFuture,
-      _loadHomeData(),
-    ]);
+    await Future.wait([profileFuture, _loadHomeData()]);
   }
 
   @override
@@ -237,7 +243,8 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                                 _AppointmentTile(
                                   appointment: a,
                                   time: a['start_time']?.toString() ?? '---',
-                                  name: a['customer_name']?.toString() ??
+                                  name:
+                                      a['customer_name']?.toString() ??
                                       a['customer_full_name']?.toString() ??
                                       '---',
                                   service:
@@ -387,7 +394,10 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
         children: [
           const Text(
             'Đánh giá',
-            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           Row(
             children: [
@@ -398,8 +408,10 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                   size: 20,
                 ),
               const SizedBox(width: 8),
-              Text(rating.toStringAsFixed(1),
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                rating.toStringAsFixed(1),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
         ],
@@ -453,9 +465,7 @@ class _AppointmentTile extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => AppointmentDetailScreen(
-                appointment: appointment,
-              ),
+              builder: (_) => AppointmentDetailScreen(appointment: appointment),
             ),
           );
         },

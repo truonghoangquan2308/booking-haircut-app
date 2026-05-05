@@ -25,14 +25,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (userId == null) return [];
 
     final raw = await ApiService.getNotifications(userId);
-    return raw
-        .whereType<Map>()
-        .map((e) {
-          final m = Map<String, dynamic>.from(e);
-          m['source'] = 'api';
-          return m;
-        })
-        .toList();
+    return raw.whereType<Map>().map((e) {
+      final m = Map<String, dynamic>.from(e);
+      m['source'] = 'api';
+      return m;
+    }).toList();
   }
 
   Future<void> _markAsRead(Map<String, dynamic> item) async {
@@ -47,9 +44,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đánh dấu đã đọc thất bại')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đánh dấu đã đọc thất bại')));
     }
   }
 
@@ -81,7 +78,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final apiItems = snapshot.data ?? const <Map<String, dynamic>>[];
+                final apiItems =
+                    snapshot.data ?? const <Map<String, dynamic>>[];
                 final mixed = <Map<String, dynamic>>[
                   ...localItems.map(
                     (e) => {
@@ -142,7 +140,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       title: Text(
                         title,
                         style: TextStyle(
-                          fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
+                          fontWeight: isRead
+                              ? FontWeight.w500
+                              : FontWeight.w700,
                         ),
                       ),
                       subtitle: Text(
@@ -151,13 +151,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       trailing: isRead
-                          ? const Icon(Icons.done, color: Colors.green, size: 20)
+                          ? const Icon(
+                              Icons.done,
+                              color: Colors.green,
+                              size: 20,
+                            )
                           : TextButton(
                               onPressed: () async {
                                 if (item['source'] == 'local') {
                                   final id = item['id'];
                                   if (id is num) {
-                                    _events.markLocalNotificationRead(id.toInt());
+                                    _events.markLocalNotificationRead(
+                                      id.toInt(),
+                                    );
                                   }
                                   return;
                                 }

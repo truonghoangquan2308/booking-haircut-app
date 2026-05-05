@@ -19,7 +19,7 @@ router.get('/branches', async (req, res) => {
     const role = rows[0].role;
     const userId = rows[0].id;
 
-    if (role === 'manager') {
+    if (role === 'manager' || role === 'receptionist') {
       const bid = rows[0].branch_id != null ? Number(rows[0].branch_id) : null;
       if (!bid || bid <= 0) return res.json({ branches: [] });
       const [br] = await pool.execute(
@@ -37,7 +37,7 @@ router.get('/branches', async (req, res) => {
       return res.json({ branches });
     }
 
-    return res.status(403).json({ error: 'Chỉ Manager hoặc Owner' });
+    return res.status(403).json({ error: 'Chỉ Manager, Receptionist hoặc Owner' });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e.message });
@@ -68,7 +68,7 @@ async function requireManagerOrOwner(req, res, next) {
     const role = rows[0].role;
     req.managerUserId = rows[0].id;
 
-    if (role === 'manager') {
+    if (role === 'manager' || role === 'receptionist') {
       req.managerBranchId = rows[0].branch_id != null ? Number(rows[0].branch_id) : null;
       return next();
     }
@@ -94,7 +94,7 @@ async function requireManagerOrOwner(req, res, next) {
       return next();
     }
 
-    return res.status(403).json({ error: 'Chỉ Manager hoặc Owner' });
+    return res.status(403).json({ error: 'Chỉ Manager, Receptionist hoặc Owner' });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e.message });
@@ -105,7 +105,7 @@ function requireManagerBranch(req, res, next) {
   if (req.managerBranchId == null || !Number.isFinite(req.managerBranchId) || req.managerBranchId <= 0) {
     return res.status(403).json({
       error:
-        'Chưa xác định được chi nhánh: Manager cần users.branch_id; Owner cần ít nhất một branches.owner_id trỏ tới id owner.',
+        'Chưa xác định được chi nhánh: Quản lý/Lễ tân cần users.branch_id; Owner cần ít nhất một branches.owner_id trỏ tới id owner.',
     });
   }
   next();
@@ -580,5 +580,122 @@ router.patch(
     }
   },
 );
+
+const { normalizeVietnamPhone } = require('../lib/phoneVn');
+
+// GET /api/manager/customers — Lấy DS khách đã đặt lịch tại chi nhánh
+router.get('/customers', requireManagerOrOwner, requireManagerBranch, async (req, res) => {
+  const bid = req.managerBranchId;
+  try {
+    const [rows] = await pool.execute(
+      `
+      SELECT u.id, u.full_name, u.phone, u.avatar_url, MAX(a.appt_date) AS last_booking
+      FROM users u
+      JOIN appointments a ON a.customer_id = u.id
+      WHERE a.branch_id = ?
+      GROUP BY u.id
+      ORDER BY last_booking DESC
+      LIMIT 200
+      `,
+      [bid]
+    );
+    return res.json({ customers: rows });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/manager/appointments-on-behalf — Lễ tân / Quản lý tạo lịch hộ
+router.post('/appointments-on-behalf', requireManagerOrOwner, requireManagerBranch, async (req, res) => {
+  const branchId = req.managerBranchId;
+  const {
+    customer_phone,
+    customer_name,
+    barber_id,
+    service_id,
+    time_slot_id,
+    appt_date,
+    start_time,
+    end_time,
+    total_price,
+    note,
+  } = req.body ?? {};
+
+  const bId = Number(barber_id);
+  const sId = Number(service_id);
+  const tsId = Number(time_slot_id);
+  const price = Number(total_price) || 0;
+  const cPhone = normalizeVietnamPhone(customer_phone ?? '');
+
+  if (!cPhone) return res.status(400).json({ error: 'SĐT khách không hợp lệ' });
+  if (!bId || !sId || !tsId || !appt_date || !start_time || !end_time) {
+    return res.status(400).json({ error: 'Thiếu thông tin tạo lịch' });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // 1. Lấy hoặc tạo user
+    let customerId;
+    const [uRows] = await conn.execute('SELECT id, full_name FROM users WHERE phone = ? LIMIT 1', [cPhone]);
+    if (uRows.length > 0) {
+      customerId = uRows[0].id;
+      // Cập nhật tên nếu chưa có or khách mới
+      if (!uRows[0].full_name && customer_name) {
+        await conn.execute('UPDATE users SET full_name = ? WHERE id = ?', [customer_name, customerId]);
+      }
+    } else {
+      const [uIns] = await conn.execute(
+        'INSERT INTO users (phone, full_name, role) VALUES (?, ?, "customer")',
+        [cPhone, customer_name || null]
+      );
+      customerId = uIns.insertId;
+    }
+
+    // 2. Validate time slot
+    const [slotRows] = await conn.execute(
+      'SELECT id, is_booked FROM time_slots WHERE id = ? AND barber_id = ? LIMIT 1',
+      [tsId, bId]
+    );
+    if (!slotRows.length) throw new Error('Không tìm thấy khung giờ');
+    if (Number(slotRows[0].is_booked) === 1) throw new Error('Khung giờ đã được đặt');
+
+    // 3. Kiểm tra cột receptionist_id (database của user có thể đã update schema)
+    let hasRecCol = false;
+    try {
+      const [cols] = await conn.execute(
+        "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'appointments' AND COLUMN_NAME = 'receptionist_id' LIMIT 1"
+      );
+      hasRecCol = cols.length > 0;
+    } catch(e) {}
+
+    let queryStr = `INSERT INTO appointments
+      (customer_id, barber_id, branch_id, service_id, time_slot_id, appt_date, start_time, end_time, total_price, note, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')`;
+    let params = [customerId, bId, branchId, sId, tsId, appt_date, start_time, end_time, price, note ?? null];
+
+    if (hasRecCol) {
+      queryStr = `INSERT INTO appointments
+      (customer_id, barber_id, branch_id, service_id, time_slot_id, receptionist_id, appt_date, start_time, end_time, total_price, note, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')`;
+      params = [customerId, bId, branchId, sId, tsId, req.managerUserId, appt_date, start_time, end_time, price, note ?? null];
+    }
+
+    const [insAppt] = await conn.execute(queryStr, params);
+
+    await conn.execute('UPDATE time_slots SET is_booked = 1 WHERE id = ?', [tsId]);
+
+    await conn.commit();
+    return res.status(201).json({ status: 'success', appointment_id: insAppt.insertId });
+  } catch (e) {
+    await conn.rollback();
+    console.error(e);
+    return res.status(500).json({ error: e.message });
+  } finally {
+    conn.release();
+  }
+});
 
 module.exports = router;

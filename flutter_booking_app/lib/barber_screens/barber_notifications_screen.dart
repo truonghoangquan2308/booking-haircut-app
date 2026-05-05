@@ -5,7 +5,8 @@ class BarberNotificationsScreen extends StatefulWidget {
   const BarberNotificationsScreen({super.key});
 
   @override
-  State<BarberNotificationsScreen> createState() => _BarberNotificationsScreenState();
+  State<BarberNotificationsScreen> createState() =>
+      _BarberNotificationsScreenState();
 }
 
 class _BarberNotificationsScreenState extends State<BarberNotificationsScreen> {
@@ -72,7 +73,11 @@ class _BarberNotificationsScreenState extends State<BarberNotificationsScreen> {
                     fontWeight: item.isRead ? FontWeight.w500 : FontWeight.w700,
                   ),
                 ),
-                subtitle: Text(item.message, maxLines: 2, overflow: TextOverflow.ellipsis),
+                subtitle: Text(
+                  item.message,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 trailing: item.isRead
                     ? const Icon(Icons.done, color: Colors.green, size: 20)
                     : TextButton(

@@ -132,7 +132,9 @@ class _HistoryScreenState extends State<HistoryScreen>
     if (n == null) return raw;
     if (n >= 1000) {
       final k = n / 1000;
-      return k % 1 == 0 ? '${k.toStringAsFixed(0)}k' : '${k.toStringAsFixed(1)}k';
+      return k % 1 == 0
+          ? '${k.toStringAsFixed(0)}k'
+          : '${k.toStringAsFixed(1)}k';
     }
     return '${n.toStringAsFixed(0)}đ';
   }
@@ -158,7 +160,10 @@ class _HistoryScreenState extends State<HistoryScreen>
           labelColor: Colors.white,
           unselectedLabelColor: Colors.black54,
           indicatorColor: Colors.white,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
           tabs: const [
             Tab(text: 'Tất Cả'),
@@ -196,9 +201,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                 children: const [
                   SizedBox(height: 260),
                   Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xffffc107),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xffffc107)),
                   ),
                 ],
               );
@@ -207,15 +210,15 @@ class _HistoryScreenState extends State<HistoryScreen>
             if (_error != null) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 24,
+                ),
                 children: [
                   Text(
                     'Không tải được lịch sử: $_error',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.grey.shade800,
-                      fontSize: 15,
-                    ),
+                    style: TextStyle(color: Colors.grey.shade800, fontSize: 15),
                   ),
                 ],
               );
@@ -292,12 +295,14 @@ class _HistoryScreenState extends State<HistoryScreen>
   Widget _buildHistoryItem(Map<String, dynamic> item) {
     final status = _statusKey(item['status']);
     final isCompleted = status == 'completed';
-    final barberName = (item['barber_name'] ??
-            item['barber_full_name'] ??
-            item['barber'] ??
-            '---')
+    final barberName =
+        (item['barber_name'] ??
+                item['barber_full_name'] ??
+                item['barber'] ??
+                '---')
+            .toString();
+    final serviceName = (item['service_name'] ?? item['service'] ?? '---')
         .toString();
-    final serviceName = (item['service_name'] ?? item['service'] ?? '---').toString();
     final apptDate = item['appt_date']?.toString();
     final startTime = item['start_time']?.toString();
     final dateLabel = _formatDateLabel(apptDate);
@@ -308,17 +313,18 @@ class _HistoryScreenState extends State<HistoryScreen>
         ? _toInt(item['customer_id'])
         : (AppSession.userId ?? 0);
     final barberId = _toInt(item['barber_id']);
-    final existingReview =
-        appointmentId > 0 ? _reviewByAppointment[appointmentId] : null;
+    final existingReview = appointmentId > 0
+        ? _reviewByAppointment[appointmentId]
+        : null;
     final hasReviewed = existingReview != null;
 
     final cardBg = isCompleted ? const Color(0xFF1B5E20) : Colors.white;
     final primaryText = isCompleted ? Colors.white : Colors.black87;
-    final secondaryText =
-        isCompleted ? Colors.white70 : Colors.grey.shade600;
+    final secondaryText = isCompleted ? Colors.white70 : Colors.grey.shade600;
     final priceColor = isCompleted ? Colors.white : const Color(0xffffc107);
-    final reviewLinkColor =
-        isCompleted ? Colors.white : (hasReviewed ? Colors.green.shade700 : Colors.blue);
+    final reviewLinkColor = isCompleted
+        ? Colors.white
+        : (hasReviewed ? Colors.green.shade700 : Colors.blue);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -339,8 +345,9 @@ class _HistoryScreenState extends State<HistoryScreen>
         children: [
           CircleAvatar(
             radius: 22,
-            backgroundColor:
-                isCompleted ? Colors.white : const Color(0xffffc107),
+            backgroundColor: isCompleted
+                ? Colors.white
+                : const Color(0xffffc107),
             child: Text(
               barberName.isEmpty ? '?' : barberName[0].toUpperCase(),
               style: TextStyle(

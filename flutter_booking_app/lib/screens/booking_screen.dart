@@ -1100,7 +1100,8 @@ class _BookingScreenState extends State<BookingScreen> {
                     name,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  if (barber['bio'] != null && barber['bio'].toString().isNotEmpty)
+                  if (barber['bio'] != null &&
+                      barber['bio'].toString().isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(

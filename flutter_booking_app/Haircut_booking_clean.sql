@@ -9,6 +9,7 @@ CREATE DATABASE haircut_booking
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 USE haircut_booking;
+
 -- ================================================
 -- 1. USERS
 -- ================================================
@@ -20,7 +21,9 @@ CREATE TABLE users (
   full_name     VARCHAR(100) NULL,
   avatar_url    VARCHAR(255) NULL,
   date_of_birth DATE NULL,
-  role          ENUM('customer', 'barber', 'manager', 'owner', 'admin') NOT NULL DEFAULT 'customer',
+  role          ENUM('customer', 'barber', 'receptionist', 'manager', 'owner', 'admin')
+                NOT NULL DEFAULT 'customer',
+  is_locked     TINYINT(1) NOT NULL DEFAULT 0,
   status        ENUM('available', 'off') NOT NULL DEFAULT 'available',
   branch_id     INT NULL,
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -30,21 +33,23 @@ CREATE TABLE users (
 -- 2. BRANCHES (chi nhánh)
 -- ================================================
 CREATE TABLE branches (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  owner_id    INT NOT NULL,
-  name        VARCHAR(100) NOT NULL,
-  address     TEXT NULL,
-  phone       VARCHAR(20) NULL,
-  latitude    DECIMAL(10, 7) NULL,
-  longitude   DECIMAL(10, 7) NULL,
-  status      ENUM('active', 'blocked') NOT NULL DEFAULT 'active',
-  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  owner_id        INT NOT NULL,
+  name            VARCHAR(100) NOT NULL,
+  address         TEXT NULL,
+  phone           VARCHAR(20) NULL,
+  latitude        DECIMAL(10, 7) NULL,
+  longitude       DECIMAL(10, 7) NULL,
+  status          ENUM('active', 'blocked') NOT NULL DEFAULT 'active',
+  approval_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_branches_owner
     FOREIGN KEY (owner_id) REFERENCES users(id)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   INDEX idx_branches_owner (owner_id),
-  INDEX idx_branches_status (status)
+  INDEX idx_branches_status (status),
+  INDEX idx_branches_approval (approval_status)
 ) ENGINE=InnoDB;
 
 -- Gắn FK branch_id vào users sau khi tạo branches
@@ -56,12 +61,12 @@ ALTER TABLE users
 
 -- ================================================
 -- 3. BARBERS
+-- (branch_id bỏ ở đây, dùng branch_id từ bảng users)
 -- ================================================
 CREATE TABLE barbers (
   id            INT AUTO_INCREMENT PRIMARY KEY,
   user_id       INT NOT NULL UNIQUE,
-  branch_id     INT NULL,
-  bio           ENUM('thợ hiện đại', 'thợ cổ điển', 'thợ phong cách hàn quốc') NULL,
+  bio           VARCHAR(255) NULL,
   rating        DECIMAL(2,1) NOT NULL DEFAULT 0.0,
   total_reviews INT NOT NULL DEFAULT 0,
   is_available  TINYINT(1) NOT NULL DEFAULT 1,
@@ -69,25 +74,26 @@ CREATE TABLE barbers (
   CONSTRAINT fk_barbers_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT fk_barbers_branch
-    FOREIGN KEY (branch_id) REFERENCES branches(id)
-    ON DELETE SET NULL
-    ON UPDATE CASCADE,
-  INDEX idx_barbers_branch (branch_id)
+    ON UPDATE CASCADE
 ) ENGINE=InnoDB;
+
 -- ================================================
 -- 4. SERVICES
 -- ================================================
 CREATE TABLE services (
   id          INT AUTO_INCREMENT PRIMARY KEY,
+  branch_id   INT NULL,
   name        VARCHAR(100) NOT NULL,
   description TEXT NULL,
   price       DECIMAL(10,2) NOT NULL,
   duration    INT NOT NULL DEFAULT 30,
   image_url   VARCHAR(255) NULL,
   is_active   TINYINT(1) NOT NULL DEFAULT 1,
-  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_services_branch
+    FOREIGN KEY (branch_id) REFERENCES branches(id)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
 -- ================================================
@@ -130,20 +136,21 @@ CREATE TABLE time_slots (
 -- 7. APPOINTMENTS
 -- ================================================
 CREATE TABLE appointments (
-  id           INT AUTO_INCREMENT PRIMARY KEY,
-  customer_id  INT NOT NULL,
-  barber_id    INT NOT NULL,
-  branch_id    INT NOT NULL,
-  service_id   INT NOT NULL,
-  time_slot_id INT NOT NULL,
-  appt_date    DATE NOT NULL,
-  start_time   TIME NOT NULL,
-  end_time     TIME NOT NULL,
-  total_price  DECIMAL(10,2) NOT NULL,
-  note         TEXT NULL,
-  status       ENUM('pending','confirmed','in_progress','completed','cancelled')
-               NOT NULL DEFAULT 'pending',
-  created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  customer_id     INT NOT NULL,
+  barber_id       INT NOT NULL,
+  branch_id       INT NOT NULL,
+  service_id      INT NOT NULL,
+  time_slot_id    INT NOT NULL,
+  receptionist_id INT NULL,           -- NV lễ tân tạo lịch hộ (nếu có)
+  appt_date       DATE NOT NULL,
+  start_time      TIME NOT NULL,
+  end_time        TIME NOT NULL,
+  total_price     DECIMAL(10,2) NOT NULL,
+  note            TEXT NULL,
+  status          ENUM('pending','confirmed','in_progress','completed','cancelled')
+                  NOT NULL DEFAULT 'pending',
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_appt_customer
     FOREIGN KEY (customer_id) REFERENCES users(id)
     ON DELETE CASCADE
@@ -163,6 +170,10 @@ CREATE TABLE appointments (
   CONSTRAINT fk_appt_timeslot
     FOREIGN KEY (time_slot_id) REFERENCES time_slots(id)
     ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_appt_receptionist
+    FOREIGN KEY (receptionist_id) REFERENCES users(id)
+    ON DELETE SET NULL
     ON UPDATE CASCADE,
   INDEX idx_appt_customer (customer_id),
   INDEX idx_appt_barber_date (barber_id, appt_date),
@@ -217,7 +228,26 @@ CREATE TABLE notifications (
 ) ENGINE=InnoDB;
 
 -- ================================================
--- 10. PRODUCT CATEGORIES
+-- 10. ADMIN LOGS (nhật ký hoạt động admin)
+-- ================================================
+CREATE TABLE admin_logs (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  admin_id   INT NOT NULL,
+  action     VARCHAR(100) NOT NULL,   -- 'user.update', 'branch.approve', 'branch.block'...
+  target     VARCHAR(100) NULL,       -- 'user #4', 'branch #1'...
+  detail     TEXT NULL,               -- 'isLocked: true', 'approval: approved'...
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_admin_logs_admin
+    FOREIGN KEY (admin_id) REFERENCES users(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  INDEX idx_admin_logs_admin (admin_id),
+  INDEX idx_admin_logs_action (action),
+  INDEX idx_admin_logs_created (created_at)
+) ENGINE=InnoDB;
+
+-- ================================================
+-- 11. PRODUCT CATEGORIES
 -- ================================================
 CREATE TABLE product_categories (
   id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -230,19 +260,19 @@ CREATE TABLE product_categories (
 ) ENGINE=InnoDB;
 
 -- ================================================
--- 11. PRODUCTS
+-- 12. PRODUCTS
 -- ================================================
 CREATE TABLE products (
-  id            INT AUTO_INCREMENT PRIMARY KEY,
-  category_id   INT NOT NULL,
-  name          VARCHAR(150) NOT NULL,
-  description   TEXT NULL,
-  price         DECIMAL(10,2) NOT NULL,
-  stock         INT NOT NULL DEFAULT 0,
-  unit          VARCHAR(30) NOT NULL DEFAULT 'cái',
-  image_url     VARCHAR(255) NULL,
-  is_active     TINYINT(1) NOT NULL DEFAULT 1,
-  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  category_id INT NOT NULL,
+  name        VARCHAR(150) NOT NULL,
+  description TEXT NULL,
+  price       DECIMAL(10,2) NOT NULL,
+  stock       INT NOT NULL DEFAULT 0,
+  unit        VARCHAR(30) NOT NULL DEFAULT 'cái',
+  image_url   VARCHAR(255) NULL,
+  is_active   TINYINT(1) NOT NULL DEFAULT 1,
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_products_category
     FOREIGN KEY (category_id) REFERENCES product_categories(id)
     ON DELETE RESTRICT
@@ -252,14 +282,14 @@ CREATE TABLE products (
 ) ENGINE=InnoDB;
 
 -- ================================================
--- 12. PRODUCT IMAGES
+-- 13. PRODUCT IMAGES
 -- ================================================
 CREATE TABLE product_images (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  product_id  INT NOT NULL,
-  image_url   VARCHAR(255) NOT NULL,
-  sort_order  INT NOT NULL DEFAULT 0,
-  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  image_url  VARCHAR(255) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_product_images_product
     FOREIGN KEY (product_id) REFERENCES products(id)
     ON DELETE CASCADE
@@ -268,14 +298,14 @@ CREATE TABLE product_images (
 ) ENGINE=InnoDB;
 
 -- ================================================
--- 13. CART ITEMS
+-- 14. CART ITEMS
 -- ================================================
 CREATE TABLE cart_items (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  user_id     INT NOT NULL,
-  product_id  INT NOT NULL,
-  quantity    INT NOT NULL DEFAULT 1,
-  added_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  user_id    INT NOT NULL,
+  product_id INT NOT NULL,
+  quantity   INT NOT NULL DEFAULT 1,
+  added_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_cart_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE
@@ -288,7 +318,7 @@ CREATE TABLE cart_items (
 ) ENGINE=InnoDB;
 
 -- ================================================
--- 14. SHOP ORDERS
+-- 15. SHOP ORDERS
 -- ================================================
 CREATE TABLE shop_orders (
   id               INT AUTO_INCREMENT PRIMARY KEY,
@@ -308,15 +338,15 @@ CREATE TABLE shop_orders (
 ) ENGINE=InnoDB;
 
 -- ================================================
--- 15. SHOP ORDER ITEMS
+-- 16. SHOP ORDER ITEMS
 -- ================================================
 CREATE TABLE shop_order_items (
-  id           INT AUTO_INCREMENT PRIMARY KEY,
-  order_id     INT NOT NULL,
-  product_id   INT NOT NULL,
-  quantity     INT NOT NULL,
-  unit_price   DECIMAL(10,2) NOT NULL,
-  subtotal     DECIMAL(10,2) NOT NULL,
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  order_id   INT NOT NULL,
+  product_id INT NOT NULL,
+  quantity   INT NOT NULL,
+  unit_price DECIMAL(10,2) NOT NULL,
+  subtotal   DECIMAL(10,2) NOT NULL,
   CONSTRAINT fk_shop_order_items_order
     FOREIGN KEY (order_id) REFERENCES shop_orders(id)
     ON DELETE CASCADE
@@ -329,9 +359,11 @@ CREATE TABLE shop_order_items (
 ) ENGINE=InnoDB;
 
 -- ================================================
+-- TRIGGERS: Auto sync barber rating
 -- ================================================
--- DELIMITER $
+DELIMITER $$
 
+CREATE TRIGGER trg_reviews_after_insert
 AFTER INSERT ON reviews
 FOR EACH ROW
 BEGIN
@@ -350,6 +382,7 @@ BEGIN
   WHERE b.id = NEW.barber_id;
 END$$
 
+CREATE TRIGGER trg_reviews_after_update
 AFTER UPDATE ON reviews
 FOR EACH ROW
 BEGIN
@@ -382,6 +415,7 @@ BEGIN
   WHERE b.id = NEW.barber_id;
 END$$
 
+CREATE TRIGGER trg_reviews_after_delete
 AFTER DELETE ON reviews
 FOR EACH ROW
 BEGIN
@@ -400,11 +434,11 @@ BEGIN
   WHERE b.id = OLD.barber_id;
 END$$
 
--- DELIMITER ;
+DELIMITER ;
 
 -- ================================================
 -- SEED: DEFAULT SYSTEM USERS
--- Thứ tự: admin → owner → branch → manager
+-- Thứ tự: admin → owner → branch → manager → receptionist
 -- ================================================
 
 -- 1. Admin
@@ -416,7 +450,7 @@ INSERT INTO users (email, firebase_uid, full_name, role, status)
 VALUES ('owner@gmail.com', 'EvIEkvm1LWR9OOAz8uALiVlHg8J3', 'Owner', 'owner', 'available');
 
 -- 3. Chi nhánh 1 - Bình Tân
-INSERT INTO branches (owner_id, name, address, phone, latitude, longitude, status)
+INSERT INTO branches (owner_id, name, address, phone, latitude, longitude, status, approval_status)
 VALUES (
   (SELECT id FROM users WHERE email = 'owner@gmail.com'),
   'BB Shop - Chi nhánh 1',
@@ -424,11 +458,12 @@ VALUES (
   '0909000001',
   10.7553,
   106.6019,
-  'active'
+  'active',
+  'approved'
 );
 
 -- 4. Chi nhánh 2 - Thủ Đức
-INSERT INTO branches (owner_id, name, address, phone, latitude, longitude, status)
+INSERT INTO branches (owner_id, name, address, phone, latitude, longitude, status, approval_status)
 VALUES (
   (SELECT id FROM users WHERE email = 'owner@gmail.com'),
   'BB Shop - Chi nhánh 2',
@@ -436,7 +471,8 @@ VALUES (
   '0909000002',
   10.8500,
   106.7717,
-  'active'
+  'active',
+  'approved'
 );
 
 -- 5. Manager (gắn vào chi nhánh 1)
@@ -446,6 +482,17 @@ VALUES (
   'oXpcYrnTCQX5EstaxEWXTJ6o9Op1',
   'Manager',
   'manager',
+  'available',
+  (SELECT id FROM branches WHERE name = 'BB Shop - Chi nhánh 1')
+);
+
+-- 6. Receptionist (gắn vào chi nhánh 1)
+INSERT INTO users (email, firebase_uid, full_name, role, status, branch_id)
+VALUES (
+  'receptionist@gmail.com',
+  NULL,
+  'Lễ Tân 1',
+  'receptionist',
   'available',
   (SELECT id FROM branches WHERE name = 'BB Shop - Chi nhánh 1')
 );

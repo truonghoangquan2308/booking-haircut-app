@@ -114,8 +114,10 @@ class _HomeTabState extends State<HomeTab> {
                     const SizedBox(height: 18),
                     const Text(
                       'DỊCH VỤ TÓC',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     const _ServiceList(),
@@ -151,7 +153,11 @@ class _HomeHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Center(
-                  child: Icon(Icons.content_cut, color: Colors.orange, size: 26),
+                  child: Icon(
+                    Icons.content_cut,
+                    color: Colors.orange,
+                    size: 26,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -193,22 +199,22 @@ class _ActionGrid extends StatelessWidget {
   void _onTap(BuildContext context, int index) {
     switch (index) {
       case 0:
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const PromotionsScreen()),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const PromotionsScreen()));
         break;
       case 1:
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const CommitmentScreen()),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const CommitmentScreen()));
         break;
       case 2:
         onOpenShop();
         break;
       case 3:
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const SupportScreen()),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const SupportScreen()));
         break;
     }
   }
@@ -230,34 +236,31 @@ class _ActionGrid extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(
-          _actions.length,
-          (i) {
-            final action = _actions[i];
-            return InkWell(
-              onTap: () => _onTap(context, i),
-              borderRadius: BorderRadius.circular(16),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: const Color(0xffffc107),
-                      child: Icon(action.icon, size: 26, color: Colors.white),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      action.label,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
+        children: List.generate(_actions.length, (i) {
+          final action = _actions[i];
+          return InkWell(
+            onTap: () => _onTap(context, i),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: const Color(0xffffc107),
+                    child: Icon(action.icon, size: 26, color: Colors.white),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    action.label,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
               ),
-            );
-          },
-        ),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -536,10 +539,7 @@ class _ServiceItem extends StatelessWidget {
             description.trim().isEmpty ? 'Chưa có mô tả' : description.trim(),
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.grey.shade700,
-              fontSize: 12.5,
-            ),
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 12.5),
           ),
         ],
       ),

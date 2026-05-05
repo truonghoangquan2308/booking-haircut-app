@@ -292,8 +292,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final dobStr = widget.profile.dateOfBirth != null
         ? '${widget.profile.dateOfBirth!.year}-'
-            '${widget.profile.dateOfBirth!.month.toString().padLeft(2, '0')}-'
-            '${widget.profile.dateOfBirth!.day.toString().padLeft(2, '0')}'
+              '${widget.profile.dateOfBirth!.month.toString().padLeft(2, '0')}-'
+              '${widget.profile.dateOfBirth!.day.toString().padLeft(2, '0')}'
         : null;
 
     try {

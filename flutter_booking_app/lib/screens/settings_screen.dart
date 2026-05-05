@@ -17,7 +17,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _logout() async {
@@ -87,35 +89,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           children: [
             _buildSection('Thông báo', [
-              _buildSwitch(
-                'Thông báo đặt lịch',
-                _notification,
-                (v) {
-                  setState(() => _notification = v);
-                  _showSnack(
-                    v ? 'Đã bật thông báo đặt lịch' : 'Đã tắt thông báo đặt lịch',
-                  );
-                },
-              ),
+              _buildSwitch('Thông báo đặt lịch', _notification, (v) {
+                setState(() => _notification = v);
+                _showSnack(
+                  v ? 'Đã bật thông báo đặt lịch' : 'Đã tắt thông báo đặt lịch',
+                );
+              }),
             ]),
             const SizedBox(height: 12),
             _buildSection('Giao diện', [
-              _buildSwitch(
-                'Chế độ tối',
-                _darkMode,
-                (v) {
-                  setState(() => _darkMode = v);
-                  _showSnack('Tính năng đang được hoàn thiện.');
-                },
-              ),
-              _buildSwitch(
-                'Tiếng Anh',
-                _language,
-                (v) {
-                  setState(() => _language = v);
-                  _showSnack('Tính năng chuyển ngôn ngữ đang được hoàn thiện.');
-                },
-              ),
+              _buildSwitch('Chế độ tối', _darkMode, (v) {
+                setState(() => _darkMode = v);
+                _showSnack('Tính năng đang được hoàn thiện.');
+              }),
+              _buildSwitch('Tiếng Anh', _language, (v) {
+                setState(() => _language = v);
+                _showSnack('Tính năng chuyển ngôn ngữ đang được hoàn thiện.');
+              }),
             ]),
             const SizedBox(height: 12),
             _buildSection('Tài khoản', [

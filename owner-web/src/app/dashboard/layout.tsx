@@ -1,4 +1,5 @@
 import { OwnerSubNav } from "@/components/OwnerSubNav";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export default function OwnerDashboardLayout({
   children,
@@ -6,9 +7,9 @@ export default function OwnerDashboardLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <>
+    <AuthGuard>
       <OwnerSubNav />
       {children}
-    </>
+    </AuthGuard>
   );
 }

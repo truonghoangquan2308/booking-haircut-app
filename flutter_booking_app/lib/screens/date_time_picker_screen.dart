@@ -71,10 +71,12 @@ class _DateTimePickerScreenState extends State<DateTimePickerScreen> {
       );
 
       // Only show free slots.
-      final available = slots.where((s) {
-        final v = s['is_booked'];
-        return v == 0 || v == '0' || v == null;
-      }).toList(growable: false);
+      final available = slots
+          .where((s) {
+            final v = s['is_booked'];
+            return v == 0 || v == '0' || v == null;
+          })
+          .toList(growable: false);
 
       setState(() {
         _slots = available;
@@ -225,7 +227,9 @@ class _DateTimePickerScreenState extends State<DateTimePickerScreen> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: selected ? const Color(0xffffc107) : Colors.white,
+                        color: selected
+                            ? const Color(0xffffc107)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: selected
@@ -319,9 +323,9 @@ class _DateTimePickerScreenState extends State<DateTimePickerScreen> {
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Đặt lịch thất bại: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Đặt lịch thất bại: $e')));
     }
   }
 }

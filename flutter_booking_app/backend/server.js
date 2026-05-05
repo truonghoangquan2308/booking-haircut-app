@@ -395,7 +395,7 @@ app.put('/api/barbers/:barberId/availability', async (req, res) => {
 // ─────────────────────────────────────────────
 app.post('/api/users/verify', async (req, res) => {
   const { phone, firebase_uid, role: rawRole = 'customer' } = req.body;
-  const allowedRoles = new Set(['customer', 'barber', 'manager', 'owner', 'admin']);
+  const allowedRoles = new Set(['customer', 'barber', 'receptionist', 'manager', 'owner', 'admin']);
   const role = allowedRoles.has(String(rawRole || '').toLowerCase())
     ? String(rawRole).toLowerCase()
     : 'customer';

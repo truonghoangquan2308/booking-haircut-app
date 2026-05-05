@@ -144,7 +144,9 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
                   final isSelected =
                       widget.selectedTitle != null &&
                       widget.selectedTitle == title;
-                  final giftColor = _colorFromHex(p['accent_color']?.toString());
+                  final giftColor = _colorFromHex(
+                    p['accent_color']?.toString(),
+                  );
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
