@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "27538477845",
+    "project_id": "barber-booking-app-2ad2b",
+    "storage_bucket": "barber-booking-app-2ad2b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:27538477845:android:7c5c766f20e38675414f1c",
+        "android_client_info": {
+          "package_name": "com.example.flutter_booking_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBCr-ozLfE-U8dUTcCGt8uTrkBtxafZOS4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
