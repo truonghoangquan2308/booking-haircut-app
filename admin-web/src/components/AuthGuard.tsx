@@ -15,6 +15,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
+<<<<<<< HEAD
     // 1. Kiểm tra token từ hash trước (an toàn hơn), fallback query để tương thích link cũ.
     const queryParams = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(
@@ -24,6 +25,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
     const tokenFromUrl = hashParams.get("token") ?? queryParams.get("token");
     const uidFromUrl = hashParams.get("uid") ?? queryParams.get("uid");
+=======
+    // 1. Kiểm tra xem có token trong URL không (do login-web chuyển qua)
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get("token");
+    const uidFromUrl = urlParams.get("uid");
+>>>>>>> 44c0d5865a186979fa079fb53897f421a567cbfe
 
     if (tokenFromUrl) {
       localStorage.setItem("bb_firebase_token", tokenFromUrl);
