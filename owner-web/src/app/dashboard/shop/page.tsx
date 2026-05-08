@@ -1,16 +1,17 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, getApiBase, readJsonResponse } from "@/lib/api";
 import toast from "react-hot-toast";
 
 type CategoryRow = {
   id: number;
   name: string;
-  code_prefix?: string;
+  code_prefix: string;
   product_count?: number;
-  is_active?: number;
 };
 
 type ProductRow = {
@@ -18,6 +19,7 @@ type ProductRow = {
   sku?: string | null;
   category_id: number;
   category_name?: string;
+  code_prefix?: string;
   name: string;
   price: string | number;
   stock: number;
@@ -65,7 +67,7 @@ export default function OwnerShopPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [stockFilter, setStockFilter] = useState("");
-  const [sortBy, setSortBy] = useState("id");
+  const [sortBy, setSortBy] = useState("sku");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
@@ -83,12 +85,12 @@ export default function OwnerShopPage() {
 
   // Add product form
   const [categoryId, setCategoryId] = useState("");
-  const [skuSuffix, setSkuSuffix] = useState("");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("0");
   const [unit, setUnit] = useState("cái");
   const [description, setDescription] = useState("");
+  const [skuSuffix, setSkuSuffix] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
 
@@ -170,15 +172,6 @@ export default function OwnerShopPage() {
     setTotalProducts(pJson.total ?? 0);
   }, [searchQuery, selectedCategory, stockFilter, sortBy, sortOrder, currentPage, pageSize]);
 
-  const resetFilters = useCallback(() => {
-    setSearchQuery("");
-    setSelectedCategory("");
-    setStockFilter("");
-    setSortBy("id");
-    setSortOrder("desc");
-    setCurrentPage(1);
-  }, []);
-
   const loadOrders = useCallback(async () => {
     const base = getApiBase();
     const params = new URLSearchParams({
@@ -195,42 +188,38 @@ export default function OwnerShopPage() {
   }, [orderStatusFilter, orderStartDate, orderEndDate]);
 
   useEffect(() => {
-    const storedUid = localStorage.getItem("bb_firebase_uid");
-    if (!storedUid) {
-      router.replace("/");
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
+    const unsub = onAuthStateChanged(auth, async (fb) => {
+      const effectiveUid = fb?.uid ?? localStorage.getItem("bb_firebase_uid");
+      if (!effectiveUid) {
+        router.replace("/");
+        return;
+      }
       try {
-        const row = await fetchUserByFirebaseUid(storedUid);
-        if (cancelled) return;
+        const row = await fetchUserByFirebaseUid(effectiveUid);
         if (row.role !== "owner") {
-          localStorage.removeItem("bb_firebase_token");
-          localStorage.removeItem("bb_firebase_uid");
+          if (fb) await signOut(auth);
           router.replace("/");
           return;
         }
         if (row.is_locked === 1 || row.is_locked === true) {
+          if (fb) await signOut(auth);
           setError("Tài khoản đã bị khóa.");
           return;
         }
         setReady(true);
         await load();
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+        setError(e instanceof Error ? e.message : String(e));
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    });
+    return () => unsub();
   }, [router, load]);
 
   useEffect(() => {
     if (ready) {
       loadProducts();
     }
-  }, [ready, searchQuery, selectedCategory, stockFilter, sortBy, sortOrder, currentPage]);
+  }, [ready, loadProducts]);
 
   useEffect(() => {
     if (ready) {
@@ -248,20 +237,17 @@ export default function OwnerShopPage() {
     setSaving(true);
     setError(null);
     try {
-      const selectedCategory = categories.find((c) => c.id === cid);
-      const prefix = selectedCategory?.code_prefix?.trim() ?? "";
-      const suffix = skuSuffix.trim().replace(/\D/g, "");
-      const sku = prefix && suffix ? `${prefix}${suffix.padStart(3, "0")}` : undefined;
-
       const base = getApiBase();
       const fd = new FormData();
       fd.append("category_id", String(cid));
-      if (sku) fd.append("sku", sku);
       fd.append("name", name.trim());
       fd.append("price", String(Number(price)));
       fd.append("stock", String(Number(stock)));
       fd.append("unit", unit.trim() || "cái");
       fd.append("description", description.trim());
+      if (skuSuffix.trim()) {
+        fd.append("sku_suffix", String(Number(skuSuffix)));
+      }
       fd.append("is_active", "1");
       if (image) {
         fd.append("image", image, image.name || "product.jpg");
@@ -275,11 +261,11 @@ export default function OwnerShopPage() {
       if (!res.ok) throw new Error(data.error ?? "Không thêm được sản phẩm");
 
       setName("");
-      setSkuSuffix("");
       setPrice("");
       setStock("0");
       setUnit("cái");
       setDescription("");
+      setSkuSuffix("");
       setImage(null);
       setFileInputKey((k) => k + 1);
       await loadProducts();
@@ -293,7 +279,7 @@ export default function OwnerShopPage() {
   }
 
   async function addCategory() {
-    if (!newCategoryName.trim()) return;
+    if (!newCategoryName.trim() || !newCategoryPrefix.trim()) return;
     setSaving(true);
     setError(null);
     try {
@@ -303,7 +289,7 @@ export default function OwnerShopPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newCategoryName.trim(),
-          code_prefix: newCategoryPrefix.trim(),
+          code_prefix: newCategoryPrefix.trim().toUpperCase(),
         }),
       });
       const data = await readJsonResponse<{ error?: string }>(res);
@@ -319,7 +305,7 @@ export default function OwnerShopPage() {
   }
 
   async function updateCategory() {
-    if (!editingCategory || !editingCategory.name.trim()) return;
+    if (!editingCategory || !editingCategory.name.trim() || !editingCategory.code_prefix.trim()) return;
     setSaving(true);
     setError(null);
     try {
@@ -329,7 +315,7 @@ export default function OwnerShopPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: editingCategory.name.trim(),
-          code_prefix: editingCategory.code_prefix?.trim(),
+          code_prefix: editingCategory.code_prefix.trim().toUpperCase(),
         }),
       });
       const data = await readJsonResponse<{ error?: string }>(res);
@@ -492,16 +478,16 @@ export default function OwnerShopPage() {
     return categories.find((c) => c.id === id)?.name ?? `#${id}`;
   }
 
-  function formatSku(product: ProductRow) {
-    if (product.sku && product.sku.trim()) {
-      return product.sku.trim();
-    }
-    const prefix = categories.find((c) => c.id === product.category_id)?.code_prefix?.trim();
-    if (prefix) {
-      return `${prefix}${String(product.id).padStart(3, '0')}`;
-    }
-    return `#${product.id}`;
+  function selectedCategoryPrefix(idValue: string) {
+    if (!idValue) return "";
+    return categories.find((c) => String(c.id) === idValue)?.code_prefix ?? "";
   }
+
+  const visibleProducts = useMemo(() => {
+    if (!selectedCategory) return products;
+    return products.filter((p) => String(p.category_id) === selectedCategory);
+  }, [products, selectedCategory]);
+  const editingCategoryHasProducts = Number(editingCategory?.product_count || 0) > 0;
 
   if (!ready && !error) {
     return (
@@ -574,24 +560,25 @@ export default function OwnerShopPage() {
           <h2 className="mb-4 text-lg font-bold text-bb-navy">Quản lý danh mục</h2>
           
           {/* Form thêm danh mục */}
-          <div className="mb-4 grid gap-2 sm:grid-cols-[1.5fr_1fr_auto]">
+          <div className="mb-4 grid gap-2 sm:grid-cols-3">
             <input
               type="text"
               placeholder="Tên danh mục mới"
-              className="flex-1 rounded-lg border border-gray-200 px-3 py-2"
+              className="rounded-lg border border-gray-200 px-3 py-2"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
             />
             <input
               type="text"
-              placeholder="Tiền tố mã (ví dụ SRM)"
-              className="rounded-lg border border-gray-200 px-3 py-2"
+              placeholder="Mã tiền tố (VD: ST)"
+              maxLength={10}
+              className="rounded-lg border border-gray-200 px-3 py-2 uppercase"
               value={newCategoryPrefix}
-              onChange={(e) => setNewCategoryPrefix(e.target.value)}
+              onChange={(e) => setNewCategoryPrefix(e.target.value.toUpperCase())}
             />
             <button
               onClick={addCategory}
-              disabled={saving || !newCategoryName.trim()}
+              disabled={saving || !newCategoryName.trim() || !newCategoryPrefix.trim()}
               className="rounded-lg bg-bb-yellow px-4 py-2 text-sm font-bold text-black/80 disabled:opacity-50"
             >
               Thêm
@@ -605,7 +592,7 @@ export default function OwnerShopPage() {
                 <tr>
                   <th className="py-2 pr-2">ID</th>
                   <th className="py-2 pr-2">Tên</th>
-                  <th className="py-2 pr-2">Tiền tố mã</th>
+                  <th className="py-2 pr-2">Tiền tố</th>
                   <th className="py-2 pr-2">Số sản phẩm</th>
                   <th className="py-2">Hành động</th>
                 </tr>
@@ -635,14 +622,28 @@ export default function OwnerShopPage() {
                       </td>
                       <td className="py-2 pr-2">
                         {editingCategory?.id === c.id ? (
-                          <input
-                            type="text"
-                            className="w-full rounded border border-gray-200 px-2 py-1"
-                            value={editingCategory.code_prefix ?? ''}
-                            onChange={(e) => setEditingCategory({ ...editingCategory, code_prefix: e.target.value })}
-                          />
+                          <div>
+                            <input
+                              type="text"
+                              maxLength={10}
+                              disabled={editingCategoryHasProducts}
+                              className="w-full rounded border border-gray-200 px-2 py-1 uppercase disabled:bg-gray-100 disabled:text-gray-400"
+                              value={editingCategory.code_prefix}
+                              onChange={(e) =>
+                                setEditingCategory({
+                                  ...editingCategory,
+                                  code_prefix: e.target.value.toUpperCase(),
+                                })
+                              }
+                            />
+                            {editingCategoryHasProducts && (
+                              <p className="mt-1 text-xs text-amber-700">
+                                Danh mục đã có sản phẩm, không thể đổi tiền tố.
+                              </p>
+                            )}
+                          </div>
                         ) : (
-                          <span className="text-sm text-gray-500">{c.code_prefix || '—'}</span>
+                          <span className="font-mono text-gray-600">{c.code_prefix}</span>
                         )}
                       </td>
                       <td className="py-2 pr-2">{c.product_count || 0}</td>
@@ -715,27 +716,31 @@ export default function OwnerShopPage() {
               </select>
             </label>
             <label className="text-sm">
-              <span className="mb-1 block text-gray-600">Mã SP</span>
-              <div className="flex gap-2">
-                <span className="inline-flex items-center rounded-l-lg border border-gray-200 bg-gray-50 px-3 text-gray-700">
-                  {categories.find((c) => c.id === Number(categoryId))?.code_prefix || "---"}
+              <span className="mb-1 block text-gray-600">Mã tiền tố</span>
+              <input
+                disabled
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-gray-700"
+                value={selectedCategoryPrefix(categoryId)}
+                placeholder="Chọn danh mục"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="mb-1 block text-gray-600">Mã SP (nhập số đuôi)</span>
+              <div className="flex items-center gap-2">
+                <span className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-gray-700">
+                  {selectedCategoryPrefix(categoryId) || "PREFIX"}
                 </span>
                 <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="001"
-                  className="w-full rounded-r-lg border border-gray-200 px-3 py-2"
+                  required
+                  type="number"
+                  min={1}
+                  max={999}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2"
                   value={skuSuffix}
-                  onChange={(e) => setSkuSuffix(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => setSkuSuffix(e.target.value)}
+                  placeholder="001"
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500">Chỉ nhập phần số, hệ thống tự ghép tiền tố theo danh mục.</p>
-              {categoryId && (
-                <p className="mt-1 text-xs text-gray-500">
-                  SKU preview: <span className="font-semibold">{`${categories.find((c) => c.id === Number(categoryId))?.code_prefix || '---'}${skuSuffix.padStart(3, '0')}`}</span>
-                </p>
-              )}
             </label>
             <label className="text-sm sm:col-span-2">
               <span className="mb-1 block text-gray-600">Tên sản phẩm</span>
@@ -826,15 +831,21 @@ export default function OwnerShopPage() {
           <div className="mb-4 grid gap-3 sm:grid-cols-4">
             <input
               type="text"
-              placeholder="Tìm theo tên sản phẩm"
+              placeholder="Tìm theo tên hoặc mã SKU"
               className="rounded-lg border border-gray-200 px-3 py-2"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
             />
             <select
               className="rounded-lg border border-gray-200 px-3 py-2"
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setCurrentPage(1);
+              }}
             >
               <option value="">Tất cả danh mục</option>
               {categories.map((c) => (
@@ -846,30 +857,29 @@ export default function OwnerShopPage() {
             <select
               className="rounded-lg border border-gray-200 px-3 py-2"
               value={stockFilter}
-              onChange={(e) => setStockFilter(e.target.value)}
+              onChange={(e) => {
+                setStockFilter(e.target.value);
+                setCurrentPage(1);
+              }}
             >
               <option value="">Tất cả tồn kho</option>
               <option value="in_stock">Còn hàng</option>
               <option value="low_stock">Sắp hết (&lt; 5)</option>
               <option value="out_of_stock">Hết hàng (= 0)</option>
             </select>
-            <div className="flex gap-2">
-              <button
-                onClick={resetFilters}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50"
-              >
-                Xóa lọc
-              </button>
-              <button
-                onClick={() => {
-                  setCurrentPage(1);
-                  loadProducts();
-                }}
-                className="rounded-lg bg-bb-yellow px-3 py-2 text-sm font-bold text-black/80 hover:bg-bb-yellow/90"
-              >
-                Áp dụng
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedCategory("");
+                setStockFilter("");
+                setSortBy("sku");
+                setSortOrder("desc");
+                setCurrentPage(1);
+              }}
+              className="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50"
+            >
+              Xóa lọc
+            </button>
           </div>
 
           {/* Bảng sản phẩm */}
@@ -896,19 +906,19 @@ export default function OwnerShopPage() {
                 </tr>
               </thead>
               <tbody>
-                {products.length === 0 ? (
+                {visibleProducts.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-8 text-center text-gray-500">
                       Chưa có sản phẩm.
                     </td>
                   </tr>
                 ) : (
-                  products.map((p) => {
+                  visibleProducts.map((p) => {
                     const img = productImageUrl(p.image_url ?? null);
                     const stockStatus = getStockStatus(p.stock);
                     return (
                       <tr key={p.id} className={`border-b border-gray-100 ${p.stock === 0 ? 'bg-red-50' : p.stock < 5 ? 'bg-yellow-50' : ''}`}>
-                        <td className="py-2 pr-2 font-mono text-gray-400">{formatSku(p)}</td>
+                        <td className="py-2 pr-2 font-mono text-gray-500">{p.sku || "—"}</td>
                         <td className="py-2 pr-2">
                           {img ? (
                             <img
@@ -1162,6 +1172,7 @@ export default function OwnerShopPage() {
               <option value="confirmed">Đã xác nhận</option>
               <option value="shipping">Đang giao</option>
               <option value="delivered">Đã giao</option>
+              <option value="completed">Hoàn thành</option>
               <option value="cancelled">Đã hủy</option>
             </select>
             <input
@@ -1216,6 +1227,7 @@ export default function OwnerShopPage() {
                           <option value="confirmed">Đã xác nhận</option>
                           <option value="shipping">Đang giao</option>
                           <option value="delivered">Đã giao</option>
+                          <option value="completed">Hoàn thành</option>
                           <option value="cancelled">Đã hủy</option>
                         </select>
                       </td>

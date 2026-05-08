@@ -2,6 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid } from "@/lib/api";
 import { fetchManagerBranchList, type ManagerBranchRow } from "@/lib/managerApi";
 import {
@@ -159,36 +161,32 @@ export default function OwnerBarbersPage() {
   }
 
   useEffect(() => {
-    const storedUid = localStorage.getItem("bb_firebase_uid");
-    if (!storedUid) {
-      router.replace("/");
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
+    const unsub = onAuthStateChanged(auth, async (fb) => {
+      const effectiveUid = fb?.uid ?? localStorage.getItem("bb_firebase_uid");
+      if (!effectiveUid) {
+        router.replace("/");
+        return;
+      }
       try {
-        const row = await fetchUserByFirebaseUid(storedUid);
-        if (cancelled) return;
+        const row = await fetchUserByFirebaseUid(effectiveUid);
         if (row.role !== "owner") {
-          localStorage.removeItem("bb_firebase_token");
-          localStorage.removeItem("bb_firebase_uid");
+          if (fb) await signOut(auth);
           router.replace("/");
           return;
         }
         if (row.is_locked === 1 || row.is_locked === true) {
+          if (fb) await signOut(auth);
           setError("Tài khoản đã bị khóa.");
           return;
         }
-        setUid(storedUid);
+        setUid(effectiveUid);
         setReady(true);
-        await load(storedUid);
+        await load(effectiveUid);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+        setError(e instanceof Error ? e.message : String(e));
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    });
+    return () => unsub();
   }, [router, load]);
 
   async function onSubmitModal(e: FormEvent) {

@@ -68,23 +68,24 @@ export default function BarberDetailsPage({ params }: { params: Promise<{ id: st
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (fb) => {
-      if (!fb) {
+      const effectiveUid = fb?.uid ?? localStorage.getItem("bb_firebase_uid");
+      if (!effectiveUid) {
         router.replace("/");
         return;
       }
       try {
-        const row = await fetchUserByFirebaseUid(fb.uid);
+        const row = await fetchUserByFirebaseUid(effectiveUid);
         if (row.role !== "owner") {
-          await signOut(auth);
+          if (fb) await signOut(auth);
           router.replace("/");
           return;
         }
         if (row.is_locked === 1 || row.is_locked === true) {
-          await signOut(auth);
+          if (fb) await signOut(auth);
           setError("Tài khoản đã bị khóa.");
           return;
         }
-        setUid(fb.uid);
+        setUid(effectiveUid);
         setReady(true);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));

@@ -48,10 +48,10 @@ function handleProductUpload(req, res, next) {
 }
 
 const DEFAULT_PRODUCT_CATEGORIES = [
-  { name: 'Dầu gội', code_prefix: 'DG', description: 'Các sản phẩm dầu gội', is_active: 1 },
-  { name: 'Sữa tắm', code_prefix: 'ST', description: 'Các sản phẩm sữa tắm', is_active: 1 },
-  { name: 'Sáp vuốt tóc', code_prefix: 'SVT', description: 'Các loại sáp, wax, clay tạo kiểu tóc', is_active: 1 },
-  { name: 'Sữa rửa mặt', code_prefix: 'SRM', description: 'Các sản phẩm sữa rửa mặt', is_active: 1 },
+  { name: 'Dầu gội', code_prefix: 'DG', description: '', is_active: 1 },
+  { name: 'Sữa tắm', code_prefix: 'ST', description: '', is_active: 1 },
+  { name: 'Sáp vuốt tóc', code_prefix: 'SVT', description: '', is_active: 1 },
+  { name: 'Sữa rửa mặt', code_prefix: 'SRM', description: '', is_active: 1 },
 ];
 
 router.get('/product-categories', async (_req, res) => {
@@ -62,33 +62,52 @@ router.get('/product-categories', async (_req, res) => {
     const names = DEFAULT_PRODUCT_CATEGORIES.map((c) => c.name);
     const placeholders = names.map(() => '?').join(',');
     const [existingRows] = await pool.query(
-      `SELECT name FROM product_categories WHERE name IN (${placeholders})`,
+      `SELECT id, name, code_prefix FROM product_categories WHERE name IN (${placeholders})`,
       names,
     );
-    const existing = new Set((existingRows ?? []).map((r) => r.name));
+    const existingByName = new Map((existingRows ?? []).map((r) => [r.name, r]));
 
     for (const c of DEFAULT_PRODUCT_CATEGORIES) {
-      if (existing.has(c.name)) continue;
+      const existing = existingByName.get(c.name);
+      if (existing) {
+        const currentPrefix = String(existing.code_prefix || "").trim().toUpperCase();
+        const targetPrefix = String(c.code_prefix || "").trim().toUpperCase();
+        if (!currentPrefix && targetPrefix) {
+          await pool.query(
+            `UPDATE product_categories SET code_prefix = ? WHERE id = ?`,
+            [targetPrefix, existing.id],
+          );
+        }
+        continue;
+      }
       await pool.query(
         `
         INSERT INTO product_categories (name, code_prefix, description, image_url, is_active)
         VALUES (?, ?, ?, NULL, ?)
         `,
-        [String(c.name).trim(), String(c.code_prefix ?? '').trim(), c.description ? String(c.description) : '', Number(c.is_active ?? 1)],
+        [
+          String(c.name).trim(),
+          String(c.code_prefix || '').trim().toUpperCase(),
+          c.description ? String(c.description) : '',
+          Number(c.is_active ?? 1),
+        ],
       );
     }
 
     const [rows] = await pool.query(
       `
-      SELECT pc.id,
-             pc.name,
-             pc.code_prefix,
-             pc.description,
-             pc.image_url,
-             pc.is_active,
-             pc.created_at,
-             (SELECT COUNT(*) FROM products p WHERE p.category_id = pc.id) AS product_count
+      SELECT
+        pc.id,
+        pc.name,
+        pc.code_prefix,
+        pc.description,
+        pc.image_url,
+        pc.is_active,
+        pc.created_at,
+        COUNT(p.id) AS product_count
       FROM product_categories pc
+      LEFT JOIN products p ON p.category_id = pc.id AND p.is_active = 1
+      GROUP BY pc.id, pc.name, pc.code_prefix, pc.description, pc.image_url, pc.is_active, pc.created_at
       ORDER BY pc.id DESC
       `,
     );
@@ -100,7 +119,7 @@ router.get('/product-categories', async (_req, res) => {
 
 router.get('/products', async (_req, res) => {
   try {
-    const { category_id, search, stock_filter, sort_by = 'id', sort_order = 'desc', limit = 10, offset = 0 } = _req.query;
+    const { category_id, search, stock_filter, sort_by = 'sku', sort_order = 'desc', limit = 10, offset = 0 } = _req.query;
 
     let where = ['p.is_active = 1'];
     let params = [];
@@ -109,9 +128,10 @@ router.get('/products', async (_req, res) => {
       where.push('p.category_id = ?');
       params.push(Number(category_id));
     }
-    if (search) {
-      where.push('p.name LIKE ?');
-      params.push(`%${search}%`);
+    const searchTerm = String(search || '').trim();
+    if (searchTerm) {
+      where.push('(p.name LIKE ? OR p.sku LIKE ?)');
+      params.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
     if (stock_filter) {
       if (stock_filter === 'in_stock') {
@@ -131,7 +151,7 @@ router.get('/products', async (_req, res) => {
 
     const [rows] = await pool.query(
       `
-      SELECT p.id, p.sku, p.category_id, pc.name as category_name, p.name, p.description, p.price, p.stock, p.unit,
+      SELECT p.id, p.sku, p.category_id, pc.name as category_name, pc.code_prefix, p.name, p.description, p.price, p.stock, p.unit,
              p.image_url, p.is_active, p.created_at
       FROM products p
       JOIN product_categories pc ON p.category_id = pc.id
@@ -147,7 +167,7 @@ router.get('/products', async (_req, res) => {
       `
       SELECT COUNT(*) as total
       FROM products p
-      ${whereClause.replace('p.is_active = 1 AND', 'p.is_active = 1').replace('WHERE p.is_active = 1', 'WHERE p.is_active = 1')}
+      ${whereClause}
       `,
       params
     );
@@ -168,6 +188,9 @@ router.post('/admin/product-categories', async (req, res) => {
     if (!name || String(name).trim().length === 0) {
       return res.status(400).json({ error: 'name is required' });
     }
+    if (!code_prefix || String(code_prefix).trim().length === 0) {
+      return res.status(400).json({ error: 'code_prefix is required' });
+    }
 
     const active = is_active === undefined ? 1 : Number(is_active);
 
@@ -176,14 +199,19 @@ router.post('/admin/product-categories', async (req, res) => {
       INSERT INTO product_categories (name, code_prefix, description, image_url, is_active)
       VALUES (?, ?, ?, NULL, ?)
       `,
-      [String(name).trim(), String(code_prefix ?? '').trim(), description ? String(description) : '', active],
+      [
+        String(name).trim(),
+        String(code_prefix).trim().toUpperCase(),
+        description ? String(description) : '',
+        active,
+      ],
     );
 
     const insertedId = result.insertId;
 
     const [rows] = await pool.query(
       `
-      SELECT id, name, description, image_url, is_active, created_at
+      SELECT id, name, code_prefix, description, image_url, is_active, created_at
       FROM product_categories
       WHERE id = ?
       LIMIT 1
@@ -206,7 +234,7 @@ router.post('/admin/products', handleProductUpload, async (req, res) => {
   try {
     const {
       category_id,
-      sku,
+      sku_suffix,
       name,
       description,
       price,
@@ -219,7 +247,6 @@ router.post('/admin/products', handleProductUpload, async (req, res) => {
     const p = Number(price);
     const s = Number(stock);
     const active = is_active === undefined ? 1 : Number(is_active);
-    let productSku = sku ? String(sku).trim() : null;
 
     if (!categoryId || Number.isNaN(categoryId)) {
       return res.status(400).json({ error: 'category_id is required' });
@@ -237,9 +264,22 @@ router.post('/admin/products', handleProductUpload, async (req, res) => {
       return res.status(400).json({ error: 'unit is required' });
     }
 
-    if (!productSku) {
-      // Keep null to let DB generate if a trigger exists, or insert without SKU.
-      productSku = null;
+    let sku = null;
+    if (sku_suffix !== undefined && sku_suffix !== null && String(sku_suffix).trim() !== '') {
+      const suffixNum = Number(sku_suffix);
+      if (!Number.isInteger(suffixNum) || suffixNum <= 0 || suffixNum > 999) {
+        return res.status(400).json({ error: 'sku_suffix must be an integer from 1 to 999' });
+      }
+
+      const [categoryRows] = await pool.query(
+        'SELECT code_prefix FROM product_categories WHERE id = ? LIMIT 1',
+        [categoryId],
+      );
+      const prefix = String(categoryRows?.[0]?.code_prefix || '').trim().toUpperCase();
+      if (!prefix) {
+        return res.status(400).json({ error: 'Category code_prefix is required to create SKU' });
+      }
+      sku = `${prefix}${String(suffixNum).padStart(3, '0')}`;
     }
 
     const imageFile = req.files?.image?.[0];
@@ -251,7 +291,7 @@ router.post('/admin/products', handleProductUpload, async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
-        productSku,
+        sku,
         categoryId,
         String(name).trim(),
         description ? String(description) : '',
@@ -264,6 +304,15 @@ router.post('/admin/products', handleProductUpload, async (req, res) => {
     );
 
     const insertedId = result.insertId;
+
+    // In case DB has BEFORE INSERT trigger that auto-generates SKU,
+    // force override with requested suffix after insert.
+    if (sku) {
+      await pool.query(
+        'UPDATE products SET sku = ? WHERE id = ?',
+        [sku, insertedId],
+      );
+    }
 
     const [productRows] = await pool.query(
       `
@@ -283,6 +332,9 @@ router.post('/admin/products', handleProductUpload, async (req, res) => {
 
     res.status(201).json({ product });
   } catch (e) {
+    if (e?.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'SKU đã tồn tại, vui lòng nhập số đuôi khác.' });
+    }
     res.status(500).json({ error: e?.message ?? 'Server error' });
   }
 });
@@ -423,16 +475,36 @@ router.put('/admin/product-categories/:id', async (req, res) => {
     if (!name || String(name).trim().length === 0) {
       return res.status(400).json({ error: 'name is required' });
     }
+    if (!code_prefix || String(code_prefix).trim().length === 0) {
+      return res.status(400).json({ error: 'code_prefix is required' });
+    }
 
     const active = is_active === undefined ? 1 : Number(is_active);
 
     // Check if category exists
     const [existing] = await pool.query(
-      'SELECT id FROM product_categories WHERE id = ?',
+      `
+      SELECT
+        pc.id,
+        pc.code_prefix,
+        (SELECT COUNT(*) FROM products p WHERE p.category_id = pc.id) AS product_count
+      FROM product_categories pc
+      WHERE pc.id = ?
+      LIMIT 1
+      `,
       [categoryId]
     );
     if (existing.length === 0) {
       return res.status(404).json({ error: 'Category not found' });
+    }
+
+    const currentPrefix = String(existing[0].code_prefix || '').trim().toUpperCase();
+    const nextPrefix = String(code_prefix).trim().toUpperCase();
+    const productCount = Number(existing[0].product_count || 0);
+    if (productCount > 0 && currentPrefix !== nextPrefix) {
+      return res.status(400).json({
+        error: 'Danh mục đã có sản phẩm, không thể đổi mã tiền tố.',
+      });
     }
 
     await pool.query(
@@ -443,7 +515,7 @@ router.put('/admin/product-categories/:id', async (req, res) => {
       `,
       [
         String(name).trim(),
-        String(code_prefix ?? '').trim(),
+        nextPrefix,
         description ? String(description) : '',
         active,
         categoryId,
@@ -627,7 +699,7 @@ router.get('/shop/stats', async (req, res) => {
       FROM shop_orders so
       WHERE MONTH(so.created_at) = MONTH(CURRENT_DATE())
       AND YEAR(so.created_at) = YEAR(CURRENT_DATE())
-      AND so.status = 'delivered'
+      AND so.status IN ('delivered', 'completed')
       `
     );
 
@@ -647,7 +719,7 @@ router.get('/shop/stats', async (req, res) => {
       FROM shop_order_items soi
       JOIN products p ON soi.product_id = p.id
       JOIN shop_orders so ON soi.order_id = so.id
-      WHERE so.status = 'delivered'
+      WHERE so.status IN ('delivered', 'completed')
       GROUP BY p.id, p.name
       ORDER BY total_sold DESC
       LIMIT 5
@@ -688,7 +760,7 @@ router.get('/shop/orders', async (req, res) => {
         params.push(custId);
       }
     }
-    if (status && ['pending','confirmed','shipping','delivered','cancelled'].includes(status)) {
+    if (status && ['pending','confirmed','shipping','delivered','completed','cancelled'].includes(status)) {
       where.push('so.status = ?');
       params.push(status);
     }
@@ -808,7 +880,7 @@ router.put('/admin/shop/orders/:id/status', async (req, res) => {
     }
 
     const { status } = req.body ?? {};
-    if (!status || !['pending','confirmed','shipping','delivered','cancelled'].includes(status)) {
+    if (!status || !['pending','confirmed','shipping','delivered','completed','cancelled'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
 import {
@@ -13,7 +13,6 @@ import {
 } from "@/lib/managerApi";
 
 const BRANCH_STORAGE_KEY = "manager-dashboard-branch-id";
-const LOGIN_WEB_URL = process.env.NEXT_PUBLIC_LOGIN_URL ?? "http://localhost:3005";
 
 const APPOINTMENT_STATUS_ORDER = [
   "pending",
@@ -57,59 +56,61 @@ export default function ManagerStatsPage() {
   const [loadingStats, setLoadingStats] = useState(false);
 
   useEffect(() => {
-    const storedUid = localStorage.getItem("bb_firebase_uid");
-    if (!storedUid) {
-      setBranchesLoaded(false);
-      setBranches([]);
-      setSelectedBranchId(null);
-      setUid(null);
-      router.replace("/");
-      return;
-    }
-
-    let cancelled = false;
-    void (async () => {
+    const unsub = onAuthStateChanged(auth, async (fb) => {
+      const effectiveUid = fb?.uid ?? localStorage.getItem("bb_firebase_uid");
+      if (!effectiveUid) {
+        setBranchesLoaded(false);
+        setBranches([]);
+        setSelectedBranchId(null);
+        setUid(null);
+        router.replace("/");
+        return;
+      }
       try {
-        const row = await fetchUserByFirebaseUid(storedUid);
-        if (cancelled) return;
+        const row = await fetchUserByFirebaseUid(effectiveUid);
         if (row.role !== "owner" && row.role !== "manager") {
-          localStorage.removeItem("bb_firebase_token");
-          localStorage.removeItem("bb_firebase_uid");
+          if (fb) await signOut(auth);
           router.replace("/");
           return;
         }
         if (row.is_locked === 1 || row.is_locked === true) {
+          if (fb) await signOut(auth);
           setError("Tài khoản đã bị khóa.");
           return;
         }
         setUser(row);
-        setUid(storedUid);
+        setUid(effectiveUid);
         try {
-          const list = await fetchManagerBranchList(storedUid);
-          if (cancelled) return;
+          const list = await fetchManagerBranchList(effectiveUid);
           setBranches(list);
           if (list.length) {
-            const saved = Number(typeof window !== "undefined" ? localStorage.getItem(BRANCH_STORAGE_KEY) : "");
-            const pick = list.some((b) => b.id === saved) ? saved : list[0].id;
+            const saved = Number(
+              typeof window !== "undefined"
+                ? localStorage.getItem(BRANCH_STORAGE_KEY)
+                : "",
+            );
+            const pick = list.some((b) => b.id === saved)
+              ? saved
+              : list[0].id;
             setSelectedBranchId(pick);
             try {
               localStorage.setItem(BRANCH_STORAGE_KEY, String(pick));
-            } catch {}
+            } catch {
+              /* ignore */
+            }
           } else {
             setSelectedBranchId(null);
           }
         } catch (e) {
-          if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+          setError(e instanceof Error ? e.message : String(e));
         } finally {
-          if (!cancelled) setBranchesLoaded(true);
+          setBranchesLoaded(true);
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+        setError(e instanceof Error ? e.message : String(e));
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    });
+    return () => unsub();
   }, [router]);
 
   useEffect(() => {
@@ -156,13 +157,8 @@ export default function ManagerStatsPage() {
   }
 
   async function logout() {
-    try {
-      await signOut(auth);
-    } finally {
-      localStorage.removeItem("bb_firebase_token");
-      localStorage.removeItem("bb_firebase_uid");
-      window.location.replace(LOGIN_WEB_URL);
-    }
+    await signOut(auth);
+    router.replace("/");
   }
 
   const mergedRows = (() => {
