@@ -1,1 +1,104 @@
-node_modules
+# ===========================
+# Node.js / NPM
+# ===========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+
+# ===========================
+# Next.js Build Output
+# ===========================
+.next/
+out/
+build/
+dist/
+
+# Next.js cache
+**/.next/
+**/out/
+
+# ===========================
+# Environment Variables
+# ===========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# ===========================
+# Flutter / Dart
+# ===========================
+# Flutter build
+flutter_booking_app/build/
+flutter_booking_app/.dart_tool/
+flutter_booking_app/.flutter-plugins
+flutter_booking_app/.flutter-plugins-dependencies
+flutter_booking_app/.packages
+flutter_booking_app/pubspec.lock
+flutter_booking_app/**/.dart_tool/
+flutter_booking_app/**/build/
+
+# Flutter iOS
+flutter_booking_app/ios/Pods/
+flutter_booking_app/ios/.symlinks/
+flutter_booking_app/ios/Flutter/App.framework
+flutter_booking_app/ios/Flutter/Flutter.framework
+flutter_booking_app/ios/Flutter/Generated.xcconfig
+flutter_booking_app/ios/Runner/GeneratedPluginRegistrant.*
+
+# Flutter Android
+flutter_booking_app/android/.gradle/
+flutter_booking_app/android/local.properties
+flutter_booking_app/android/key.properties
+flutter_booking_app/android/app/google-services.json
+
+# ===========================
+# IDE & Editors
+# ===========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===========================
+# Logs
+# ===========================
+logs/
+*.log
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ===========================
+# OS Files
+# ===========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ===========================
+# TypeScript
+# ===========================
+*.tsbuildinfo
+next-env.d.ts
+
+# ===========================
+# Misc
+# ===========================
+.vercel
+.turbo
+coverage/
+.nyc_output/
