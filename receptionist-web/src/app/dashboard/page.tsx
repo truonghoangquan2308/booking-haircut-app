@@ -7,12 +7,11 @@ import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
 import { fetchManagerBranchList, type ManagerBranchRow } from "@/lib/managerApi";
 import { ReceptionistHeader } from "@/components/ReceptionistHeader";
-import { ReceptionistTabBar, type TabType } from "@/components/ReceptionistTabBar";
+import { type TabType } from "@/components/ReceptionistTabBar";
 import { ScheduleView } from "@/components/ScheduleView";
-import { BookAppointment } from "@/components/BookAppointment";
+import { WorkingScheduleManagement } from "@/components/WorkingScheduleManagement";
 import { WalkIn } from "@/components/WalkIn";
 import { PaymentInvoice } from "@/components/PaymentInvoice";
-import { InventoryManagement } from "@/components/InventoryManagement";
 import { AutoReplyMessaging } from "@/components/CustomerMessaging";
 
 export default function ReceptionistDashboardPage() {
@@ -120,10 +119,7 @@ export default function ReceptionistDashboardPage() {
       className="min-h-screen"
       style={{ backgroundColor: "var(--color-bg-page)", color: "var(--color-text-primary)" }}
     >
-      {/* Tab Nav ở trên cùng – giống OwnerSubNav của owner-web */}
-      <ReceptionistTabBar activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {/* Header với thông tin user + nút đăng xuất – bên dưới nav */}
+      {/* Header (giống layout trong ảnh): user + tabs + chi nhánh + đăng xuất */}
       {user && (
         <ReceptionistHeader
           user={user}
@@ -131,19 +127,23 @@ export default function ReceptionistDashboardPage() {
           selectedBranchId={selectedBranchId}
           onBranchChange={handleBranchChange}
           onLogout={handleLogout}
+          activeTab={activeTab}
+          onTabChange={(tab) => {
+            if (tab === "shop") {
+              router.push("/dashboard/shop");
+              return;
+            }
+            setActiveTab(tab);
+          }}
         />
       )}
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-6 py-8 space-y-6">
+      <main className="mx-auto max-w-5xl space-y-8 px-4 py-6">
         {error && (
           <p
-            className="rounded-xl border px-4 py-3 text-sm"
-            style={{
-              borderColor: "var(--color-danger)",
-              backgroundColor: "rgba(220,38,38,0.05)",
-              color: "var(--color-danger)",
-            }}
+            className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
+            role="alert"
           >
             {error}
           </p>
@@ -151,19 +151,19 @@ export default function ReceptionistDashboardPage() {
 
         {/* Tab Content */}
         {activeTab === "schedule" && uid && selectedBranchId && (
-          <ScheduleView uid={uid} branchId={selectedBranchId} key={selectedBranchId} />
-        )}
-
-        {activeTab === "book" && uid && selectedBranchId && (
-          <BookAppointment
+          <ScheduleView
             uid={uid}
             branchId={selectedBranchId}
-            onSuccess={(apptId: number) => {
+            onPay={(apptId) => {
               setSelectedAppointmentId(apptId);
               setActiveTab("payment");
             }}
             key={selectedBranchId}
           />
+        )}
+
+        {activeTab === "book" && uid && selectedBranchId && (
+          <WorkingScheduleManagement uid={uid} branchId={selectedBranchId} key={selectedBranchId} />
         )}
 
         {activeTab === "walkin" && uid && selectedBranchId && (
@@ -191,26 +191,10 @@ export default function ReceptionistDashboardPage() {
           />
         )}
 
-        {activeTab === "inventory" && uid && selectedBranchId && (
-          <InventoryManagement uid={uid} branchId={selectedBranchId} key={selectedBranchId} />
-        )}
-
         {activeTab === "messages" && uid && selectedBranchId && (
           <AutoReplyMessaging uid={uid} branchId={selectedBranchId} key={selectedBranchId} />
         )}
       </main>
-
-      {/* Footer */}
-      <footer
-        className="mt-12 border-t py-6 text-center text-sm"
-        style={{
-          borderColor: "var(--color-border)",
-          backgroundColor: "var(--color-bg-card)",
-          color: "var(--color-text-secondary)",
-        }}
-      >
-        <p>© 2026 BB Shop — Hệ thống quầy tiếp tân</p>
-      </footer>
     </div>
   );
 }

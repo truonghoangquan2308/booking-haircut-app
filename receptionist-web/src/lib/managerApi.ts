@@ -278,14 +278,19 @@ export async function fetchManagerStats(
   return data as ManagerStatsResponse;
 }
 
-export type ServiceOption = { id: number; name: string };
+export type ServiceOption = {
+  id: number;
+  name: string;
+  price?: string | number;
+  duration?: number;
+};
 
 export async function fetchManagerServices(): Promise<ServiceOption[]> {
   const res = await fetch(`${getApiBase()}/api/services`, {
     cache: "no-store",
   });
   const data = await readJsonResponse<{
-    data?: Array<{ id: number; name: string }>;
+    data?: Array<{ id: number; name: string; price?: string | number; duration?: number }>;
     error?: string;
   }>(res);
   if (!res.ok) throw new Error(data.error ?? "Lỗi tải dịch vụ");
