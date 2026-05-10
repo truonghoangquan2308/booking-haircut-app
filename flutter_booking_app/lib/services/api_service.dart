@@ -547,6 +547,7 @@ class ApiService {
     required bool wantInvoice,
     required List<Map<String, dynamic>> items,
     required int branchId,
+    required String paymentMethod,
     String? firebaseUid,
   }) async {
     final payload = <String, dynamic>{
@@ -557,6 +558,7 @@ class ApiService {
       'want_invoice': wantInvoice,
       'items': items,
       'branch_id': branchId,
+      'payment_method': paymentMethod,
     };
     if (firebaseUid != null && firebaseUid.isNotEmpty) {
       payload['firebase_uid'] = firebaseUid;
@@ -574,6 +576,25 @@ class ApiService {
         ? decoded['error']?.toString()
         : null;
     throw Exception(msg ?? 'Đặt hàng thất bại (${response.statusCode})');
+  }
+
+  static Future<Map<String, dynamic>> getShopOrderPaymentStatus({
+    required int orderId,
+  }) async {
+    final response = await _get(
+      Uri.parse('$_baseUrl/api/shop/orders/$orderId/payment-status'),
+    );
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode == 200 && decoded is Map<String, dynamic>) {
+      final order = decoded['order'];
+      if (order is Map) return Map<String, dynamic>.from(order);
+    }
+    final message = decoded is Map<String, dynamic>
+        ? decoded['error']?.toString()
+        : null;
+    throw Exception(
+      message ?? 'Lỗi tải trạng thái thanh toán (${response.statusCode})',
+    );
   }
 
   /// Lấy lịch sử đơn hàng shop cho khách hàng.

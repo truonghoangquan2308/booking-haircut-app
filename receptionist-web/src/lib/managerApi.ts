@@ -168,6 +168,10 @@ export type ManagerAppointmentRow = {
   end_time: string;
   total_price: string | number;
   status: string;
+  payment_method?: "cod" | "vnpay" | null;
+  payment_status?: "unpaid" | "pending" | "paid" | "failed" | null;
+  payment_txn_ref?: string | null;
+  paid_at?: string | null;
   note: string | null;
   created_at: string;
   customer_name: string | null;
@@ -232,6 +236,31 @@ export async function createVnpayPayment(
     throw new Error(data.error ?? "Không tạo được đường dẫn thanh toán VNPAY");
   }
   return data.payment_url;
+}
+
+export type AppointmentPaymentStatus = {
+  id: number;
+  status: string;
+  payment_method: "cod" | "vnpay" | null;
+  payment_status: "unpaid" | "pending" | "paid" | "failed" | null;
+  payment_txn_ref: string | null;
+  paid_at: string | null;
+};
+
+export async function fetchAppointmentPaymentStatus(
+  uid: string,
+  appointmentId: number,
+  branchId?: number,
+): Promise<AppointmentPaymentStatus> {
+  const res = await fetch(`${getApiBase()}/api/manager/appointments/${appointmentId}/payment-status`, {
+    headers: headers(uid, false, branchId),
+    cache: "no-store",
+  });
+  const data = await readJsonResponse<{ appointment?: AppointmentPaymentStatus; error?: string }>(res);
+  if (!res.ok || !data.appointment) {
+    throw new Error(data.error ?? "Không tải được trạng thái thanh toán");
+  }
+  return data.appointment;
 }
 
 export type ManagerStatsResponse = {
@@ -357,7 +386,7 @@ export async function fetchBarberTimeSlots(
   date: string,
 ): Promise<Array<{ id: number; start_time: string; end_time: string; is_booked: number }>> {
   const res = await fetch(
-    `${getApiBase()}/api/appointments/timeslots/${barberId}/${date}`,
+    `${getApiBase()}/api/timeslots/${barberId}/${date}`,
     { cache: "no-store" },
   );
   const data = await readJsonResponse<{

@@ -18,6 +18,9 @@ class CartCheckoutScreen extends StatefulWidget {
 }
 
 class _CartCheckoutScreenState extends State<CartCheckoutScreen> {
+  static const String _paymentMethodCod = 'cod';
+  static const String _paymentMethodVnpay = 'vnpay';
+
   final _events = AppEventsService.instance;
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
@@ -34,6 +37,7 @@ class _CartCheckoutScreenState extends State<CartCheckoutScreen> {
 
   bool _submitting = false;
   bool _wantInvoice = false;
+  String _paymentMethod = _paymentMethodCod;
 
   String _formatMoney(int amount) {
     return '${amount.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.')}đ';
@@ -114,7 +118,7 @@ class _CartCheckoutScreenState extends State<CartCheckoutScreen> {
             },
           )
           .toList(growable: false);
-      await ApiService.shopCheckout(
+      final checkout = await ApiService.shopCheckout(
         fullName: name,
         phone: phone,
         note: _noteCtrl.text.trim(),
@@ -122,16 +126,40 @@ class _CartCheckoutScreenState extends State<CartCheckoutScreen> {
         wantInvoice: _wantInvoice,
         items: payload,
         branchId: branchId,
+        paymentMethod: _paymentMethod,
         firebaseUid: FirebaseAuth.instance.currentUser?.uid,
       );
-      _events.clearCart();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đặt hàng thành công — cửa hàng sẽ xử lý đơn.'),
-        ),
-      );
-      Navigator.of(context).pop();
+      if (_paymentMethod == _paymentMethodVnpay) {
+        final paymentUrl = checkout['payment_url']?.toString() ?? '';
+        final orderId = int.tryParse('${checkout['order_id'] ?? ''}') ?? 0;
+        if (paymentUrl.isEmpty || orderId <= 0) {
+          throw Exception('Không tạo được link thanh toán VNPay');
+        }
+        final ok = await launchUrl(
+          Uri.parse(paymentUrl),
+          mode: LaunchMode.externalApplication,
+        );
+        if (!ok) throw Exception('Không mở được cổng thanh toán VNPay');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Đã mở VNPay. Sau khi thanh toán xong, quay lại app và bấm "Kiểm tra thanh toán".',
+            ),
+            duration: Duration(seconds: 5),
+          ),
+        );
+        await _showVnpayVerifySheet(orderId);
+      } else {
+        _events.clearCart();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đặt hàng COD thành công — thanh toán khi nhận hàng.'),
+          ),
+        );
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -140,6 +168,90 @@ class _CartCheckoutScreenState extends State<CartCheckoutScreen> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  Future<void> _showVnpayVerifySheet(int orderId) async {
+    bool checking = false;
+    await showModalBottomSheet<void>(
+      context: context,
+      isDismissible: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setLocalState) {
+            Future<void> checkNow() async {
+              setLocalState(() => checking = true);
+              try {
+                final order = await ApiService.getShopOrderPaymentStatus(
+                  orderId: orderId,
+                );
+                final paymentStatus =
+                    order['payment_status']?.toString().toLowerCase() ?? '';
+                if (paymentStatus == 'paid') {
+                  if (!mounted) return;
+                  final nav = Navigator.of(this.context);
+                  final messenger = ScaffoldMessenger.of(this.context);
+                  _events.clearCart();
+                  nav.pop();
+                  nav.pop();
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Thanh toán VNPay thành công.'),
+                    ),
+                  );
+                  return;
+                }
+                if (!mounted) return;
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Trạng thái hiện tại: ${order['payment_status'] ?? 'unpaid'}',
+                    ),
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(content: Text(e.toString())),
+                );
+              } finally {
+                if (mounted) setLocalState(() => checking = false);
+              }
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Xác nhận thanh toán VNPay',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Sau khi hoàn tất thanh toán trên VNPay, bấm kiểm tra để đồng bộ trạng thái đơn.',
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: checking ? null : checkNow,
+                      child: checking
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Kiểm tra thanh toán'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildStep(String number, String title) {
@@ -687,6 +799,36 @@ class _CartCheckoutScreenState extends State<CartCheckoutScreen> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _paymentMethod,
+                    decoration: const InputDecoration(
+                      labelText: 'Phương thức thanh toán',
+                      border: InputBorder.none,
+                    ),
+                    items: const [
+                      DropdownMenuItem<String>(
+                        value: _paymentMethodCod,
+                        child: Text('COD (thanh toán khi nhận hàng)'),
+                      ),
+                      DropdownMenuItem<String>(
+                        value: _paymentMethodVnpay,
+                        child: Text('VNPay (thanh toán trước)'),
+                      ),
+                    ],
+                    onChanged: (v) =>
+                        setState(() => _paymentMethod = v ?? _paymentMethodCod),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

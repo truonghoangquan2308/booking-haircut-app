@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card, ToastContainer, useToast } from "@/components/DesignSystemComponents";
 import {
   createVnpayPayment,
+  fetchAppointmentPaymentStatus,
   fetchManagerAppointments,
   patchAppointmentStatus,
   type ManagerAppointmentRow,
@@ -28,6 +29,13 @@ export function PaymentInvoice({
   const { toasts, show, remove } = useToast();
 
   const total = useMemo(() => Number(appt?.total_price ?? 0), [appt?.total_price]);
+  const paymentLabel = useMemo(() => {
+    const status = appt?.payment_status ?? null;
+    if (status === "paid") return "Đã thanh toán";
+    if (status === "pending") return "Đang chờ thanh toán";
+    if (status === "failed") return "Thanh toán thất bại";
+    return "Chưa thanh toán";
+  }, [appt?.payment_status]);
 
   const loadDetail = useCallback(async () => {
     setLoadingDetail(true);
@@ -86,6 +94,31 @@ export function PaymentInvoice({
     }
   };
 
+  const handleCheckPayment = async () => {
+    setLoading(true);
+    try {
+      const payment = await fetchAppointmentPaymentStatus(uid, appointmentId, branchId);
+      setAppt((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: payment.status,
+              payment_method: payment.payment_method,
+              payment_status: payment.payment_status,
+              payment_txn_ref: payment.payment_txn_ref,
+              paid_at: payment.paid_at,
+            }
+          : prev,
+      );
+      show(`Trạng thái: ${payment.payment_status ?? "unpaid"}`, "success");
+      onSuccess();
+    } catch (e) {
+      show(e instanceof Error ? e.message : String(e), "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <Card title="Thanh toán" description="Xử lý thanh toán cho lịch hẹn tại quầy.">
@@ -122,6 +155,12 @@ export function PaymentInvoice({
                   {Number.isFinite(total) ? total.toLocaleString("vi-VN") : "0"}₫
                 </span>
               </p>
+              <p>
+                Trạng thái thanh toán:{" "}
+                <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                  {paymentLabel}
+                </span>
+              </p>
             </>
           )}
           <div className="flex flex-wrap gap-2 pt-2">
@@ -130,6 +169,9 @@ export function PaymentInvoice({
             </Button>
             <Button type="button" variant="secondary" isLoading={loading} onClick={handleVnpay}>
               Thanh toán VNPAY
+            </Button>
+            <Button type="button" variant="secondary" isLoading={loading} onClick={handleCheckPayment}>
+              Kiểm tra trạng thái
             </Button>
             <Button type="button" variant="secondary" onClick={() => void loadDetail()}>
               Tải lại

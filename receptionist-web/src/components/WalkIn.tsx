@@ -31,6 +31,7 @@ export function WalkIn({ uid, branchId, onSuccess }: WalkInProps) {
   const [barbers, setBarbers] = useState<BarberOption[]>([]);
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [slots, setSlots] = useState<Array<{ id: number; start_time: string; end_time: string; is_booked: number }>>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -71,11 +72,15 @@ export function WalkIn({ uid, branchId, onSuccess }: WalkInProps) {
     if (!barberId || !apptDate) return;
     let cancelled = false;
     void (async () => {
+      setSlotsLoading(true);
       try {
         const list = await fetchBarberTimeSlots(barberId, apptDate);
         if (cancelled) return;
         setSlots(list);
-        const first = list.find((x) => Number(x.is_booked) !== 1);
+        const first = list.find((x) => {
+          const v: unknown = x?.is_booked;
+          return v == null || v === 0 || v === "0";
+        });
         setSlotId(first ? first.id : 0);
       } catch (e) {
         if (!cancelled) {
@@ -83,6 +88,8 @@ export function WalkIn({ uid, branchId, onSuccess }: WalkInProps) {
           setSlots([]);
           setSlotId(0);
         }
+      } finally {
+        if (!cancelled) setSlotsLoading(false);
       }
     })();
     return () => {
@@ -215,15 +222,30 @@ export function WalkIn({ uid, branchId, onSuccess }: WalkInProps) {
               className="w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2"
               value={slotId}
               onChange={(e) => setSlotId(Number(e.target.value))}
-              disabled={loading}
+              disabled={loading || slotsLoading}
             >
-              {slots
-                .filter((x) => Number(x.is_booked) !== 1)
-                .map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {String(x.start_time).slice(0, 5)}-{String(x.end_time).slice(0, 5)}
-                  </option>
-                ))}
+              {slotsLoading ? (
+                <option value={0}>Đang tải khung giờ…</option>
+              ) : (
+                <>
+                  {slots.filter((x) => {
+                    const v: unknown = x?.is_booked;
+                    return v == null || v === 0 || v === "0";
+                  }).length === 0 ? (
+                    <option value={0}>Không có khung giờ trống</option>
+                  ) : null}
+                  {slots
+                    .filter((x) => {
+                      const v: unknown = x?.is_booked;
+                      return v == null || v === 0 || v === "0";
+                    })
+                    .map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {String(x.start_time).slice(0, 5)} – {String(x.end_time).slice(0, 5)}
+                      </option>
+                    ))}
+                </>
+              )}
             </select>
           </label>
           <label className="text-sm sm:col-span-2">

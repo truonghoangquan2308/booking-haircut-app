@@ -102,6 +102,110 @@ async function ensureShopOrdersStatusEnumCompleted() {
   );
 }
 
+async function ensureAppointmentsPaymentColumns() {
+  const [[t]] = await pool.execute(
+    `
+    SELECT COUNT(*) AS c FROM information_schema.tables
+    WHERE table_schema = DATABASE() AND table_name = 'appointments'
+    `,
+  );
+  if (!t || Number(t.c) === 0) return;
+
+  const [cols] = await pool.execute('SHOW COLUMNS FROM appointments');
+  const fields = new Set(cols.map((c) => c.Field));
+
+  if (!fields.has('payment_method')) {
+    await pool.execute(
+      `
+      ALTER TABLE appointments
+      ADD COLUMN payment_method ENUM('cod','vnpay') NOT NULL DEFAULT 'cod'
+      `,
+    );
+  }
+  if (!fields.has('payment_status')) {
+    await pool.execute(
+      `
+      ALTER TABLE appointments
+      ADD COLUMN payment_status ENUM('unpaid','pending','paid','failed') NOT NULL DEFAULT 'unpaid'
+      `,
+    );
+  }
+  if (!fields.has('payment_txn_ref')) {
+    await pool.execute(
+      `
+      ALTER TABLE appointments
+      ADD COLUMN payment_txn_ref VARCHAR(128) NULL
+      `,
+    );
+    await pool.execute(
+      `
+      CREATE UNIQUE INDEX uq_appointments_payment_txn_ref
+      ON appointments(payment_txn_ref)
+      `,
+    ).catch(() => {});
+  }
+  if (!fields.has('paid_at')) {
+    await pool.execute(
+      `
+      ALTER TABLE appointments
+      ADD COLUMN paid_at DATETIME NULL
+      `,
+    );
+  }
+}
+
+async function ensureShopOrdersPaymentColumns() {
+  const [[t]] = await pool.execute(
+    `
+    SELECT COUNT(*) AS c FROM information_schema.tables
+    WHERE table_schema = DATABASE() AND table_name = 'shop_orders'
+    `,
+  );
+  if (!t || Number(t.c) === 0) return;
+
+  const [cols] = await pool.execute('SHOW COLUMNS FROM shop_orders');
+  const fields = new Set(cols.map((c) => c.Field));
+
+  if (!fields.has('payment_method')) {
+    await pool.execute(
+      `
+      ALTER TABLE shop_orders
+      ADD COLUMN payment_method ENUM('cod','vnpay') NOT NULL DEFAULT 'cod'
+      `,
+    );
+  }
+  if (!fields.has('payment_status')) {
+    await pool.execute(
+      `
+      ALTER TABLE shop_orders
+      ADD COLUMN payment_status ENUM('unpaid','pending','paid','failed') NOT NULL DEFAULT 'unpaid'
+      `,
+    );
+  }
+  if (!fields.has('payment_txn_ref')) {
+    await pool.execute(
+      `
+      ALTER TABLE shop_orders
+      ADD COLUMN payment_txn_ref VARCHAR(128) NULL
+      `,
+    );
+    await pool.execute(
+      `
+      CREATE UNIQUE INDEX uq_shop_orders_payment_txn_ref
+      ON shop_orders(payment_txn_ref)
+      `,
+    ).catch(() => {});
+  }
+  if (!fields.has('paid_at')) {
+    await pool.execute(
+      `
+      ALTER TABLE shop_orders
+      ADD COLUMN paid_at DATETIME NULL
+      `,
+    );
+  }
+}
+
 /** Tạo bảng stock_history để theo dõi thay đổi tồn kho. */
 async function ensureStockHistoryTable() {
   const [[t]] = await pool.execute(
@@ -143,5 +247,7 @@ module.exports = {
   ensureSchemaExtensions,
   ensureShopOrdersBranchId,
   ensureShopOrdersStatusEnumCompleted,
+  ensureAppointmentsPaymentColumns,
+  ensureShopOrdersPaymentColumns,
   ensureStockHistoryTable,
 };

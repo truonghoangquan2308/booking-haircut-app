@@ -52,6 +52,23 @@ const APPOINTMENT_STATUSES = new Set([
   'cancelled',
 ]);
 
+let hasBarbersBranchIdCache = null;
+async function hasBarbersBranchId() {
+  if (hasBarbersBranchIdCache != null) return hasBarbersBranchIdCache;
+  const [rows] = await pool.execute(
+    `
+    SELECT 1 AS ok
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'barbers'
+      AND COLUMN_NAME = 'branch_id'
+    LIMIT 1
+    `,
+  );
+  hasBarbersBranchIdCache = rows.length > 0;
+  return hasBarbersBranchIdCache;
+}
+
 /** Manager: branch_id từ users.branch_id. Owner: chi nhánh đầu tiên có branches.owner_id = user.id. */
 async function requireManagerOrOwner(req, res, next) {
   const uid = (req.headers['x-firebase-uid'] || '').trim();
@@ -115,17 +132,34 @@ function requireManagerBranch(req, res, next) {
 router.get('/barbers', requireManagerOrOwner, requireManagerBranch, async (req, res) => {
   const bid = req.managerBranchId;
   try {
-    const [rows] = await pool.execute(
-      `
+    const sqlBarbersBranch = `
       SELECT b.id AS barber_id, u.full_name
       FROM barbers b
       JOIN users u ON u.id = b.user_id
       WHERE b.branch_id = ?
       ORDER BY u.full_name ASC, b.id ASC
-      `,
-      [bid],
-    );
-    return res.json({ barbers: rows });
+    `;
+    const sqlUsersBranch = `
+      SELECT b.id AS barber_id, u.full_name
+      FROM barbers b
+      JOIN users u ON u.id = b.user_id
+      WHERE u.branch_id = ?
+      ORDER BY u.full_name ASC, b.id ASC
+    `;
+
+    const hasBranchOnBarbers = await hasBarbersBranchId();
+    try {
+      const [rows] = await pool.execute(hasBranchOnBarbers ? sqlBarbersBranch : sqlUsersBranch, [bid]);
+      return res.json({ barbers: rows });
+    } catch (e) {
+      // Một số DB chưa có barbers.branch_id. Fallback an toàn sang users.branch_id.
+      if (e && (e.code === 'ER_BAD_FIELD_ERROR' || String(e.message || '').includes('Unknown column'))) {
+        hasBarbersBranchIdCache = false;
+        const [rows] = await pool.execute(sqlUsersBranch, [bid]);
+        return res.json({ barbers: rows });
+      }
+      throw e;
+    }
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e.message });
@@ -152,6 +186,10 @@ router.get('/appointments', requireManagerOrOwner, requireManagerBranch, async (
         a.end_time,
         a.total_price,
         a.status,
+        a.payment_method,
+        a.payment_status,
+        a.payment_txn_ref,
+        a.paid_at,
         a.note,
         a.created_at,
         u.full_name AS customer_name,
@@ -212,7 +250,27 @@ router.patch('/appointments/:id/status', requireManagerOrOwner, requireManagerBr
     if (Number(row.branch_id) !== bid) {
       return res.status(403).json({ error: 'Lịch không thuộc chi nhánh của bạn' });
     }
-    await pool.execute('UPDATE appointments SET status = ? WHERE id = ?', [status, id]);
+    if (status === 'completed') {
+      await pool.execute(
+        `
+        UPDATE appointments
+        SET status = ?,
+            payment_method = CASE
+              WHEN payment_status = 'paid' AND payment_method = 'vnpay' THEN payment_method
+              ELSE 'cod'
+            END,
+            payment_status = CASE
+              WHEN payment_status = 'paid' THEN payment_status
+              ELSE 'paid'
+            END,
+            paid_at = COALESCE(paid_at, NOW())
+        WHERE id = ?
+        `,
+        [status, id],
+      );
+    } else {
+      await pool.execute('UPDATE appointments SET status = ? WHERE id = ?', [status, id]);
+    }
     const [[updated]] = await pool.execute(
       `
       SELECT
@@ -225,6 +283,10 @@ router.patch('/appointments/:id/status', requireManagerOrOwner, requireManagerBr
         a.end_time,
         a.total_price,
         a.status,
+        a.payment_method,
+        a.payment_status,
+        a.payment_txn_ref,
+        a.paid_at,
         a.note,
         a.created_at,
         u.full_name AS customer_name,
@@ -255,10 +317,19 @@ router.get('/working-schedules', requireManagerOrOwner, requireManagerBranch, as
   const from = req.query.from;
   const to = req.query.to;
   try {
-    let sql = `
+    const hasBranchOnBarbers = await hasBarbersBranchId();
+    let sql = hasBranchOnBarbers
+      ? `
       SELECT ws.id, ws.barber_id, ws.work_date, ws.start_time, ws.end_time, ws.is_day_off, ws.created_at
       FROM working_schedules ws
       INNER JOIN barbers b ON b.id = ws.barber_id AND b.branch_id = ?
+      WHERE 1=1
+    `
+      : `
+      SELECT ws.id, ws.barber_id, ws.work_date, ws.start_time, ws.end_time, ws.is_day_off, ws.created_at
+      FROM working_schedules ws
+      INNER JOIN barbers b ON b.id = ws.barber_id
+      INNER JOIN users bu ON bu.id = b.user_id AND bu.branch_id = ?
       WHERE 1=1
     `;
     const params = [branchId];
@@ -295,10 +366,17 @@ router.post('/working-schedules', requireManagerOrOwner, requireManagerBranch, a
   const et = end_time || '18:00:00';
   const off = is_day_off ? 1 : 0;
   try {
-    const [[owns]] = await pool.execute(
-      'SELECT id FROM barbers WHERE id = ? AND branch_id = ? LIMIT 1',
-      [bid, branchId],
-    );
+    const hasBranchOnBarbers = await hasBarbersBranchId();
+    const ownSql = hasBranchOnBarbers
+      ? 'SELECT id FROM barbers WHERE id = ? AND branch_id = ? LIMIT 1'
+      : `
+      SELECT b.id
+      FROM barbers b
+      JOIN users bu ON bu.id = b.user_id
+      WHERE b.id = ? AND bu.branch_id = ?
+      LIMIT 1
+      `;
+    const [[owns]] = await pool.execute(ownSql, [bid, branchId]);
     if (!owns) {
       return res.status(400).json({ error: 'Thợ không thuộc chi nhánh của bạn' });
     }
@@ -330,15 +408,23 @@ router.delete('/working-schedules/:id', requireManagerOrOwner, requireManagerBra
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ error: 'id không hợp lệ' });
   try {
-    const [[ws]] = await pool.execute(
-      `
+    const hasBranchOnBarbers = await hasBarbersBranchId();
+    const wsSql = hasBranchOnBarbers
+      ? `
       SELECT ws.id FROM working_schedules ws
       INNER JOIN barbers b ON b.id = ws.barber_id AND b.branch_id = ?
       WHERE ws.id = ?
       LIMIT 1
-      `,
-      [branchId, id],
-    );
+      `
+      : `
+      SELECT ws.id
+      FROM working_schedules ws
+      INNER JOIN barbers b ON b.id = ws.barber_id
+      INNER JOIN users bu ON bu.id = b.user_id AND bu.branch_id = ?
+      WHERE ws.id = ?
+      LIMIT 1
+      `;
+    const [[ws]] = await pool.execute(wsSql, [branchId, id]);
     if (!ws) return res.status(404).json({ error: 'Không tìm thấy lịch hoặc không thuộc chi nhánh' });
     await pool.execute('DELETE FROM working_schedules WHERE id = ?', [id]);
     return res.json({ success: true });

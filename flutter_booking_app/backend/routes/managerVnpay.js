@@ -25,14 +25,18 @@ function getClientIp(req) {
 }
 
 function buildVnpayQuery(params, secretKey) {
-  const sortedKeys = Object.keys(params).sort();
+  const data = { ...params };
+  delete data.vnp_SecureHash;
+  delete data.vnp_SecureHashType;
+  const sortedKeys = Object.keys(data).sort();
   const queryPairs = sortedKeys.map(
-    (key) => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`,
+    (key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`,
   );
   const rawData = queryPairs.join('&');
   const hmac = crypto.createHmac('sha512', secretKey);
-  const secureHash = hmac.update(rawData).digest('hex');
-  return `${rawData}&vnp_SecureHash=${secureHash}`;
+  const secureHash = hmac.update(rawData).digest('hex').toUpperCase();
+  const query = queryPairs.join('&');
+  return `${query}&vnp_SecureHashType=SHA512&vnp_SecureHash=${secureHash}`;
 }
 
 async function requireManagerOrOwner(req, res, next) {
@@ -143,6 +147,17 @@ router.post('/vnpay/checkout', requireManagerOrOwner, requireManagerBranch, asyn
     const createDate = formatVnpayDate(new Date());
     const ipAddr = getClientIp(req);
 
+    await pool.execute(
+      `
+      UPDATE appointments
+      SET payment_method = 'vnpay',
+          payment_status = CASE WHEN payment_status = 'paid' THEN payment_status ELSE 'pending' END,
+          payment_txn_ref = ?
+      WHERE id = ?
+      `,
+      [txnRef, appointmentId],
+    );
+
     const params = {
       vnp_Version: '2.1.0',
       vnp_Command: 'pay',
@@ -156,6 +171,7 @@ router.post('/vnpay/checkout', requireManagerOrOwner, requireManagerBranch, asyn
       vnp_ReturnUrl: vnpayReturnUrl,
       vnp_CreateDate: createDate,
       vnp_IpAddr: ipAddr,
+      vnp_SecureHashType: 'SHA512',
     };
 
     const query = buildVnpayQuery(params, vnpaySecret);
@@ -164,6 +180,32 @@ router.post('/vnpay/checkout', requireManagerOrOwner, requireManagerBranch, asyn
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e.message || 'Lỗi tạo thanh toán VNPAY' });
+  }
+});
+
+router.get('/appointments/:id/payment-status', requireManagerOrOwner, requireManagerBranch, async (req, res) => {
+  const appointmentId = Number(req.params.id);
+  if (!appointmentId || appointmentId <= 0) {
+    return res.status(400).json({ error: 'appointment_id không hợp lệ' });
+  }
+  try {
+    const [[row]] = await pool.execute(
+      `
+      SELECT id, branch_id, status, payment_method, payment_status, payment_txn_ref, paid_at
+      FROM appointments
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [appointmentId],
+    );
+    if (!row) return res.status(404).json({ error: 'Không tìm thấy lịch hẹn' });
+    if (Number(row.branch_id) !== req.managerBranchId) {
+      return res.status(403).json({ error: 'Lịch hẹn không thuộc chi nhánh của bạn' });
+    }
+    return res.json({ appointment: row });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message || 'Lỗi tải trạng thái thanh toán' });
   }
 });
 

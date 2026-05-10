@@ -13,6 +13,8 @@ const {
   ensureSchemaExtensions,
   ensureShopOrdersBranchId,
   ensureShopOrdersStatusEnumCompleted,
+  ensureAppointmentsPaymentColumns,
+  ensureShopOrdersPaymentColumns,
   ensureStockHistoryTable,
 } = require('./lib/ensureSchemaExtensions');
 const { runUserPhoneDedupeAndNormalize } = require('./lib/migrateUserPhones');
@@ -815,6 +817,18 @@ async function start() {
     console.log('Đã chạy ensureShopOrdersStatusEnumCompleted (completed trong ENUM).');
   } catch (e) {
     console.error('ensureShopOrdersStatusEnumCompleted:', e.message);
+  }
+  try {
+    await ensureAppointmentsPaymentColumns();
+    console.log('Đã chạy ensureAppointmentsPaymentColumns.');
+  } catch (e) {
+    console.error('ensureAppointmentsPaymentColumns:', e.message);
+  }
+  try {
+    await ensureShopOrdersPaymentColumns();
+    console.log('Đã chạy ensureShopOrdersPaymentColumns.');
+  } catch (e) {
+    console.error('ensureShopOrdersPaymentColumns:', e.message);
   }
   try {
     await ensureStockHistoryTable();
