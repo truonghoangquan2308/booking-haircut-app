@@ -23,6 +23,7 @@ const { ensureOffersTable } = require('./lib/ensureOffersTable');
 const { ensureUsedPromotionsTable } = require('./lib/ensureUsedPromotionsTable');
 const { ensureAdminAuditLogTable } = require('./lib/adminAuditLog');
 const { normalizeBarberBio } = require('./lib/barberBio');
+const { ensureChatMessagesTable } = require('./lib/ensureChatMessagesTable');
 require('dotenv').config();
 
 const app  = express();
@@ -80,6 +81,7 @@ app.use('/api/owner', require('./routes/ownerBarbers'));
 app.use('/api', require('./routes/offersPublic'));
 app.use('/api/admin', require('./routes/adminShopsApi'));
 app.use('/api/admin', require('./routes/adminPlatform'));
+app.use('/api', require('./routes/chatMessages'));
 app.use('/api/manager', require('./routes/managerOps'));
 app.use('/api/manager', require('./routes/managerVnpay'));
 
@@ -865,6 +867,12 @@ async function start() {
     console.log('Đã chạy ensureAdminAuditLogTable (admin_audit_logs).');
   } catch (e) {
     console.error('ensureAdminAuditLogTable:', e.message);
+  }
+  try {
+    await ensureChatMessagesTable();
+    console.log('Đã chạy ensureChatMessagesTable (chat_messages).');
+  } catch (e) {
+    console.error('ensureChatMessagesTable:', e.message);
   }
   app.listen(PORT, () => {
     console.log(`Server chạy tại http://localhost:${PORT}`);

@@ -350,6 +350,47 @@ export async function fetchManagerCustomers(
   return data.customers ?? [];
 }
 
+export type ChatMessage = {
+  id: number;
+  sender: 'customer' | 'receptionist';
+  message: string;
+  is_read: number;
+  created_at: string;
+};
+
+export async function fetchManagerChatMessages(
+  uid: string,
+  branchId: number,
+  customerId: number,
+): Promise<ChatMessage[]> {
+  const res = await fetch(
+    `${getApiBase()}/api/manager/messages?customer_id=${customerId}`,
+    {
+      headers: headers(uid, false, branchId),
+      cache: 'no-store',
+    },
+  );
+  const data = await readJsonResponse<{ messages?: ChatMessage[]; error?: string }>(res);
+  if (!res.ok) throw new Error(data.error ?? 'Lỗi tải tin nhắn');
+  return data.messages ?? [];
+}
+
+export async function postManagerChatMessage(
+  uid: string,
+  branchId: number,
+  customerId: number,
+  message: string,
+): Promise<ChatMessage[]> {
+  const res = await fetch(`${getApiBase()}/api/manager/messages`, {
+    method: 'POST',
+    headers: headers(uid, true, branchId),
+    body: JSON.stringify({ customer_id: customerId, message }),
+  });
+  const data = await readJsonResponse<{ messages?: ChatMessage[]; error?: string }>(res);
+  if (!res.ok) throw new Error(data.error ?? 'Gửi tin nhắn thất bại');
+  return data.messages ?? [];
+}
+
 export async function createAppointmentOnBehalf(
   uid: string,
   body: {

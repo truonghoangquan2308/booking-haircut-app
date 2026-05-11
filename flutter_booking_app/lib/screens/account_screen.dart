@@ -104,9 +104,10 @@ class _AccountScreenState extends State<AccountScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => ScaffoldMessenger.of(
+        onPressed: () => Navigator.push(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Đang gọi Hotline...'))),
+          MaterialPageRoute(builder: (_) => const SupportScreen()),
+        ),
         backgroundColor: const Color(0xffffc107),
         icon: const Icon(Icons.phone, color: Colors.black),
         label: const Text(

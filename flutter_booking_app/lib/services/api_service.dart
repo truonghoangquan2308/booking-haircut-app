@@ -629,6 +629,83 @@ class ApiService {
     throw Exception(message ?? 'Lỗi tải đơn hàng (${response.statusCode})');
   }
 
+  static Future<List<Map<String, dynamic>>> getBranchChatMessages({
+    required int branchId,
+    required String firebaseUid,
+    String? phone,
+    int? customerId,
+  }) async {
+    final query = <String>[];
+    query.add('branch_id=$branchId');
+    if (customerId != null && customerId > 0) {
+      query.add('customer_id=$customerId');
+    }
+    if (firebaseUid.trim().isNotEmpty) {
+      query.add('firebase_uid=${Uri.encodeQueryComponent(firebaseUid.trim())}');
+    }
+    if (phone != null && phone.isNotEmpty) {
+      query.add('phone=${Uri.encodeQueryComponent(phone.trim())}');
+    }
+    final uri = Uri.parse('$_baseUrl/api/messages?${query.join('&')}');
+    final response = await _get(uri);
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode == 200 && decoded is Map<String, dynamic>) {
+      final messages = decoded['messages'];
+      if (messages is List) {
+        return messages
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList(growable: false);
+      }
+    }
+    final message = decoded is Map<String, dynamic>
+        ? decoded['error']?.toString()
+        : null;
+    throw Exception(message ?? 'Lỗi tải tin nhắn (${response.statusCode})');
+  }
+
+  static Future<List<Map<String, dynamic>>> sendBranchChatMessage({
+    required int branchId,
+    required String firebaseUid,
+    required String message,
+    String? phone,
+    String? fullName,
+  }) async {
+    final payload = <String, dynamic>{
+      'branch_id': branchId,
+      'message': message,
+    };
+    if (firebaseUid.trim().isNotEmpty) {
+      payload['firebase_uid'] = firebaseUid.trim();
+    }
+    if (phone != null && phone.isNotEmpty) {
+      payload['phone'] = phone.trim();
+    }
+    if (fullName != null && fullName.isNotEmpty) {
+      payload['full_name'] = fullName.trim();
+    }
+
+    final response = await _post(
+      Uri.parse('$_baseUrl/api/messages'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(payload),
+    );
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode == 200 && decoded is Map<String, dynamic>) {
+      final messages = decoded['messages'];
+      if (messages is List) {
+        return messages
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList(growable: false);
+      }
+    }
+    final error = decoded is Map<String, dynamic>
+        ? decoded['error']?.toString()
+        : null;
+    throw Exception(error ?? 'Lỗi gửi tin nhắn (${response.statusCode})');
+  }
+
   static Future<Map<String, dynamic>> getShopOrderDetail({
     required int orderId,
     int? customerId,

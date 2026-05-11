@@ -692,6 +692,68 @@ router.get('/customers', requireManagerOrOwner, requireManagerBranch, async (req
   }
 });
 
+// GET /api/manager/messages?customer_id=... — Lấy hội thoại giữa khách và lễ tân/thu ngân
+router.get('/messages', requireManagerOrOwner, requireManagerBranch, async (req, res) => {
+  const bid = req.managerBranchId;
+  const customerId = Number(req.query.customer_id || 0);
+  if (!customerId || customerId <= 0) {
+    return res.status(400).json({ error: 'customer_id là bắt buộc' });
+  }
+  try {
+    await pool.execute(
+      'UPDATE chat_messages SET is_read = 1 WHERE branch_id = ? AND customer_id = ? AND sender = "customer" AND is_read = 0',
+      [bid, customerId],
+    );
+
+    const [rows] = await pool.execute(
+      `SELECT id, sender, message, is_read, created_at
+       FROM chat_messages
+       WHERE branch_id = ? AND customer_id = ?
+       ORDER BY created_at ASC, id ASC`,
+      [bid, customerId],
+    );
+    return res.json({ messages: rows });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/manager/messages — Gửi tin nhắn từ lễ tân đến khách
+router.post('/messages', requireManagerOrOwner, requireManagerBranch, async (req, res) => {
+  const bid = req.managerBranchId;
+  const customerId = Number(req.body.customer_id || 0);
+  const message = String(req.body.message || '').trim();
+  if (!customerId || customerId <= 0) {
+    return res.status(400).json({ error: 'customer_id là bắt buộc' });
+  }
+  if (!message) {
+    return res.status(400).json({ error: 'message là bắt buộc' });
+  }
+  try {
+    const [[row]] = await pool.execute(
+      'SELECT id, branch_id FROM users WHERE id = ? LIMIT 1',
+      [customerId],
+    );
+    if (!row) return res.status(404).json({ error: 'Không tìm thấy khách hàng' });
+    await pool.execute(
+      'INSERT INTO chat_messages (branch_id, customer_id, sender, message, is_read) VALUES (?, ?, "receptionist", ?, 0)',
+      [bid, customerId, message],
+    );
+    const [rows] = await pool.execute(
+      `SELECT id, sender, message, is_read, created_at
+       FROM chat_messages
+       WHERE branch_id = ? AND customer_id = ?
+       ORDER BY created_at ASC, id ASC`,
+      [bid, customerId],
+    );
+    return res.json({ messages: rows });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /api/manager/appointments-on-behalf — Lễ tân / Quản lý tạo lịch hộ
 router.post('/appointments-on-behalf', requireManagerOrOwner, requireManagerBranch, async (req, res) => {
   const branchId = req.managerBranchId;

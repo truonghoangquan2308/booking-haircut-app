@@ -20,7 +20,9 @@ function formatVnpayDate(date) {
 function getClientIp(req) {
   const xff = req.headers['x-forwarded-for'];
   if (typeof xff === 'string' && xff.trim()) return xff.split(',')[0].trim();
-  return req.ip || req.connection.remoteAddress || '127.0.0.1';
+  const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+  // Chuyển ::ffff:127.0.0.1 → 127.0.0.1
+  return ip.replace(/^::ffff:/, '');
 }
 
 function buildVnpayQuery(params, secretKey) {
@@ -28,13 +30,30 @@ function buildVnpayQuery(params, secretKey) {
   delete data.vnp_SecureHash;
   delete data.vnp_SecureHashType;
   const sortedKeys = Object.keys(data).sort();
+
+  // ✅ KHÔNG encode khi hash
   const rawData = sortedKeys
-    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`)
+    .map((key) => `${key}=${data[key]}`)
     .join('&');
-  const secureHash = crypto.createHmac('sha512', secretKey).update(rawData).digest('hex').toUpperCase();
+
+  console.log('=== VNPAY DEBUG buildVnpayQuery ===');
+  console.log('RAW DATA:', rawData);
+  console.log('SECRET ĐANG DÙNG:', secretKey);
+
+  const secureHash = crypto
+    .createHmac('sha512', secretKey)
+    .update(rawData)
+    .digest('hex')
+    .toUpperCase();
+
+  console.log('HASH:', secureHash);
+  console.log('===================================');
+
+  // ✅ Encode khi ghép URL
   const query = sortedKeys
     .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`)
     .join('&');
+
   return `${query}&vnp_SecureHashType=SHA512&vnp_SecureHash=${secureHash}`;
 }
 
@@ -44,10 +63,18 @@ function verifyVnpaySignature(query, secretKey) {
   delete data.vnp_SecureHash;
   delete data.vnp_SecureHashType;
   const sortedKeys = Object.keys(data).sort();
+
+  // ✅ KHÔNG encode khi verify
   const rawData = sortedKeys
-    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`)
+    .map((key) => `${key}=${data[key]}`)
     .join('&');
-  const expected = crypto.createHmac('sha512', secretKey).update(rawData).digest('hex').toLowerCase();
+
+  const expected = crypto
+    .createHmac('sha512', secretKey)
+    .update(rawData)
+    .digest('hex')
+    .toLowerCase();
+
   return received && expected === received;
 }
 

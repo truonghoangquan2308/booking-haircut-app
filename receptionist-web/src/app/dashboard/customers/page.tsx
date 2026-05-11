@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ReceptionistShell } from "@/components/ReceptionistShell";
 import { useReceptionistSession } from "@/hooks/useReceptionistSession";
 import { fetchManagerCustomers, type CustomerRow } from "@/lib/managerApi";
+import { CustomerChatThread } from "@/components/CustomerChatThread";
 
 export default function ReceptionistCustomersPage() {
   const {
@@ -19,6 +20,7 @@ export default function ReceptionistCustomersPage() {
   } = useReceptionistSession();
   const [rows, setRows] = useState<CustomerRow[]>([]);
   const [query, setQuery] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerRow | null>(null);
 
   const loadCustomers = useCallback(async () => {
     if (!uid || !selectedBranchId) return;
@@ -125,6 +127,13 @@ export default function ReceptionistCustomersPage() {
                         >
                           Copy SĐT
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCustomer(c)}
+                          className="rounded-lg bg-slate-900 px-2 py-1 text-xs font-semibold text-white"
+                        >
+                          Chat
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -134,6 +143,18 @@ export default function ReceptionistCustomersPage() {
           </table>
         </div>
       </section>
+      {selectedCustomer && selectedBranchId ? (
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <CustomerChatThread
+            uid={uid ?? ''}
+            branchId={selectedBranchId}
+            customerId={selectedCustomer.id}
+            customerName={selectedCustomer.full_name}
+            customerPhone={selectedCustomer.phone}
+            onClose={() => setSelectedCustomer(null)}
+          />
+        </section>
+      ) : null}
     </ReceptionistShell>
   );
 }
