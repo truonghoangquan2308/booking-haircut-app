@@ -137,7 +137,12 @@ export async function deleteSchedule(
   if (!res.ok) throw new Error(data.error ?? "Xóa thất bại");
 }
 
-export type BarberOption = { barber_id: number; full_name: string | null };
+export type BarberOption = {
+  barber_id: number;
+  full_name: string | null;
+  is_available?: number;
+  status?: string;
+};
 
 export async function fetchManagerBarbers(
   uid: string,
@@ -155,7 +160,32 @@ export async function fetchManagerBarbers(
   return (data.barbers ?? []).map((b) => ({
     barber_id: b.barber_id,
     full_name: b.full_name ?? null,
+    is_available: b.is_available,
+    status: b.status,
   }));
+}
+
+export async function patchManagerBarberAvailability(
+  uid: string,
+  barberId: number,
+  isAvailable: boolean,
+  branchId?: number,
+): Promise<BarberOption> {
+  const res = await fetch(
+    `${getApiBase()}/api/manager/barbers/${barberId}/availability`,
+    {
+      method: 'PATCH',
+      headers: headers(uid, true, branchId),
+      body: JSON.stringify({ is_available: isAvailable ? 1 : 0 }),
+    },
+  );
+  const data = await readJsonResponse<{
+    barber?: BarberOption;
+    error?: string;
+  }>(res);
+  if (!res.ok) throw new Error(data.error ?? 'Cập nhật trạng thái thợ thất bại');
+  if (!data.barber) throw new Error('Không nhận được dữ liệu thợ');
+  return data.barber;
 }
 
 export type ManagerAppointmentRow = {

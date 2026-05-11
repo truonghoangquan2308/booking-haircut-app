@@ -133,14 +133,14 @@ router.get('/barbers', requireManagerOrOwner, requireManagerBranch, async (req, 
   const bid = req.managerBranchId;
   try {
     const sqlBarbersBranch = `
-      SELECT b.id AS barber_id, u.full_name
+      SELECT b.id AS barber_id, u.full_name, b.is_available, u.status
       FROM barbers b
       JOIN users u ON u.id = b.user_id
-      WHERE b.branch_id = ?
+      WHERE b.branch_id = ? OR u.branch_id = ?
       ORDER BY u.full_name ASC, b.id ASC
     `;
     const sqlUsersBranch = `
-      SELECT b.id AS barber_id, u.full_name
+      SELECT b.id AS barber_id, u.full_name, b.is_available, u.status
       FROM barbers b
       JOIN users u ON u.id = b.user_id
       WHERE u.branch_id = ?
@@ -149,7 +149,8 @@ router.get('/barbers', requireManagerOrOwner, requireManagerBranch, async (req, 
 
     const hasBranchOnBarbers = await hasBarbersBranchId();
     try {
-      const [rows] = await pool.execute(hasBranchOnBarbers ? sqlBarbersBranch : sqlUsersBranch, [bid]);
+      const params = hasBranchOnBarbers ? [bid, bid] : [bid];
+      const [rows] = await pool.execute(hasBranchOnBarbers ? sqlBarbersBranch : sqlUsersBranch, params);
       return res.json({ barbers: rows });
     } catch (e) {
       // Một số DB chưa có barbers.branch_id. Fallback an toàn sang users.branch_id.
@@ -160,6 +161,69 @@ router.get('/barbers', requireManagerOrOwner, requireManagerBranch, async (req, 
       }
       throw e;
     }
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// PATCH /api/manager/barbers/:barberId/availability
+router.patch('/barbers/:barberId/availability', requireManagerOrOwner, requireManagerBranch, async (req, res) => {
+  const branchId = req.managerBranchId;
+  const barberId = Number(req.params.barberId);
+  const { is_available } = req.body ?? {};
+  if (!barberId) {
+    return res.status(400).json({ error: 'barberId không hợp lệ' });
+  }
+  if (is_available === undefined) {
+    return res.status(400).json({ error: 'Thiếu is_available' });
+  }
+
+  const available = `${is_available}` === '1' || is_available === true ? 1 : 0;
+  try {
+    const hasBranchOnBarbers = await hasBarbersBranchId();
+    const ownSql = hasBranchOnBarbers
+      ? `
+      SELECT b.id, b.user_id
+      FROM barbers b
+      JOIN users u ON u.id = b.user_id
+      WHERE b.id = ? AND (b.branch_id = ? OR u.branch_id = ?)
+      LIMIT 1
+    `
+      : `
+      SELECT b.id, b.user_id
+      FROM barbers b
+      JOIN users u ON u.id = b.user_id
+      WHERE b.id = ? AND u.branch_id = ?
+      LIMIT 1
+    `;
+    const params = hasBranchOnBarbers ? [barberId, branchId, branchId] : [barberId, branchId];
+    const [[barberRow]] = await pool.execute(ownSql, params);
+    if (!barberRow) {
+      return res.status(404).json({ error: 'Thợ không thuộc chi nhánh của bạn hoặc không tồn tại' });
+    }
+
+    await pool.execute('UPDATE barbers SET is_available = ? WHERE id = ?', [available, barberId]);
+    await pool.execute('UPDATE users SET status = ? WHERE id = ?', [available ? 'available' : 'off', barberRow.user_id]);
+
+    const [rows] = await pool.execute(
+      `
+      SELECT
+        b.id AS barber_id,
+        u.full_name,
+        b.is_available,
+        u.status
+      FROM barbers b
+      JOIN users u ON u.id = b.user_id
+      WHERE b.id = ?
+      LIMIT 1
+      `,
+      [barberId],
+    );
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Không tìm thấy thợ sau khi cập nhật' });
+    }
+    return res.json({ barber: rows[0] });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e.message });

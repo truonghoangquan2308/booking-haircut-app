@@ -66,7 +66,7 @@ export default function ReceptionistCustomersPage() {
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <h1 className="mb-1 text-2xl font-bold text-bb-navy">Liên hệ với khách hàng</h1>
-        <p className="mb-4 text-sm text-gray-600">Tìm nhanh khách hàng để gọi điện hoặc nhắn tin chăm sóc.</p>
+        <p className="mb-4 text-sm text-gray-600">Tìm nhanh khách hàng để chat hoặc copy số điện thoại.</p>
         <div className="mb-4 flex flex-wrap gap-3">
           <input
             type="text"
@@ -108,24 +108,12 @@ export default function ReceptionistCustomersPage() {
                     </td>
                     <td className="py-2">
                       <div className="flex flex-wrap gap-2">
-                        <a
-                          href={c.phone ? `tel:${c.phone}` : "#"}
-                          className={`rounded-lg px-2 py-1 text-xs font-semibold ${c.phone ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400 pointer-events-none"}`}
-                        >
-                          Gọi
-                        </a>
-                        <a
-                          href={c.phone ? `sms:${c.phone}` : "#"}
-                          className={`rounded-lg px-2 py-1 text-xs font-semibold ${c.phone ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-400 pointer-events-none"}`}
-                        >
-                          SMS
-                        </a>
                         <button
                           type="button"
                           onClick={() => void copyPhone(c.phone)}
                           className="rounded-lg bg-bb-input px-2 py-1 text-xs font-semibold text-bb-navy"
                         >
-                          Copy SĐT
+                          Copy
                         </button>
                         <button
                           type="button"

@@ -42,21 +42,53 @@ async function assertBranchOwned(ownerId, branchId) {
   return { ok: true, branch: r[0] };
 }
 
+let hasBarbersBranchIdCache = null;
+async function hasBarbersBranchId() {
+  if (hasBarbersBranchIdCache != null) return hasBarbersBranchIdCache;
+  const [rows] = await pool.execute(
+    `
+    SELECT 1 AS ok
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'barbers'
+      AND COLUMN_NAME = 'branch_id'
+    LIMIT 1
+    `,
+  );
+  hasBarbersBranchIdCache = rows.length > 0;
+  return hasBarbersBranchIdCache;
+}
+
 /** Thợ nằm trong phạm vi Owner: ít nhất một trong barbers.branch_id / users.branch_id trỏ tới chi nhánh của owner */
 async function assertBarberInOwnerScope(ownerId, barberId) {
+  const usesBranchId = await hasBarbersBranchId();
+  if (usesBranchId) {
+    const [r] = await pool.execute(
+      `
+      SELECT 1
+      FROM barbers b
+      JOIN users u ON u.id = b.user_id
+      WHERE b.id = ?
+        AND (
+          b.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)
+          OR u.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)
+        )
+      LIMIT 1
+      `,
+      [barberId, ownerId, ownerId],
+    );
+    return r.length > 0;
+  }
   const [r] = await pool.execute(
     `
     SELECT 1
     FROM barbers b
     JOIN users u ON u.id = b.user_id
     WHERE b.id = ?
-      AND (
-        b.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)
-        OR u.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)
-      )
+      AND u.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)
     LIMIT 1
     `,
-    [barberId, ownerId, ownerId],
+    [barberId, ownerId],
   );
   return r.length > 0;
 }
@@ -65,6 +97,13 @@ async function assertBarberInOwnerScope(ownerId, barberId) {
 router.get('/barbers/stats', requireOwner, async (req, res) => {
   const ownerId = req.ownerUserId;
   try {
+    const usesBranchId = await hasBarbersBranchId();
+    const branchCondition = usesBranchId
+      ? `b.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)
+        OR u.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)`
+      : `u.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)`;
+    const params = usesBranchId ? [ownerId, ownerId] : [ownerId];
+
     const [stats] = await pool.execute(
       `
       SELECT
@@ -75,10 +114,9 @@ router.get('/barbers/stats', requireOwner, async (req, res) => {
       FROM barbers b
       INNER JOIN users u ON u.id = b.user_id
       WHERE
-        b.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)
-        OR u.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)
+        ${branchCondition}
       `,
-      [ownerId, ownerId],
+      params,
     );
     const row = stats[0];
     return res.json({
@@ -106,11 +144,12 @@ router.get('/barbers/:barberId/details', requireOwner, async (req, res) => {
     }
 
     // Thông tin thợ
+    const usesBranchId = await hasBarbersBranchId();
     const [barberRows] = await pool.execute(
       `
       SELECT
         b.id AS barber_id,
-        b.branch_id,
+        ${usesBranchId ? 'b.branch_id' : 'u.branch_id'} AS branch_id,
         br.name AS branch_name,
         b.user_id,
         u.full_name,
@@ -127,7 +166,7 @@ router.get('/barbers/:barberId/details', requireOwner, async (req, res) => {
         u.created_at AS user_created_at
       FROM barbers b
       JOIN users u ON u.id = b.user_id
-      LEFT JOIN branches br ON br.id = b.branch_id
+      LEFT JOIN branches br ON br.id = ${usesBranchId ? 'b.branch_id' : 'u.branch_id'}
       WHERE b.id = ?
       LIMIT 1
       `,
@@ -217,11 +256,12 @@ router.get('/barbers/:barberId/details', requireOwner, async (req, res) => {
 router.get('/barbers', requireOwner, async (req, res) => {
   const ownerId = req.ownerUserId;
   try {
+    const usesBranchId = await hasBarbersBranchId();
     const [rows] = await pool.execute(
       `
       SELECT
         b.id AS barber_id,
-        COALESCE(b.branch_id, u.branch_id) AS branch_id,
+        ${usesBranchId ? 'COALESCE(b.branch_id, u.branch_id)' : 'u.branch_id'} AS branch_id,
         br.name AS branch_name,
         b.user_id,
         u.full_name,
@@ -248,13 +288,13 @@ router.get('/barbers', requireOwner, async (req, res) => {
         ), 0) AS revenue_month
       FROM barbers b
       INNER JOIN users u ON u.id = b.user_id
-      LEFT JOIN branches br ON br.id = COALESCE(b.branch_id, u.branch_id)
+      LEFT JOIN branches br ON br.id = ${usesBranchId ? 'COALESCE(b.branch_id, u.branch_id)' : 'u.branch_id'}
       WHERE
-        b.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)
-        OR u.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)
+        ${usesBranchId ? `b.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)
+        OR u.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)` : `u.branch_id IN (SELECT id FROM branches WHERE owner_id = ?)`}
       ORDER BY COALESCE(br.name, '') ASC, u.full_name ASC, b.id ASC
       `,
-      [ownerId, ownerId],
+      usesBranchId ? [ownerId, ownerId] : [ownerId],
     );
     return res.json({ barbers: rows });
   } catch (e) {

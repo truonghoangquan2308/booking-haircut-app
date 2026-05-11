@@ -133,6 +133,10 @@ export default function ReceptionistDashboardPage() {
               router.push("/dashboard/shop");
               return;
             }
+            if (tab === "barbers") {
+              router.push("/dashboard/barbers");
+              return;
+            }
             setActiveTab(tab);
           }}
         />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -14,6 +14,7 @@ import {
   fetchManagerOrders,
   fetchSchedules,
   patchAppointmentStatus,
+  patchManagerBarberAvailability,
   patchOrderStatus,
   upsertSchedule,
   fetchManagerServices,
@@ -61,6 +62,8 @@ export default function ManagerDashboardPage() {
   const [orders, setOrders] = useState<ShopOrderRow[]>([]);
   const [schedules, setSchedules] = useState<WorkingScheduleRow[]>([]);
   const [barbers, setBarbers] = useState<BarberOption[]>([]);
+  const [barberSearch, setBarberSearch] = useState("");
+  const [barberStatusFilter, setBarberStatusFilter] = useState<"all" | "available" | "off" | "other">("all");
   const [error, setError] = useState<string | null>(null);
   const [busyOrder, setBusyOrder] = useState<number | null>(null);
   const [scheduleBarber, setScheduleBarber] = useState<number>(0);
@@ -309,6 +312,24 @@ export default function ManagerDashboardPage() {
     }
   }
 
+  async function toggleBarberStatus(barber: BarberOption) {
+    if (!uid || !selectedBranchId) return;
+    setError(null);
+    try {
+      const nextStatus = barber.status === "available" ? "off" : "available";
+      await patchManagerBarberAvailability(
+        uid,
+        barber.barber_id,
+        nextStatus === "available",
+        selectedBranchId,
+      );
+      const refreshed = await fetchManagerBarbers(uid, selectedBranchId);
+      setBarbers(refreshed);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
   async function reloadSchedules() {
     if (!uid) return;
     setSchedules(await fetchSchedules(uid, {}, selectedBranchId ?? undefined));
@@ -402,6 +423,45 @@ export default function ManagerDashboardPage() {
       window.location.replace(LOGIN_WEB_URL);
     }
   }
+
+  const filteredBarbers = useMemo(() => {
+    return barbers.filter((b) => {
+      const query = barberSearch.trim().toLowerCase();
+      const matchSearch =
+        !query ||
+        b.full_name?.toLowerCase().includes(query) ||
+        String(b.barber_id).includes(query);
+      const statusMatch =
+        barberStatusFilter === "all" ||
+        (barberStatusFilter === "available" && b.status === "available") ||
+        (barberStatusFilter === "off" && b.status === "off") ||
+        (barberStatusFilter === "other" && b.status && !["available", "off"].includes(b.status));
+      return matchSearch && statusMatch;
+    });
+  }, [barbers, barberSearch, barberStatusFilter]);
+
+  const todayDate = new Date().toISOString().slice(0, 10);
+  const barberStatusCounts = useMemo(() => {
+    return barbers.reduce(
+      (acc, barber) => {
+        if (barber.status === "available") acc.available += 1;
+        else if (barber.status === "off") acc.off += 1;
+        else acc.other += 1;
+        return acc;
+      },
+      { available: 0, off: 0, other: 0 },
+    );
+  }, [barbers]);
+
+  const barberWorkToday = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const appt of appointments) {
+      if (appt.appt_date === todayDate) {
+        map.set(appt.barber_id, (map.get(appt.barber_id) ?? 0) + 1);
+      }
+    }
+    return map;
+  }, [appointments, todayDate]);
 
   const totalApptPages = Math.max(1, Math.ceil(appointments.length / APPT_PAGE_SIZE));
   const currentAppointments = appointments.slice((apptPage - 1) * APPT_PAGE_SIZE, apptPage * APPT_PAGE_SIZE);
@@ -635,6 +695,128 @@ export default function ManagerDashboardPage() {
               </button>
             </div>
           )}
+        </section>
+
+        <section className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-bb-navy">Quản lý thợ</h2>
+              <p className="text-sm text-gray-600">
+                Danh sách thợ chi nhánh {branches.find((b) => b.id === selectedBranchId)?.name ?? "—"}.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-sm">
+                <span className="mb-1 block text-gray-600">Tìm thợ</span>
+                <input
+                  type="search"
+                  value={barberSearch}
+                  onChange={(e) => setBarberSearch(e.target.value)}
+                  className="w-full rounded-lg border-0 bg-bb-input px-3 py-2"
+                  placeholder="Tên hoặc ID"
+                />
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-gray-600">Trạng thái</span>
+                <select
+                  value={barberStatusFilter}
+                  onChange={(e) => setBarberStatusFilter(e.target.value as any)}
+                  className="w-full rounded-lg border-0 bg-bb-input px-3 py-2"
+                >
+                  <option value="all">Tất cả</option>
+                  <option value="available">Đang làm</option>
+                  <option value="off">Nghỉ</option>
+                  <option value="other">Khác</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-4">
+            <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
+              <p className="text-sm text-gray-600">Tổng số thợ</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">{barbers.length}</p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
+              <p className="text-sm text-gray-600">Đang làm việc hôm nay</p>
+              <p className="mt-2 text-3xl font-semibold text-emerald-700">{barberStatusCounts.available}</p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
+              <p className="text-sm text-gray-600">Đang nghỉ hôm nay</p>
+              <p className="mt-2 text-3xl font-semibold text-amber-700">{barberStatusCounts.off}</p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
+              <p className="text-sm text-gray-600">Tổng lịch hôm nay</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">
+                {Array.from(barberWorkToday.values()).reduce((sum, value) => sum + value, 0)}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full min-w-[860px] text-left text-sm text-slate-700">
+              <thead className="border-b border-slate-200 text-slate-500">
+                <tr>
+                  <th className="py-3 pr-4">Thợ</th>
+                  <th className="py-3 pr-4">Trạng thái</th>
+                  <th className="py-3 pr-4">Lịch hôm nay</th>
+                  <th className="py-3 pr-4">Chi nhánh</th>
+                  <th className="py-3 pr-4">Nhận lịch</th>
+                  <th className="py-3">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredBarbers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-slate-500">
+                      Không tìm thấy thợ.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredBarbers.map((barber) => (
+                    <tr key={barber.barber_id} className="border-b border-slate-100">
+                      <td className="py-3 pr-4 font-medium text-slate-900">
+                        {barber.full_name ?? `#${barber.barber_id}`}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {barber.status === "available" ? (
+                          <span className="inline-flex rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">
+                            Đang làm
+                          </span>
+                        ) : barber.status === "off" ? (
+                          <span className="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
+                            Nghỉ
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                            {barber.status ?? "Không rõ"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {barberWorkToday.get(barber.barber_id) ?? 0}
+                      </td>
+                      <td className="py-3 pr-4 text-slate-600">
+                        {branches.find((b) => b.id === selectedBranchId)?.name ?? "—"}
+                      </td>
+                      <td className="py-3 pr-4 text-slate-600">
+                        {barber.status === "available" ? "Có" : "Không"}
+                      </td>
+                      <td className="py-3">
+                        <button
+                          type="button"
+                          onClick={() => void toggleBarberStatus(barber)}
+                          className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                        >
+                          {barber.status === "available" ? "Đặt nghỉ" : "Đặt làm"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="rounded-2xl bg-white p-5 shadow-sm">

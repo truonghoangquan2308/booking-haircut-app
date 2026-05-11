@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_booking_app/app_session.dart';
 import 'package:flutter_booking_app/services/api_service.dart';
 
 class BranchChatScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _BranchChatScreenState extends State<BranchChatScreen> {
   final List<Map<String, dynamic>> _chatMessages = [];
   bool _sending = false;
   bool _loading = true;
+  bool _firstLoad = true;
   String? _error;
   Timer? _pollTimer;
 
@@ -32,6 +34,11 @@ class _BranchChatScreenState extends State<BranchChatScreen> {
       : int.tryParse(widget.branch['id']?.toString() ?? '') ?? 0;
 
   String? get _firebaseUid => FirebaseAuth.instance.currentUser?.uid;
+  String? get _customerPhone => AppSession.phone;
+
+  bool get _isAuthAvailable =>
+      (_firebaseUid != null && _firebaseUid!.isNotEmpty) ||
+      (_customerPhone != null && _customerPhone!.isNotEmpty);
 
   @override
   void initState() {
@@ -50,45 +57,62 @@ class _BranchChatScreenState extends State<BranchChatScreen> {
   }
 
   Future<void> _loadMessages() async {
-    if (_branchId <= 0 || _firebaseUid == null) {
+    if (_branchId <= 0 || !_isAuthAvailable) {
       if (mounted) {
         setState(() {
           _loading = false;
-          _error = _firebaseUid == null ? 'Vui lòng đăng nhập để chat.' : null;
+          _error = 'Vui lòng đăng nhập để chat.';
+          _firstLoad = false;
         });
       }
       return;
     }
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+
+    if (_firstLoad) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    } else {
+      if (mounted) {
+        setState(() {
+          _error = null;
+        });
+      }
+    }
 
     try {
       final response = await ApiService.getBranchChatMessages(
         branchId: _branchId,
-        firebaseUid: _firebaseUid!,
+        firebaseUid: _firebaseUid ?? '',
+        phone: _customerPhone,
       );
-      setState(() {
-        _chatMessages.clear();
-        _chatMessages.addAll(
-          response.map(
-            (message) => {
-              'sender': message['sender']?.toString() ?? 'customer',
-              'text': message['message']?.toString() ?? '',
-              'is_read': message['is_read'] == true || message['is_read'] == 1,
-            },
-          ),
-        );
-      });
+      if (mounted) {
+        setState(() {
+          _chatMessages.clear();
+          _chatMessages.addAll(
+            response.map(
+              (message) => {
+                'sender': message['sender']?.toString() ?? 'customer',
+                'text': message['message']?.toString() ?? '',
+                'is_read':
+                    message['is_read'] == true || message['is_read'] == 1,
+              },
+            ),
+          );
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e is Exception ? e.toString() : 'Không tải được tin nhắn.';
-      });
+      if (mounted) {
+        setState(() {
+          _error = e is Exception ? e.toString() : 'Không tải được tin nhắn.';
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
           _loading = false;
+          _firstLoad = false;
         });
       }
     }
@@ -110,7 +134,7 @@ class _BranchChatScreenState extends State<BranchChatScreen> {
   Future<void> _sendChatMessage(String text) async {
     final message = text.trim();
     if (message.isEmpty) return;
-    if (_firebaseUid == null) {
+    if (!_isAuthAvailable) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng đăng nhập để chat với lễ tân.')),
@@ -127,7 +151,8 @@ class _BranchChatScreenState extends State<BranchChatScreen> {
     try {
       await ApiService.sendBranchChatMessage(
         branchId: _branchId,
-        firebaseUid: _firebaseUid!,
+        firebaseUid: _firebaseUid ?? '',
+        phone: _customerPhone,
         message: message,
       );
       await _loadMessages();

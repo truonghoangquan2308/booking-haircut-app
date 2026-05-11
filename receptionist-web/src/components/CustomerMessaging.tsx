@@ -52,27 +52,8 @@ export function AutoReplyMessaging({ uid, branchId }: AutoReplyMessagingProps) {
   }
 
   return (
-    <Card
-      title="Tin nhắn khách hàng"
-      description="Danh sách khách hàng chi nhánh để gọi điện, SMS hoặc copy số nhanh. Chat sẽ được tích hợp tiếp theo."
-    >
+    <Card title="Tin nhắn khách hàng">
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="text-sm text-slate-500">
-            UID: <span className="font-medium text-slate-900">{uid}</span>
-          </div>
-          <div className="text-sm text-slate-500">
-            Branch: <span className="font-medium text-slate-900">{branchId}</span>
-          </div>
-          <button
-            type="button"
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm"
-            onClick={() => void loadCustomers()}
-          >
-            Tải lại danh sách
-          </button>
-        </div>
-
         <div className="flex flex-wrap gap-3">
           <input
             type="text"
@@ -117,12 +98,6 @@ export function AutoReplyMessaging({ uid, branchId }: AutoReplyMessagingProps) {
                     <td className="py-3 px-3 text-slate-600">{customer.last_booking ? new Date(customer.last_booking).toLocaleString("vi-VN") : "Chưa đặt"}</td>
                     <td className="py-3 px-3">
                       <div className="flex flex-wrap gap-2">
-                        <a
-                          href={customer.phone ? `tel:${customer.phone}` : "#"}
-                          className={`rounded-lg px-2 py-1 text-xs font-semibold ${customer.phone ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-400 pointer-events-none"}`}
-                        >
-                          Gọi
-                        </a>
                         <a
                           href={customer.phone ? `sms:${customer.phone}` : "#"}
                           className={`rounded-lg px-2 py-1 text-xs font-semibold ${customer.phone ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-400 pointer-events-none"}`}

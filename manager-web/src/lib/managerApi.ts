@@ -137,7 +137,13 @@ export async function deleteSchedule(
   if (!res.ok) throw new Error(data.error ?? "Xóa thất bại");
 }
 
-export type BarberOption = { barber_id: number; full_name: string | null };
+export type BarberOption = {
+  barber_id: number;
+  full_name: string | null;
+  status?: string | null;
+  is_available?: number | null;
+  branch_id?: number | null;
+};
 
 export async function fetchManagerBarbers(
   uid: string,
@@ -148,14 +154,45 @@ export async function fetchManagerBarbers(
     cache: "no-store",
   });
   const data = await readJsonResponse<{
-    barbers?: Array<{ barber_id: number; full_name?: string | null }>;
+    barbers?: Array<{
+      barber_id: number;
+      full_name?: string | null;
+      status?: string | null;
+      is_available?: number | null;
+    }>;
     error?: string;
   }>(res);
   if (!res.ok) throw new Error(data.error ?? "Lỗi tải danh sách thợ");
   return (data.barbers ?? []).map((b) => ({
     barber_id: b.barber_id,
     full_name: b.full_name ?? null,
+    status: b.status ?? null,
+    is_available: b.is_available != null ? Number(b.is_available) : undefined,
   }));
+}
+
+export async function patchManagerBarberAvailability(
+  uid: string,
+  barberId: number,
+  isAvailable: boolean,
+  branchId?: number,
+): Promise<BarberOption> {
+  const res = await fetch(
+    `${getApiBase()}/api/manager/barbers/${barberId}/availability`,
+    {
+      method: "PATCH",
+      headers: headers(uid, true, branchId),
+      body: JSON.stringify({ is_available: isAvailable ? 1 : 0 }),
+    },
+  );
+  const data = await readJsonResponse<{ barber?: BarberOption; error?: string }>(res);
+  if (!res.ok || !data.barber) throw new Error(data.error ?? "Cập nhật trạng thái thợ thất bại");
+  return {
+    barber_id: data.barber.barber_id,
+    full_name: data.barber.full_name ?? null,
+    status: data.barber.status ?? null,
+    is_available: data.barber.is_available != null ? Number(data.barber.is_available) : undefined,
+  };
 }
 
 export type ManagerAppointmentRow = {

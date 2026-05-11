@@ -19,7 +19,7 @@ const tabs: { id: TabType; label: string }[] = [
   { id: "shop", label: "Quản lý shop" },
   { id: "book", label: "Quản lý ca làm" },
   { id: "messages", label: "Liên hệ khách hàng" },
-  { id: "walkin", label: "Quản lý thợ" },
+  { id: "barbers", label: "Quản lý thợ" },
 ];
 
 export function ReceptionistHeader({

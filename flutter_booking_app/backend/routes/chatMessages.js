@@ -60,7 +60,7 @@ function formatMessage(row) {
   };
 }
 
-router.post('/', async (req, res) => {
+router.post('/messages', async (req, res) => {
   const { branch_id: branchId, message, firebase_uid: firebaseUid, phone, full_name: fullName } = req.body ?? {};
   if (!branchId || !message || !message.toString().trim()) {
     return res.status(400).json({ error: 'branch_id và message là bắt buộc' });
@@ -100,7 +100,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
+router.get('/messages', async (req, res) => {
   const branchId = Number(req.query.branch_id || 0);
   const firebaseUid = String(req.query.firebase_uid || '').trim();
   const customerId = Number(req.query.customer_id || 0);

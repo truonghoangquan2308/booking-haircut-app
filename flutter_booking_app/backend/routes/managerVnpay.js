@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
+const qs = require('qs');
 const pool = require('../db');
 
 const router = express.Router();
@@ -21,24 +22,36 @@ function getClientIp(req) {
   if (typeof xff === 'string' && xff.trim()) {
     return xff.split(',')[0].trim();
   }
-  return req.ip || req.connection.remoteAddress || '127.0.0.1';
+  const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+  // ✅ Chuyển IPv6 loopback -> IPv4
+  return ip === '::1' ? '127.0.0.1' : ip;
+}
+
+// ✅ Copy y chang từ official VNPay Node.js demo
+function sortObject(obj) {
+  const sorted = {};
+  const str = Object.keys(obj).map((key) => encodeURIComponent(key));
+  str.sort();
+  for (const key of str) {
+    sorted[key] = encodeURIComponent(obj[decodeURIComponent(key)]).replace(/%20/g, '+');
+  }
+  return sorted;
 }
 
 function buildVnpayQuery(params, secretKey) {
   const data = { ...params };
   delete data.vnp_SecureHash;
   delete data.vnp_SecureHashType;
-  const sortedKeys = Object.keys(data).sort();
-  const queryPairs = sortedKeys.map(
-    (key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`,
-  );
-  const rawData = queryPairs.join('&');
-  const hmac = crypto.createHmac('sha512', secretKey);
-  const secureHash = hmac.update(rawData).digest('hex').toUpperCase();
-  const query = queryPairs.join('&');
-  return `${query}&vnp_SecureHashType=SHA512&vnp_SecureHash=${secureHash}`;
-}
 
+  const sortedParams = sortObject(data);
+  const signData = qs.stringify(sortedParams, { encode: false });
+
+  const hmac = crypto.createHmac('sha512', secretKey);
+  const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
+
+  sortedParams['vnp_SecureHash'] = signed;
+  return qs.stringify(sortedParams, { encode: false });
+}
 async function requireManagerOrOwner(req, res, next) {
   const uid = (req.headers['x-firebase-uid'] || '').trim();
   if (!uid) return res.status(401).json({ error: 'Thiếu x-firebase-uid' });
@@ -165,17 +178,19 @@ router.post('/vnpay/checkout', requireManagerOrOwner, requireManagerBranch, asyn
       vnp_Amount: String(amount),
       vnp_CurrCode: 'VND',
       vnp_TxnRef: txnRef,
-      vnp_OrderInfo: `Thanh toán lịch hẹn #${appointmentId} - ${appointment.service_name}`,
+      vnp_OrderInfo: `Thanh toán lịch hẹn ${appointmentId} - ${appointment.service_name}`,
       vnp_OrderType: 'other',
       vnp_Locale: 'vn',
       vnp_ReturnUrl: vnpayReturnUrl,
       vnp_CreateDate: createDate,
       vnp_IpAddr: ipAddr,
-      vnp_SecureHashType: 'SHA512',
     };
 
     const query = buildVnpayQuery(params, vnpaySecret);
     const paymentUrl = `${vnpayUrl}?${query}`;
+    console.log('\n=== VNPAY PAYMENT URL ===');
+    console.log(paymentUrl);
+    console.log('========================\n');
     return res.json({ payment_url: paymentUrl });
   } catch (e) {
     console.error(e);

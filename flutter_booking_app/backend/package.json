@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "concurrently \"node server.js\" \"ngrok http 3000\""
   },
   "dependencies": {
     "cors": "^2.8.6",
@@ -11,6 +12,7 @@
     "express": "^4.22.1",
     "multer": "^2.1.1",
     "mysql2": "^3.19.1",
+    "qs": "^6.15.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   }

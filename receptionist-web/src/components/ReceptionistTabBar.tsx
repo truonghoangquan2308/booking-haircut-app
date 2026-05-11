@@ -4,6 +4,7 @@ export type TabType =
   | "schedule"
   | "book"
   | "walkin"
+  | "barbers"
   | "payment"
   | "shop"
   | "messages";
@@ -16,7 +17,7 @@ type ReceptionistTabBarProps = {
 const tabs: { id: TabType; label: string }[] = [
   { id: "schedule", label: "Lịch hẹn" },
   { id: "book", label: "Đặt lịch" },
-  { id: "walkin", label: "Walk-in" },
+  { id: "barbers", label: "Quản lý thợ" },
   { id: "payment", label: "Thanh toán" },
   { id: "shop", label: "Quản lý shop" },
   { id: "messages", label: "Tin nhắn" },

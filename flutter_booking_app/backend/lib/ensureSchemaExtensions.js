@@ -15,23 +15,41 @@ async function ensureSchemaExtensions() {
 
   const [barberCols] = await pool.execute('SHOW COLUMNS FROM barbers');
   const barberFields = new Set(barberCols.map((c) => c.Field));
-  if (barberFields.has('branch_id') || barberFields.has('shop_id')) {
+  if (barberFields.has('branch_id')) {
     return;
   }
 
-  const [[{ sc }]] = await pool.execute(
+  const [[{ branches_count }]] = await pool.execute(
     `
-    SELECT COUNT(*) AS sc FROM information_schema.tables
-    WHERE table_schema = DATABASE() AND table_name = 'shops'
+    SELECT COUNT(*) AS branches_count FROM information_schema.tables
+    WHERE table_schema = DATABASE() AND table_name = 'branches'
     `,
   );
-  if (Number(sc) === 0) return;
+  if (Number(branches_count) === 0) {
+    const [[{ shops_count }]] = await pool.execute(
+      `
+      SELECT COUNT(*) AS shops_count FROM information_schema.tables
+      WHERE table_schema = DATABASE() AND table_name = 'shops'
+      `,
+    );
+    if (Number(shops_count) === 0) return;
+
+    await pool.execute(
+      `
+      ALTER TABLE barbers
+      ADD COLUMN shop_id INT NULL,
+      ADD CONSTRAINT fk_barbers_shop FOREIGN KEY (shop_id) REFERENCES shops(id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+      `,
+    );
+    return;
+  }
 
   await pool.execute(
     `
     ALTER TABLE barbers
-    ADD COLUMN shop_id INT NULL,
-    ADD CONSTRAINT fk_barbers_shop FOREIGN KEY (shop_id) REFERENCES shops(id)
+    ADD COLUMN branch_id INT NULL,
+    ADD CONSTRAINT fk_barbers_branch FOREIGN KEY (branch_id) REFERENCES branches(id)
       ON DELETE SET NULL ON UPDATE CASCADE
     `,
   );

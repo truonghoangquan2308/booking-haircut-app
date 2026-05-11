@@ -333,21 +333,9 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
             />
           </label>
 
-          <Button type="button" variant="secondary" onClick={() => void load()} isLoading={loading}>
-            Tải lại
-          </Button>
-
-          <div className="ml-auto flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setCreateMode("book");
-                setCDate(today);
-                setCreateOpen(true);
-              }}
-            >
-              Đặt lịch
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" onClick={() => void load()} isLoading={loading}>
+              Tải lại
             </Button>
             <Button
               type="button"
@@ -435,15 +423,6 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
                     </td>
                     <td className="py-2">
                       <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          disabled={busyApptId === a.id || a.status === "cancelled" || a.status === "completed"}
-                          onClick={() => void onUpdateStatus(a.id, "in_progress")}
-                        >
-                          Check-in
-                        </Button>
                         <Button
                           type="button"
                           size="sm"

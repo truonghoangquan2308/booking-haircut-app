@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchManagerChatMessages, postManagerChatMessage, type ChatMessage } from "@/lib/managerApi";
 
 type CustomerChatThreadProps = {
@@ -24,9 +24,10 @@ export function CustomerChatThread({
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const initialLoadRef = useRef(true);
 
   const loadMessages = useCallback(async () => {
-    setLoading(true);
+    if (initialLoadRef.current) setLoading(true);
     setError(null);
     try {
       const data = await fetchManagerChatMessages(uid, branchId, customerId);
@@ -34,7 +35,12 @@ export function CustomerChatThread({
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setLoading(false);
+      if (initialLoadRef.current) {
+        setLoading(false);
+        initialLoadRef.current = false;
+      } else {
+        setLoading(false);
+      }
     }
   }, [uid, branchId, customerId]);
 
