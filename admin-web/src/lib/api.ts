@@ -7,7 +7,7 @@ const DEFAULT_API_BASE = "http://localhost:3000";
 export function getApiBase(): string {
   const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
   if (!raw) return DEFAULT_API_BASE;
-  let base = raw.replace(/\/+$/, "");
+  const base = raw.replace(/\/+$/, "");
   try {
     const u = new URL(base);
     const h = u.hostname.toLowerCase();

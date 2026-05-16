@@ -12,8 +12,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notification = true;
-  bool _darkMode = false;
-  bool _language = false;
 
   void _showSnack(String message) {
     if (!mounted) return;
@@ -59,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Về ứng dụng'),
         content: const Text(
-          'Haircut Booking App\nPhiên bản: 1.0.0\nNhóm phát triển: GROUP 5',
+          'Haircut Booking App\nPhiên bản: 1.0.0\nNhóm phát triển: SKIBIDI',
         ),
         actions: [
           TextButton(
@@ -94,17 +92,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _showSnack(
                   v ? 'Đã bật thông báo đặt lịch' : 'Đã tắt thông báo đặt lịch',
                 );
-              }),
-            ]),
-            const SizedBox(height: 12),
-            _buildSection('Giao diện', [
-              _buildSwitch('Chế độ tối', _darkMode, (v) {
-                setState(() => _darkMode = v);
-                _showSnack('Tính năng đang được hoàn thiện.');
-              }),
-              _buildSwitch('Tiếng Anh', _language, (v) {
-                setState(() => _language = v);
-                _showSnack('Tính năng chuyển ngôn ngữ đang được hoàn thiện.');
               }),
             ]),
             const SizedBox(height: 12),

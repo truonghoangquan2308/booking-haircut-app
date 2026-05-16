@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 const LOGIN_WEB_URL =
   process.env.NEXT_PUBLIC_LOGIN_URL ?? "http://localhost:3000";
@@ -11,11 +10,9 @@ const LOGIN_WEB_URL =
  * Nếu localStorage không có bb_firebase_token → redirect về login-web.
  */
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-<<<<<<< HEAD
     // 1. Kiểm tra token từ hash trước (an toàn hơn), fallback query để tương thích link cũ.
     const queryParams = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(
@@ -25,12 +22,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
     const tokenFromUrl = hashParams.get("token") ?? queryParams.get("token");
     const uidFromUrl = hashParams.get("uid") ?? queryParams.get("uid");
-=======
-    // 1. Kiểm tra xem có token trong URL không (do login-web chuyển qua)
-    const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get("token");
-    const uidFromUrl = urlParams.get("uid");
->>>>>>> 44c0d5865a186979fa079fb53897f421a567cbfe
 
     if (tokenFromUrl) {
       localStorage.setItem("bb_firebase_token", tokenFromUrl);
@@ -53,7 +44,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     } else {
       setToken(storedToken);
     }
-  }, [router]);
+  }, []);
 
   if (!token) {
     return (

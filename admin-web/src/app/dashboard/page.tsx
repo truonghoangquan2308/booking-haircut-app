@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminHeader } from "@/components/AdminHeader";
+import PageHeader from "@/components/PageHeader";
 import { useAdminSession } from "@/hooks/useAdminSession";
 import { fetchPlatformStats, type PlatformStats } from "@/lib/platformApi";
 
@@ -15,11 +16,6 @@ export default function AdminHomePage() {
     const s = await fetchPlatformStats(firebaseUid);
     setStats(s);
   }, []);
-
-  function fmtMoney(value: number | undefined | null) {
-    if (value == null || Number.isNaN(Number(value))) return "—";
-    return new Intl.NumberFormat("vi-VN").format(Number(value)) + " đ";
-  }
 
   useEffect(() => {
     if (!uid) return;
@@ -59,23 +55,17 @@ export default function AdminHomePage() {
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-page)', color: 'var(--color-text-primary)' }}>
       <AdminHeader
         user={user}
-        title="Tổng quan"
-        subtitle="Báo cáo & vận hành — Admin"
         onLogout={logout}
       />
 
       <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
+        <PageHeader title="Tổng quan hệ thống" />
+
         {error && (
           <p className="rounded-xl border px-4 py-3 text-sm" style={{ borderColor: 'var(--color-danger)', backgroundColor: 'rgba(220,38,38,0.05)', color: 'var(--color-danger)' }}>
             {error}
           </p>
         )}
-
-        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-          Dùng thanh menu phía trên để mở nhanh{" "}
-          <strong>Tài khoản</strong>, <strong>Cửa hàng / chi nhánh</strong>,{" "}
-          <strong>Nhật ký</strong>.
-        </p>
 
         {stats && (
           <section className="stat-grid">
@@ -85,20 +75,16 @@ export default function AdminHomePage() {
                 { label: "Cửa hàng", value: stats.shops_total, href: "/dashboard/shops" },
                 { label: "Chờ duyệt", value: stats.shops_pending, href: "/dashboard/shops" },
                 { label: "Đã duyệt", value: stats.shops_approved ?? stats.shops_total - stats.shops_pending, href: "/dashboard/shops" },
-                { label: "Lịch hẹn", value: stats.appointments_total, href: "/dashboard/shops" },
-                { label: "Đơn shop", value: stats.shop_orders_total, href: "/dashboard/shops" },
-                { label: "Owner", value: stats.owners, href: "/dashboard/users" },
-                { label: "Manager", value: stats.managers, href: "/dashboard/users" },
-                { label: "Thợ", value: stats.barbers, href: "/dashboard/users" },
-                { label: "Doanh thu hôm nay", value: fmtMoney(stats.revenue_today), href: "/dashboard" },
-                { label: "Doanh thu tháng này", value: fmtMoney(stats.revenue_month), href: "/dashboard" },
-              ] as const
-            ).map(({ label, value, href }) => (
+                { label: "Owner", value: stats.owners, href: "/dashboard/users", span: 2 },
+                { label: "Manager", value: stats.managers, href: "/dashboard/users", span: 2 },
+                { label: "Thợ", value: stats.barbers, href: "/dashboard/users", span: 2 },
+              ] as Array<{ label: string; value: number; href: string; span?: number }>
+            ).map(({ label, value, href, span }) => (
               <button
                 key={label}
                 type="button"
                 onClick={() => router.push(href)}
-                className="stat-card group transition hover:-translate-y-0.5 hover:shadow-hover"
+                className={`stat-card group transition hover:-translate-y-0.5 hover:shadow-hover ${span === 2 ? 'col-span-2' : ''}`}
               >
                 <p className="stat-label group-hover:text-[var(--color-primary)]">{label}</p>
                 <p className="stat-value">{value}</p>

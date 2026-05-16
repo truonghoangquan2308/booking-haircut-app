@@ -1,12 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { auth } from "@/lib/firebase";
 import { AdminHeader } from "@/components/AdminHeader";
+import PageHeader from "@/components/PageHeader";
 import { useAdminSession } from "@/hooks/useAdminSession";
 import { fetchAdminShops, patchShop, type ShopRow } from "@/lib/shopsApi";
 
 const SHOP_PAGE_SIZE = 20;
+
+const approvalLabel: Record<string, string> = {
+  approved: "Đã duyệt",
+  pending: "Chờ duyệt",
+  rejected: "Từ chối",
+  blocked: "Đã chặn",
+};
+
+const approvalColors: Record<string, { bg: string; text: string }> = {
+  approved: { bg: "bg-green-100", text: "text-green-700" },
+  pending: { bg: "bg-yellow-100", text: "text-yellow-700" },
+  rejected: { bg: "bg-red-100", text: "text-red-700" },
+  blocked: { bg: "bg-red-900/20", text: "text-red-900" },
+};
 
 export default function AdminShopsPage() {
   const { user, uid, error, setError, logout } = useAdminSession();
@@ -64,13 +78,12 @@ export default function AdminShopsPage() {
     shopId: number,
     body: { approval_status?: string; is_blocked?: boolean },
   ) {
-    const fb = auth.currentUser;
-    if (!fb) return;
+    if (!uid) return;
     setBusyId(shopId);
     setError(null);
     try {
-      await patchShop(fb.uid, shopId, body);
-      await loadShops(fb.uid);
+      await patchShop(uid, shopId, body);
+      await loadShops(uid);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -92,9 +105,9 @@ export default function AdminShopsPage() {
   }
 
   async function saveBranchManager() {
-    const fb = auth.currentUser;
+    if (!uid) return;
     const shop = editManagerForShop;
-    if (!fb || !shop) return;
+    if (!shop) return;
     const trimmed = managerUserIdInput.trim();
     if (!trimmed) {
       setError("Nhập ID user (cột ID trong bảng Tài khoản hệ thống).");
@@ -108,8 +121,8 @@ export default function AdminShopsPage() {
     setBusyManagerShopId(shop.id);
     setError(null);
     try {
-      await patchShop(fb.uid, shop.id, { manager_user_id: n });
-      await loadShops(fb.uid);
+      await patchShop(uid, shop.id, { manager_user_id: n });
+      await loadShops(uid);
       closeEditManager();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -119,14 +132,14 @@ export default function AdminShopsPage() {
   }
 
   async function clearBranchManager() {
-    const fb = auth.currentUser;
+    if (!uid) return;
     const shop = editManagerForShop;
-    if (!fb || !shop) return;
+    if (!shop) return;
     setBusyManagerShopId(shop.id);
     setError(null);
     try {
-      await patchShop(fb.uid, shop.id, { manager_user_id: null });
-      await loadShops(fb.uid);
+      await patchShop(uid, shop.id, { manager_user_id: null });
+      await loadShops(uid);
       closeEditManager();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -156,14 +169,14 @@ export default function AdminShopsPage() {
 
   return (
     <div className="min-h-screen bg-bb-surface text-gray-900">
-      <AdminHeader
-        user={user}
-        title="Cửa hàng / chi nhánh"
-        subtitle="Duyệt, chặn, gán Manager"
-        onLogout={logout}
-      />
+      <AdminHeader user={user} onLogout={logout} />
 
       <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
+        <PageHeader
+          title="Cửa hàng & Chi nhánh"
+          subtitle="Duyệt, chặn, gán Manager"
+        />
+
         {error && (
           <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
@@ -171,9 +184,6 @@ export default function AdminShopsPage() {
         )}
 
         <section>
-          <h2 className="mb-4 text-lg font-bold text-bb-navy">
-            Danh sách cửa hàng / chi nhánh (tìm &amp; phân trang)
-          </h2>
           <div className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <label className="text-sm">
               <span className="mb-1 block text-gray-600">Tìm (tên / mô tả / email owner)</span>
@@ -189,7 +199,7 @@ export default function AdminShopsPage() {
             <button
               type="button"
               onClick={applyShopFilters}
-              className="rounded-xl bg-bb-navy px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
+              className="rounded-lg bg-bb-navy px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
             >
               Áp dụng
             </button>
@@ -240,15 +250,11 @@ export default function AdminShopsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={
-                          s.approval_status === "approved"
-                            ? "font-semibold text-emerald-600"
-                            : s.approval_status === "rejected"
-                              ? "font-semibold text-red-600"
-                              : "font-semibold text-amber-600"
-                        }
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          approvalColors[s.approval_status]?.bg ?? "bg-gray-100"
+                        } ${approvalColors[s.approval_status]?.text ?? "text-gray-700"}`}
                       >
-                        {s.approval_status}
+                        {approvalLabel[s.approval_status] ?? s.approval_status}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -280,7 +286,7 @@ export default function AdminShopsPage() {
                           type="button"
                           disabled={busyId === s.id}
                           onClick={() => void act(s.id, { approval_status: "rejected" })}
-                          className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+                          className="rounded-lg bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-50"
                         >
                           Từ chối
                         </button>
@@ -288,7 +294,7 @@ export default function AdminShopsPage() {
                           type="button"
                           disabled={busyId === s.id}
                           onClick={() => void act(s.id, { approval_status: "pending" })}
-                          className="rounded-lg bg-bb-yellow px-3 py-1 text-xs font-semibold text-black/80 hover:brightness-95 disabled:opacity-50"
+                          className="rounded-lg bg-amber-500 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
                         >
                           Chờ
                         </button>

@@ -1,4 +1,3 @@
-import { AdminSubNav } from "@/components/AdminSubNav";
 import { AuthGuard } from "@/components/AuthGuard";
 
 export default function AdminDashboardLayout({
@@ -8,7 +7,6 @@ export default function AdminDashboardLayout({
 }>) {
   return (
     <AuthGuard>
-      <AdminSubNav />
       {children}
     </AuthGuard>
   );

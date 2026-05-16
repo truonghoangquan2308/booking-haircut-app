@@ -202,7 +202,7 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'GROUP 5',
+                'SKIBIDI',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               Text('Haircut Booking — Thợ', style: TextStyle(fontSize: 12)),

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
+import { PageHeader } from "@/components/PageHeader";
 import {
   fetchManagerAppointments,
   fetchManagerBranchList,
@@ -171,30 +172,12 @@ export default function ManagerDashboardPage() {
     };
   }, [uid, branches]);
 
-  async function logout() {
-    await signOut(auth);
-    router.replace("/");
-  }
-
   return (
     <div className="min-h-screen bg-bb-surface">
-      <header className="bg-bb-navy px-4 py-4 text-white shadow">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-white/80">Owner · Quản lý chi nhánh</p>
-            <p className="text-lg font-bold">
-              {user?.full_name ?? user?.email ?? "Owner"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className="rounded-lg bg-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/25"
-          >
-            Đăng xuất
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        title="Quản lý chi nhánh"
+        subtitle={user?.full_name ?? ""}
+      />
 
       <main className="mx-auto max-w-5xl space-y-8 px-4 py-6">
         {branches.length > 0 && selectedBranchId != null && (

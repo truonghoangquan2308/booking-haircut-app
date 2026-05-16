@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, getApiBase, readJsonResponse } from "@/lib/api";
+import { PageHeader } from "@/components/PageHeader";
 
 type ServiceRow = {
   id: number;
@@ -142,13 +143,10 @@ export default function OwnerServicesPage() {
 
   return (
     <div className="min-h-screen bg-bb-surface text-gray-900">
-      <header className="border-b border-white/10 bg-bb-navy px-6 py-4 text-white shadow">
-        <h1 className="text-xl font-bold">Quản lý dịch vụ</h1>
-        <p className="text-sm text-white/80">
-          Dữ liệu bảng <code className="rounded bg-white/10 px-1">services</code> — app khách
-          hiển thị ngay sau khi lưu.
-        </p>
-      </header>
+      <PageHeader
+        title="Quản lý dịch vụ"
+        subtitle="Dữ liệu bảng services — app khách hiển thị ngay sau khi lưu."
+      />
 
       <main className="mx-auto max-w-5xl space-y-6 px-6 py-6">
         {error && (

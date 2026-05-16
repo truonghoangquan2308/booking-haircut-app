@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-/** Đồng bộ Flutter LoginScreen — nền vàng, logo GROUP 5, pill navy. */
+/** Đồng bộ Flutter LoginScreen — nền vàng, logo SKIBIDI, pill navy. */
 export function BbLoginLayout({
   title,
   subtitle,
@@ -26,7 +26,7 @@ export function BbLoginLayout({
               </svg>
             </div>
             <div>
-              <p className="text-lg font-bold text-black/87">GROUP 5</p>
+              <p className="text-lg font-bold text-black/87">SKIBIDI</p>
               <p className="text-sm text-black/75">Haircut Booking App</p>
             </div>
           </div>

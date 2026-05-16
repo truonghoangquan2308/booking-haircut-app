@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { FormEvent, useState } from "react";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -19,7 +20,7 @@ const ROLES = [
   {
     key: "owner",
     label: "Owner",
-    description: "Báo cáo & quản lý chuỗi",
+    description: "Chủ chuỗi",
     icon: "👑",
     color: "#b45309",
     bg: "#fffbeb",
@@ -158,21 +159,23 @@ export default function LoginPage() {
       <div className="relative w-full max-w-[520px]">
         {/* Logo + Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#ffc107] shadow-lg mb-4">
-            <svg
-              viewBox="0 0 24 24"
-              className="w-9 h-9 text-[#003366]"
-              fill="currentColor"
-              aria-hidden
-            >
-              <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
-            </svg>
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[20px] bg-white/90 shadow-lg">
+            <Image
+              src="/images/skibidi-logo.png"
+              alt="Skibidi Barber"
+              width={64}
+              height={64}
+              className="rounded-xl object-contain"
+            />
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            BB Haircut Booking
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/70 mb-2">
+            Skibidi Barber
+          </p>
+          <h1 className="text-4xl font-bold text-white tracking-tight">
+            Skibidi BBShop
           </h1>
-          <p className="mt-1 text-white/70 text-sm">
-            Hệ thống quản lý — Chọn vai trò để đăng nhập
+          <p className="mt-2 text-white/70 text-base">
+            Đăng nhập để quản lý chuỗi và báo cáo
           </p>
         </div>
 
@@ -276,7 +279,7 @@ export default function LoginPage() {
                     ? `Email ${selectedRoleInfo.label.toLowerCase()}@gmail.com`
                     : "Email"
                 }
-                className="w-full rounded-xl border-0 bg-[#f5f5f7] px-4 py-3 text-gray-900 text-sm outline-none focus:ring-2 focus:ring-[#003366]/30 placeholder:text-gray-400"
+                className="w-full rounded-[8px] border-[1.5px] border-[#E5E7EB] bg-white px-4 py-3 text-gray-900 text-sm outline-none transition focus:border-[#F5A623] focus:shadow-[0_0_0_3px_rgba(245,166,35,0.15)] placeholder:text-gray-400"
               />
               <input
                 id="login-password"
@@ -286,7 +289,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mật khẩu"
-                className="w-full rounded-xl border-0 bg-[#f5f5f7] px-4 py-3 text-gray-900 text-sm outline-none focus:ring-2 focus:ring-[#003366]/30 placeholder:text-gray-400"
+                className="w-full rounded-[8px] border-[1.5px] border-[#E5E7EB] bg-white px-4 py-3 text-gray-900 text-sm outline-none transition focus:border-[#F5A623] focus:shadow-[0_0_0_3px_rgba(245,166,35,0.15)] placeholder:text-gray-400"
               />
 
               {error && (
@@ -302,12 +305,7 @@ export default function LoginPage() {
                 id="login-submit"
                 type="submit"
                 disabled={loading || !selectedRole}
-                className="rounded-xl py-3.5 text-base font-bold text-white shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor:
-                    selectedRoleInfo?.color ?? "#003366",
-                  opacity: !selectedRole ? 0.4 : 1,
-                }}
+                className="w-full rounded-[8px] bg-[#F5A623] px-6 py-3.5 text-base font-semibold text-[#111827] shadow-sm transition hover:bg-[#E09610] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading
                   ? "Đang đăng nhập…"
@@ -321,7 +319,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-white/40 mt-6">
-          GROUP 5 — Haircut Booking App © 2025
+          SKIBIDI — Haircut Booking App © 2026
         </p>
       </div>
     </div>

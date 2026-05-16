@@ -68,7 +68,7 @@ router.get('/shops', requireAdmin, async (req, res) => {
           b.name,
           b.address AS description,
           CASE WHEN b.status = 'blocked' THEN 1 ELSE 0 END AS is_blocked,
-          'approved' AS approval_status,
+          COALESCE(b.approval_status, 'pending') AS approval_status,
           b.created_at,
           b.created_at AS updated_at,
           b.owner_id AS owner_user_id,
@@ -147,7 +147,7 @@ async function selectBranchShopRow(branchId) {
         SELECT
           b.id, b.name, b.address AS description,
           CASE WHEN b.status = 'blocked' THEN 1 ELSE 0 END AS is_blocked,
-          'approved' AS approval_status,
+          COALESCE(b.approval_status, 'pending') AS approval_status,
           b.created_at, b.created_at AS updated_at,
           b.owner_id AS owner_user_id,
           um.id AS manager_user_id,
@@ -282,27 +282,50 @@ router.patch('/shops/:id', requireAdmin, async (req, res) => {
 
   if (model === 'branches') {
     let nextStatus = null;
-    if (is_blocked === true) nextStatus = 'blocked';
-    else if (is_blocked === false) nextStatus = 'active';
-    else if (approval_status === 'rejected') nextStatus = 'blocked';
-    else if (approval_status === 'approved') nextStatus = 'active';
-    if (nextStatus === null) {
+    let nextApprovalStatus = null;
+    if (is_blocked === true) {
+      nextStatus = 'blocked';
+    } else if (is_blocked === false) {
+      nextStatus = 'active';
+    }
+    if (approval_status === 'rejected') {
+      nextStatus = 'blocked';
+      nextApprovalStatus = 'rejected';
+    } else if (approval_status === 'approved') {
+      nextStatus = 'active';
+      nextApprovalStatus = 'approved';
+    } else if (approval_status === 'pending') {
+      nextStatus = 'active';
+      nextApprovalStatus = 'pending';
+    }
+    if (nextStatus === null && nextApprovalStatus === null) {
       return res.status(400).json({
         error:
-          'Branches: gửi is_blocked (boolean), approval_status approved/rejected, hoặc manager_user_id',
+          'Branches: gửi is_blocked (boolean), approval_status approved/rejected/pending, hoặc manager_user_id',
       });
     }
     try {
-      await pool.execute('UPDATE branches SET status = ? WHERE id = ?', [
-        nextStatus,
-        id,
-      ]);
+      const updates = [];
+      const params = [];
+      if (nextStatus !== null) {
+        updates.push('status = ?');
+        params.push(nextStatus);
+      }
+      if (nextApprovalStatus !== null) {
+        updates.push('approval_status = ?');
+        params.push(nextApprovalStatus);
+      }
+      if (!updates.length) {
+        return res.status(400).json({ error: 'Không có trường cập nhật' });
+      }
+      params.push(id);
+      await pool.execute(`UPDATE branches SET ${updates.join(', ')} WHERE id = ?`, params);
       await logAdminAction({
         adminId: req.adminId,
         action: 'branch.update',
         targetType: 'branch',
         targetId: id,
-        detail: { approval_status, is_blocked, nextStatus },
+        detail: { approval_status, is_blocked, nextStatus, nextApprovalStatus },
       });
       const row = await selectBranchShopRow(id);
       return res.json({ shop: row });

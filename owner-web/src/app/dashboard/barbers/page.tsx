@@ -6,6 +6,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid } from "@/lib/api";
 import { fetchManagerBranchList, type ManagerBranchRow } from "@/lib/managerApi";
+import { PageHeader } from "@/components/PageHeader";
 import {
   createOwnerBarber,
   fetchOwnerBarbers,
@@ -263,13 +264,10 @@ export default function OwnerBarbersPage() {
 
   return (
     <div className="min-h-screen bg-bb-surface text-gray-900">
-      <header className="border-b border-white/10 bg-bb-navy px-6 py-4 text-white shadow">
-        <h1 className="text-xl font-bold">Quản lý thợ</h1>
-        <p className="text-sm text-white/80">
-          Dữ liệu lấy từ MySQL qua <code className="rounded bg-white/10 px-1">GET /api/owner/barbers</code> (thợ có
-          chi nhánh trùng <code className="rounded bg-white/10 px-1">branches.owner_id</code> của bạn).
-        </p>
-      </header>
+      <PageHeader
+        title="Quản lý thợ"
+        subtitle="Dữ liệu lấy từ MySQL qua GET /api/owner/barbers (thợ có chi nhánh trùng branches.owner_id của bạn)."
+      />
 
       <main className="mx-auto max-w-6xl space-y-6 px-6 py-6">
         {error && (
@@ -385,9 +383,15 @@ export default function OwnerBarbersPage() {
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-3">
                         <img
-                          src={b.avatar_url || "/default-avatar.png"}
+                          src={b.avatar_url || "/default-avatar.svg"}
                           alt="Avatar"
                           className="h-8 w-8 rounded-full border border-gray-200"
+                          onError={(event) => {
+                            const img = event.currentTarget;
+                            if (!img.src.endsWith("/default-avatar.svg")) {
+                              img.src = "/default-avatar.svg";
+                            }
+                          }}
                         />
                         <div>
                           <div className="font-medium">{b.full_name ?? "—"}</div>
@@ -401,15 +405,15 @@ export default function OwnerBarbersPage() {
                     </td>
                     <td className="px-3 py-2">
                       {b.status === "available" ? (
-                        <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                        <span className="status-pill status-pill--success">
                           Đang làm việc
                         </span>
                       ) : b.status === "off" ? (
-                        <span className="inline-flex rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
+                        <span className="status-pill status-pill--warning">
                           Nghỉ phép
                         </span>
                       ) : (
-                        <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                        <span className="status-pill status-pill--danger">
                           Đã nghỉ việc
                         </span>
                       )}

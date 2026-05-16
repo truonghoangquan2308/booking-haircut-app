@@ -2,17 +2,35 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AdminHeader } from "@/components/AdminHeader";
+import PageHeader from "@/components/PageHeader";
 import { useAdminSession } from "@/hooks/useAdminSession";
 import { fetchAuditLogs, type AuditLogRow } from "@/lib/platformApi";
 
 const AUDIT_PAGE_SIZE = 25;
+
+const actionLabel: Record<string, string> = {
+  "branch.update": "Cập nhật chi nhánh",
+  "user.update": "Cập nhật user",
+  "branch.approve": "Duyệt chi nhánh",
+  "branch.block": "Chặn chi nhánh",
+  "user.lock": "Khóa user",
+  "user.unlock": "Mở khóa user",
+};
+
+const actionColors: Record<string, { bg: string; text: string }> = {
+  "branch.update": { bg: "bg-blue-100", text: "text-blue-700" },
+  "user.update": { bg: "bg-blue-100", text: "text-blue-700" },
+  "branch.approve": { bg: "bg-green-100", text: "text-green-700" },
+  "branch.block": { bg: "bg-red-100", text: "text-red-700" },
+  "user.lock": { bg: "bg-red-100", text: "text-red-700" },
+  "user.unlock": { bg: "bg-green-100", text: "text-green-700" },
+};
 
 export default function AdminAuditPage() {
   const { user, uid, error, setError, logout } = useAdminSession();
   const [auditLogs, setAuditLogs] = useState<AuditLogRow[]>([]);
   const [auditPage, setAuditPage] = useState(1);
   const [auditTotal, setAuditTotal] = useState(0);
-  const [auditInputAdmin, setAuditInputAdmin] = useState("");
   const [auditAction, setAuditAction] = useState("");
   const [auditFrom, setAuditFrom] = useState("");
   const [auditTo, setAuditTo] = useState("");
@@ -22,7 +40,6 @@ export default function AdminAuditPage() {
       const r = await fetchAuditLogs(firebaseUid, {
         page: auditPage,
         page_size: AUDIT_PAGE_SIZE,
-        q: auditInputAdmin || undefined,
         action: auditAction || undefined,
         from: auditFrom || undefined,
         to: auditTo || undefined,
@@ -30,7 +47,7 @@ export default function AdminAuditPage() {
       setAuditLogs(r.logs);
       setAuditTotal(r.total);
     },
-    [auditPage, auditInputAdmin, auditAction, auditFrom, auditTo],
+    [auditPage, auditAction, auditFrom, auditTo],
   );
 
   useEffect(() => {
@@ -91,14 +108,14 @@ export default function AdminAuditPage() {
 
   return (
     <div className="min-h-screen bg-bb-surface text-gray-900">
-      <AdminHeader
-        user={user}
-        title="Nhật ký hoạt động"
-        subtitle="Audit admin"
-        onLogout={logout}
-      />
+      <AdminHeader user={user} onLogout={logout} />
 
       <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
+        <PageHeader
+          title="Nhật ký hoạt động"
+          subtitle="Audit log toàn hệ thống"
+        />
+
         {error && (
           <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
@@ -106,27 +123,11 @@ export default function AdminAuditPage() {
         )}
 
         <section>
-          <h2 className="mb-4 text-lg font-bold text-bb-navy">
-            Nhật ký hoạt động (admin làm gì, lúc nào)
-          </h2>
           <p className="mb-3 text-sm text-gray-600">
             Ghi khi khóa/mở user, duyệt/chặn shop hoặc chi nhánh. Trang {auditPage}/{auditTotalPages} · Tổng{" "}
             <strong>{auditTotal}</strong> bản ghi.
           </p>
           <div className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <label className="min-w-[220px] text-sm">
-              <span className="mb-1 block text-gray-600">Tìm theo admin (email)</span>
-              <input
-                type="search"
-                value={auditInputAdmin}
-                onChange={(e) => {
-                  setAuditInputAdmin(e.target.value);
-                  setAuditPage(1);
-                }}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2"
-                placeholder="Email admin…"
-              />
-            </label>
             <label className="min-w-[220px] text-sm">
               <span className="mb-1 block text-gray-600">Hành động</span>
               <select
@@ -138,7 +139,9 @@ export default function AdminAuditPage() {
                 className="w-full rounded-lg border border-gray-200 px-3 py-2"
               >
                 <option value="">Tất cả</option>
-                {Array.from(new Set([auditAction, ...auditLogs.map((log) => log.action)])).map((action) => (
+                {Array.from(
+                  new Set(auditLogs.map((log) => log.action).filter(Boolean)),
+                ).map((action) => (
                   <option key={action} value={action}>
                     {action}
                   </option>
@@ -195,7 +198,15 @@ export default function AdminAuditPage() {
                         <div className="text-xs text-gray-500">{log.admin_name}</div>
                       )}
                     </td>
-                    <td className="px-4 py-2 font-mono text-xs">{log.action}</td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          actionColors[log.action]?.bg ?? "bg-gray-100"
+                        } ${actionColors[log.action]?.text ?? "text-gray-700"}`}
+                      >
+                        {actionLabel[log.action] ?? log.action}
+                      </span>
+                    </td>
                     <td className="px-4 py-2 text-xs">
                       {log.target_type ?? "—"} {log.target_id != null ? `#${log.target_id}` : ""}
                     </td>

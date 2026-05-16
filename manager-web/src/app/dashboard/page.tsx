@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
-import { ManagerDashboardNav } from "@/components/ManagerDashboardNav";
+import { Navbar } from "@/components/Navbar";
+import { PageHeader } from "@/components/PageHeader";
+import { Calendar, UserCheck, UserX, Users } from "lucide-react";
 import {
   deleteSchedule,
   fetchManagerAppointments,
@@ -54,6 +56,34 @@ const APPOINTMENT_STATUSES = [
   "completed",
   "cancelled",
 ] as const;
+
+const APPOINTMENT_STATUS_LABELS: Record<(typeof APPOINTMENT_STATUSES)[number], string> = {
+  pending: "Chờ xác nhận",
+  confirmed: "Đã xác nhận",
+  in_progress: "Đang thực hiện",
+  completed: "Hoàn thành",
+  cancelled: "Đã hủy",
+};
+
+const APPOINTMENT_STATUS_BADGES: Record<(typeof APPOINTMENT_STATUSES)[number], string> = {
+  pending: "bg-amber-100 text-amber-700",
+  confirmed: "bg-sky-100 text-sky-700",
+  in_progress: "bg-blue-100 text-blue-700",
+  completed: "bg-emerald-100 text-emerald-700",
+  cancelled: "bg-red-100 text-red-700",
+};
+
+function formatApptDate(date: string | null | undefined, start: string | null | undefined, end: string | null | undefined) {
+  if (!date) return "—";
+  const d = new Date(String(date));
+  if (Number.isNaN(d.getTime())) return String(date);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const startTime = String(start ?? "").slice(0, 5);
+  const endTime = String(end ?? "").slice(0, 5);
+  return `${dd}/${mm}/${yyyy} · ${startTime}–${endTime}`;
+}
 
 export default function ManagerDashboardPage() {
   const router = useRouter();
@@ -471,58 +501,45 @@ export default function ManagerDashboardPage() {
 
   return (
     <div style={{ backgroundColor: 'var(--color-bg-page)' }} className="min-h-screen">
-      <header style={{ backgroundColor: 'var(--color-navbar-bg)' }} className="px-4 py-4 text-white shadow">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-white/80">
-              manager-web · Quản lý chi nhánh ·{" "}
-              {user?.role === "owner" ? "Owner" : "Manager"}
-            </p>
-            <p className="text-lg font-bold">
-              {user?.full_name ?? user?.email ?? "Staff"}
-            </p>
-            <ManagerDashboardNav />
-            {branches.length > 0 && selectedBranchId != null && (
-              <div className="mt-2 text-sm">
-                <span className="mb-1 block text-white/80">Chi nhánh</span>
-                {canSwitchBranch ? (
-                  <label className="block">
-                    <select
-                      className="max-w-[min(100%,20rem)] rounded-lg border-0 bg-white px-3 py-2 text-[var(--color-navbar-bg)]"
-                      value={selectedBranchId}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        if (!Number.isFinite(v) || v <= 0) return;
-                        onBranchChange(v);
-                      }}
-                    >
-                      {branches.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name?.trim() ? b.name : `#${b.id}`}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : (
-                  <p className="max-w-[min(100%,20rem)] rounded-lg bg-white/10 px-3 py-2 text-white">
-                    {branches.find((b) => b.id === selectedBranchId)?.name?.trim() ||
-                      `Chi nhánh #${selectedBranchId}`}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className="btn btn-secondary-light"
-          >
-            Đăng xuất
-          </button>
-        </div>
-      </header>
+      <Navbar onLogout={logout} />
+      <PageHeader
+        title="Vận hành chi nhánh"
+        subtitle={`Quản lý ${user?.role === "owner" ? "Owner" : "Manager"}`}
+      />
 
       <main className="mx-auto max-w-5xl space-y-8 px-4 py-6">
+        {branches.length > 0 && selectedBranchId != null && (
+          <section className="rounded-[24px] bg-white px-5 py-4 shadow-[var(--shadow-card)]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  Chi nhánh
+                </p>
+                <div className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900">
+                  {branches.find((b) => b.id === selectedBranchId)?.name?.trim() || `Chi nhánh #${selectedBranchId}`}
+                </div>
+              </div>
+              {canSwitchBranch ? (
+                <select
+                  className="max-w-[20rem] rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm"
+                  value={selectedBranchId}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (!Number.isFinite(v) || v <= 0) return;
+                    onBranchChange(v);
+                  }}
+                >
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name?.trim() ? b.name : `#${b.id}`}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+            </div>
+          </section>
+        )}
+
         {error && (
           <p
             className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
@@ -536,12 +553,16 @@ export default function ManagerDashboardPage() {
           <h2 className="text-lg font-bold text-bb-navy">Lịch hẹn chi nhánh</h2>
           <p className="mb-4 text-sm text-gray-600">
             Xem và cập nhật trạng thái đặt lịch tại chi nhánh (tối đa 300 bản ghi).
-            API{" "}
-            <code className="rounded bg-bb-input px-1">
-              /api/manager/appointments
-            </code>
-            .
           </p>
+          {process.env.NODE_ENV === "development" && (
+            <p className="mb-4 text-sm text-gray-600">
+              API{" "}
+              <code className="rounded bg-bb-input px-1">
+                /api/manager/appointments
+              </code>
+              .
+            </p>
+          )}
           <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl bg-bb-input/50 p-4">
             <label className="text-sm">
               <span className="mb-1 block text-gray-600">Từ ngày</span>
@@ -571,7 +592,7 @@ export default function ManagerDashboardPage() {
                 <option value="">Tất cả</option>
                 {APPOINTMENT_STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {APPOINTMENT_STATUS_LABELS[s]}
                   </option>
                 ))}
               </select>
@@ -628,46 +649,54 @@ export default function ManagerDashboardPage() {
                     </td>
                   </tr>
                 ) : (
-                  currentAppointments.map((a) => (
-                    <tr key={a.id} className="border-b border-gray-100 hover:bg-gray-50/50 cursor-pointer" onClick={() => setSelectedAppt(a)}>
-                      <td className="py-2 pr-2 font-mono">{a.id}</td>
-                      <td className="py-2 pr-2">
-                        <div className="font-medium">
-                          {a.customer_name ?? "—"}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {a.customer_phone ?? ""}
-                        </div>
-                      </td>
-                      <td className="py-2 pr-2">
-                        {a.barber_name ?? `#${a.barber_id}`}
-                      </td>
-                      <td className="py-2 pr-2">{a.service_name ?? "—"}</td>
-                      <td className="py-2 pr-2 text-xs text-gray-700">
-                        {String(a.appt_date)}{" "}
-                        {String(a.start_time).slice(0, 5)}–
-                        {String(a.end_time).slice(0, 5)}
-                      </td>
-                      <td className="py-2 pr-2">{String(a.total_price)}</td>
-                      <td className="py-2 pr-2">
-                        <select
-                          className="rounded-lg border border-gray-200 bg-bb-input px-2 py-1 text-xs"
-                          value={a.status}
-                          disabled={busyAppt === a.id}
-                          onChange={(e) =>
-                            void onAppointmentStatus(a.id, e.target.value)
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {APPOINTMENT_STATUSES.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                    </tr>
-                  ))
+                  currentAppointments.map((a) => {
+                    const statusKey = a.status as (typeof APPOINTMENT_STATUSES)[number];
+                    return (
+                      <tr key={a.id} className="border-b border-gray-100 hover:bg-gray-50/50 cursor-pointer" onClick={() => setSelectedAppt(a)}>
+                        <td className="py-2 pr-2 font-mono">{a.id}</td>
+                        <td className="py-2 pr-2">
+                          <div className="font-medium">
+                            {a.customer_name ?? "—"}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {a.customer_phone ?? ""}
+                          </div>
+                        </td>
+                        <td className="py-2 pr-2">
+                          {a.barber_name ?? `#${a.barber_id}`}
+                        </td>
+                        <td className="py-2 pr-2">{a.service_name ?? "—"}</td>
+                        <td className="py-2 pr-2 text-xs text-gray-700">
+                          {formatApptDate(a.appt_date, a.start_time, a.end_time)}
+                        </td>
+                        <td className="py-2 pr-2">{String(a.total_price)}</td>
+                        <td className="py-2 pr-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`min-w-[99px] rounded-full px-3 py-1 text-xs font-semibold ${APPOINTMENT_STATUS_BADGES[statusKey] ?? "bg-slate-100 text-slate-700"}`}
+                            >
+                              {APPOINTMENT_STATUS_LABELS[statusKey] ?? a.status}
+                            </span>
+                            <select
+                              className="rounded-lg border border-gray-200 bg-bb-input px-2 py-1 text-xs"
+                              value={a.status}
+                              disabled={busyAppt === a.id}
+                              onChange={(e) =>
+                                void onAppointmentStatus(a.id, e.target.value)
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {APPOINTMENT_STATUSES.map((s) => (
+                                <option key={s} value={s}>
+                                  {APPOINTMENT_STATUS_LABELS[s]}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -701,9 +730,11 @@ export default function ManagerDashboardPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-lg font-bold text-bb-navy">Quản lý thợ</h2>
-              <p className="text-sm text-gray-600">
-                Danh sách thợ chi nhánh {branches.find((b) => b.id === selectedBranchId)?.name ?? "—"}.
-              </p>
+              {process.env.NODE_ENV === "development" ? (
+                <p className="text-sm text-gray-600">
+                  Danh sách thợ chi nhánh {branches.find((b) => b.id === selectedBranchId)?.name ?? "—"}.
+                </p>
+              ) : null}
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-sm">
@@ -720,7 +751,9 @@ export default function ManagerDashboardPage() {
                 <span className="mb-1 block text-gray-600">Trạng thái</span>
                 <select
                   value={barberStatusFilter}
-                  onChange={(e) => setBarberStatusFilter(e.target.value as any)}
+                  onChange={(e) => setBarberStatusFilter(
+                    e.target.value as "all" | "available" | "off" | "other"
+                  )}
                   className="w-full rounded-lg border-0 bg-bb-input px-3 py-2"
                 >
                   <option value="all">Tất cả</option>
@@ -733,21 +766,41 @@ export default function ManagerDashboardPage() {
           </div>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-4">
-            <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
-              <p className="text-sm text-gray-600">Tổng số thợ</p>
-              <p className="mt-2 text-3xl font-semibold text-slate-900">{barbers.length}</p>
+            <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+                  <Users className="h-5 w-5" />
+                </span>
+                <p className="text-sm font-medium text-slate-600">Tổng số thợ</p>
+              </div>
+              <p className="mt-4 text-3xl font-semibold text-slate-900">{barbers.length}</p>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
-              <p className="text-sm text-gray-600">Đang làm việc hôm nay</p>
-              <p className="mt-2 text-3xl font-semibold text-emerald-700">{barberStatusCounts.available}</p>
+            <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                  <UserCheck className="h-5 w-5" />
+                </span>
+                <p className="text-sm font-medium text-slate-600">Đang làm việc hôm nay</p>
+              </div>
+              <p className="mt-4 text-3xl font-semibold text-emerald-700">{barberStatusCounts.available}</p>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
-              <p className="text-sm text-gray-600">Đang nghỉ hôm nay</p>
-              <p className="mt-2 text-3xl font-semibold text-amber-700">{barberStatusCounts.off}</p>
+            <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                  <UserX className="h-5 w-5" />
+                </span>
+                <p className="text-sm font-medium text-slate-600">Đang nghỉ hôm nay</p>
+              </div>
+              <p className="mt-4 text-3xl font-semibold text-amber-700">{barberStatusCounts.off}</p>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
-              <p className="text-sm text-gray-600">Tổng lịch hôm nay</p>
-              <p className="mt-2 text-3xl font-semibold text-slate-900">
+            <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+                  <Calendar className="h-5 w-5" />
+                </span>
+                <p className="text-sm font-medium text-slate-600">Tổng lịch hôm nay</p>
+              </div>
+              <p className="mt-4 text-3xl font-semibold text-slate-900">
                 {Array.from(barberWorkToday.values()).reduce((sum, value) => sum + value, 0)}
               </p>
             </div>
@@ -1067,15 +1120,17 @@ export default function ManagerDashboardPage() {
           </div>
         </section>
 
-        <p className="text-center text-xs text-gray-500">
-          Web: đơn shop, lịch thợ, lịch hẹn chi nhánh (
-          <code className="rounded bg-gray-200 px-1">/api/manager/*</code>
-          ). Manager cần{" "}
-          <code className="rounded bg-gray-200 px-1">users.branch_id</code>{" "}
-          khớp chi nhánh; thợ cần{" "}
-          <code className="rounded bg-gray-200 px-1">barbers.branch_id</code>{" "}
-          tương ứng.
-        </p>
+        {process.env.NODE_ENV === "development" ? (
+          <p className="text-center text-xs text-gray-500">
+            Web: đơn shop, lịch thợ, lịch hẹn chi nhánh (
+            <code className="rounded bg-gray-200 px-1">/api/manager/*</code>
+            ). Manager cần{" "}
+            <code className="rounded bg-gray-200 px-1">users.branch_id</code>{" "}
+            khớp chi nhánh; thợ cần{" "}
+            <code className="rounded bg-gray-200 px-1">barbers.branch_id</code>{" "}
+            tương ứng.
+          </p>
+        ) : null}
       </main>
 
       {selectedAppt && (

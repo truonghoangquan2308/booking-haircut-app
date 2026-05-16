@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ReceptionistShell } from "@/components/ReceptionistShell";
+import PageHeader from "@/components/PageHeader";
 import { useReceptionistSession } from "@/hooks/useReceptionistSession";
 import { fetchManagerCustomers, type CustomerRow } from "@/lib/managerApi";
 import { CustomerChatThread } from "@/components/CustomerChatThread";
@@ -65,8 +66,7 @@ export default function ReceptionistCustomersPage() {
     >
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h1 className="mb-1 text-2xl font-bold text-bb-navy">Liên hệ với khách hàng</h1>
-        <p className="mb-4 text-sm text-gray-600">Tìm nhanh khách hàng để chat hoặc copy số điện thoại.</p>
+        <PageHeader title="Liên hệ khách hàng" />
         <div className="mb-4 flex flex-wrap gap-3">
           <input
             type="text"
@@ -108,21 +108,22 @@ export default function ReceptionistCustomersPage() {
                     </td>
                     <td className="py-2">
                       <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void copyPhone(c.phone)}
-                          className="rounded-lg bg-bb-input px-2 py-1 text-xs font-semibold text-bb-navy"
-                        >
-                          Copy
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCustomer(c)}
-                          className="rounded-lg bg-slate-900 px-2 py-1 text-xs font-semibold text-white"
-                        >
-                          Chat
-                        </button>
-                      </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => void copyPhone(c.phone)}
+                                      className="rounded-md border border-[#D1D5DB] px-2 py-1 text-xs font-semibold text-[#374151]"
+                                    >
+                                      Copy
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedCustomer(c)}
+                                      style={{ backgroundColor: "var(--brand-primary)" }}
+                                      className="rounded-md px-2 py-1 text-xs font-semibold text-white"
+                                    >
+                                      Chat
+                                    </button>
+                                  </div>
                     </td>
                   </tr>
                 ))

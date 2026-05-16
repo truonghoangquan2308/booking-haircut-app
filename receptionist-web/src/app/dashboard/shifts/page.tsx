@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { ReceptionistShell } from "@/components/ReceptionistShell";
+import PageHeader from "@/components/PageHeader";
 import { useReceptionistSession } from "@/hooks/useReceptionistSession";
 import {
   deleteSchedule,
@@ -120,8 +121,7 @@ export default function ReceptionistShiftsPage() {
     >
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h1 className="mb-1 text-2xl font-bold text-bb-navy">Quản lý ca làm</h1>
-        <p className="mb-4 text-sm text-gray-600">Phân ca cho thợ theo ngày và theo chi nhánh.</p>
+        <PageHeader title="Quản lý ca làm" subtitle="Phân ca cho thợ theo ngày" />
 
         <form onSubmit={onSubmit} className="mb-5 grid gap-3 rounded-xl bg-bb-input/40 p-4 md:grid-cols-5">
           <input type="date" required value={formDate} onChange={(e) => setFormDate(e.target.value)} />
@@ -155,7 +155,7 @@ export default function ReceptionistShiftsPage() {
               </option>
             ))}
           </select>
-          <button type="button" className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm" onClick={() => void load()}>
+          <button type="button" className="rounded-md px-3 py-2 text-sm text-white" style={{ backgroundColor: 'var(--brand-primary)' }} onClick={() => void load()}>
             Lọc
           </button>
         </div>

@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
+const qs = require('qs');
 const pool = require('../db');
 const { normalizeVietnamPhone } = require('../lib/phoneVn');
 
@@ -25,36 +26,31 @@ function getClientIp(req) {
   return ip.replace(/^::ffff:/, '');
 }
 
+function sortObject(obj) {
+  const sorted = {};
+  const keys = Object.keys(obj).sort();
+  for (const key of keys) {
+    const value = obj[key];
+    if (value === undefined || value === null) continue;
+    sorted[key] = encodeURIComponent(String(value)).replace(/%20/g, '+');
+  }
+  return sorted;
+}
+
 function buildVnpayQuery(params, secretKey) {
   const data = { ...params };
   delete data.vnp_SecureHash;
   delete data.vnp_SecureHashType;
-  const sortedKeys = Object.keys(data).sort();
 
-  // ✅ KHÔNG encode khi hash
-  const rawData = sortedKeys
-    .map((key) => `${key}=${data[key]}`)
-    .join('&');
+  const sortedParams = sortObject(data);
+  const signData = qs.stringify(sortedParams, { encode: false });
 
-  console.log('=== VNPAY DEBUG buildVnpayQuery ===');
-  console.log('RAW DATA:', rawData);
-  console.log('SECRET ĐANG DÙNG:', secretKey);
+  const hmac = crypto.createHmac('sha512', secretKey);
+  const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
 
-  const secureHash = crypto
-    .createHmac('sha512', secretKey)
-    .update(rawData)
-    .digest('hex')
-    .toUpperCase();
-
-  console.log('HASH:', secureHash);
-  console.log('===================================');
-
-  // ✅ Encode khi ghép URL
-  const query = sortedKeys
-    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`)
-    .join('&');
-
-  return `${query}&vnp_SecureHashType=SHA512&vnp_SecureHash=${secureHash}`;
+  sortedParams.vnp_SecureHashType = 'SHA512';
+  sortedParams.vnp_SecureHash = signed;
+  return qs.stringify(sortedParams, { encode: false });
 }
 
 function verifyVnpaySignature(query, secretKey) {
@@ -62,16 +58,12 @@ function verifyVnpaySignature(query, secretKey) {
   const received = String(data.vnp_SecureHash || '').toLowerCase();
   delete data.vnp_SecureHash;
   delete data.vnp_SecureHashType;
-  const sortedKeys = Object.keys(data).sort();
 
-  // ✅ KHÔNG encode khi verify
-  const rawData = sortedKeys
-    .map((key) => `${key}=${data[key]}`)
-    .join('&');
-
+  const sortedParams = sortObject(data);
+  const signData = qs.stringify(sortedParams, { encode: false });
   const expected = crypto
     .createHmac('sha512', secretKey)
-    .update(rawData)
+    .update(Buffer.from(signData, 'utf-8'))
     .digest('hex')
     .toLowerCase();
 

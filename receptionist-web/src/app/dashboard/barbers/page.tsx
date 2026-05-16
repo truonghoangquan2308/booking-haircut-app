@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ReceptionistShell } from "@/components/ReceptionistShell";
+import PageHeader from "@/components/PageHeader";
 import { useReceptionistSession } from "@/hooks/useReceptionistSession";
 import {
   fetchManagerAppointments,
@@ -100,25 +101,32 @@ export default function ReceptionistBarbersPage() {
     >
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h1 className="mb-1 text-2xl font-bold text-bb-navy">Quản lý thợ</h1>
-        <p className="mb-4 text-sm text-gray-600">Theo dõi năng suất thợ trong ngày để điều phối lịch tại quầy.</p>
+        <PageHeader title="Quản lý thợ" subtitle="Theo dõi năng suất thợ hôm nay" />
 
         <div className="grid gap-4 sm:grid-cols-4">
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-sm text-gray-600">Tổng số thợ</p>
-            <p className="text-3xl font-bold text-bb-navy">{barbers.length}</p>
+          <div className="stat-card">
+            <div className="text-left">
+              <div className="stat-value">{barbers.length}</div>
+              <div className="stat-label">Tổng số thợ</div>
+            </div>
           </div>
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-sm text-gray-600">Đang làm</p>
-            <p className="text-3xl font-bold text-green-600">{statusCounts.available}</p>
+          <div className="stat-card">
+            <div className="text-left">
+              <div className="stat-value">{statusCounts.available}</div>
+              <div className="stat-label">Đang làm</div>
+            </div>
           </div>
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-sm text-gray-600">Đang nghỉ</p>
-            <p className="text-3xl font-bold text-yellow-600">{statusCounts.off}</p>
+          <div className="stat-card">
+            <div className="text-left">
+              <div className="stat-value">{statusCounts.off}</div>
+              <div className="stat-label">Đang nghỉ</div>
+            </div>
           </div>
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-sm text-gray-600">Lịch trong ngày</p>
-            <p className="text-3xl font-bold text-blue-600">{appointments.length}</p>
+          <div className="stat-card">
+            <div className="text-left">
+              <div className="stat-value">{appointments.length}</div>
+              <div className="stat-label">Lịch trong ngày</div>
+            </div>
           </div>
         </div>
 
@@ -176,7 +184,8 @@ export default function ReceptionistBarbersPage() {
                         <button
                           type="button"
                           onClick={() => void toggleBarberStatus(b)}
-                          className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-bb-navy hover:bg-gray-50"
+                          className="rounded-md px-3 py-1 text-xs font-semibold"
+                          style={b.status === 'available' ? { backgroundColor: '#FEE2E2', color: '#DC2626', border: 'none' } : { backgroundColor: 'var(--brand-primary)', color: '#fff', border: 'none' }}
                         >
                           {b.status === 'available' ? 'Đặt nghỉ' : 'Đặt làm'}
                         </button>

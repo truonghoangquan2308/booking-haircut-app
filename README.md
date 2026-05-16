@@ -1,7 +1,27 @@
 # booking-haircut-app
-# booking-haircut-app
 
 Hệ thống đặt lịch cắt tóc đa nền tảng hỗ trợ khách hàng, lễ tân, quản lý và chủ cửa hàng trong việc quản lý lịch hẹn, dịch vụ và hoạt động kinh doanh salon.
+
+---
+
+## ⚡ Cách Nhanh để Bắt Đầu
+
+> **Nếu đây là lần đầu tiên bạn cài đặt dự án này**, hãy đọc:
+> 
+> ### 📖 [**HƯỚNG DẪN CÀI ĐẶT TRÊN MÁY MỚI** → docs/SETUP_NEW_MACHINE.md](./docs/SETUP_NEW_MACHINE.md)
+> 
+> Hoặc sử dụng script tự động:
+> ```bash
+> # Windows
+> setup.bat    # hoặc
+> .\setup.ps1
+> ```
+
+### 📚 Tài Liệu Quan Trọng
+- 📖 [SETUP_NEW_MACHINE.md](./docs/SETUP_NEW_MACHINE.md) - Hướng dẫn cài đặt chi tiết
+- ⚡ [QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md) - Tham khảo nhanh (ports, lệnh, tài khoản test)
+- 🔧 [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) - Giải quyết lỗi
+- 📋 [DOCUMENTATION_INDEX.md](./docs/DOCUMENTATION_INDEX.md) - Danh sách tài liệu đầy đủ
 
 ---
 
@@ -239,7 +259,6 @@ http://localhost:5000/api-docs
 # 👨‍💻 Thành viên phát triển
 
 * Trương Hoàng Quân
-* Nhóm phát triển booking-haircut-app
 
 ---
 

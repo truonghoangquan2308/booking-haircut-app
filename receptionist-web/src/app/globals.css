@@ -4,6 +4,11 @@
    UNIFIED DESIGN SYSTEM - COLOR PALETTE
    ======================================== */
 :root {
+  --brand-primary: #1C2B4A;
+  --brand-accent: #F5A623;
+  --brand-accent-hover: #E09610;
+  --radius-card: 14px;
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.08);
   /* ---- Primary Brand Color ---- */
   --color-primary: #f5a623;
   --color-primary-hover: #e6951a;
@@ -118,7 +123,7 @@ body {
    ======================================== */
 .stat-card {
   background: var(--color-bg-card);
-  border-radius: var(--border-radius-card);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   padding: var(--spacing-card);
   display: flex;
@@ -129,16 +134,18 @@ body {
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
   line-height: 1.2;
   margin-bottom: 8px;
 }
 
 .stat-label {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  font-weight: 500;
+  font-size: 12px;
+  color: #6B7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* Stat Grid - keep consistent height */
@@ -266,7 +273,7 @@ table {
 }
 
 thead {
-  background-color: #f9fafb;
+  background-color: #F8FAFC;
 }
 
 thead th {
@@ -285,7 +292,7 @@ tbody td {
 }
 
 tbody tr:hover {
-  background-color: #f9fafb;
+  background-color: #F0F7FF;
 }
 
 /* ========================================
@@ -294,9 +301,9 @@ tbody tr:hover {
 input,
 select,
 textarea {
-  border: 1px solid var(--color-border);
+  border: 1.5px solid #E5E7EB;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 9px 12px;
   font-size: 14px;
   color: var(--color-text-primary);
   background: #ffffff;

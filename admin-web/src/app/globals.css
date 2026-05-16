@@ -4,7 +4,16 @@
    UNIFIED DESIGN SYSTEM - COLOR PALETTE
    ======================================== */
 :root {
-  /* ---- Primary Brand Color ---- */
+  /* ---- Brand Primary (Navy) ---- */
+  --brand-primary: #1C2B4A;
+  --brand-accent: #F5A623;
+  --brand-accent-hover: #E09610;
+  
+  /* ---- Card & Radius ---- */
+  --radius-card: 14px;
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.08);
+
+  /* ---- Primary Brand Color (Accent) ---- */
   --color-primary: #f5a623;
   --color-primary-hover: #e6951a;
   --color-primary-text: #ffffff;
@@ -17,7 +26,7 @@
   --bb-ink: #1a1a1a;
 
   /* ---- Header / Navbar ---- */
-  --color-navbar-bg: #1a2e4a;
+  --color-navbar-bg: #1C2B4A;
   --color-navbar-text: #ffffff;
   --color-navbar-active: #f5a623;
 
@@ -141,12 +150,16 @@ body {
   font-weight: 500;
 }
 
-/* Stat Grid - keep consistent height */
+/* Stat Grid - 4 columns fixed */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--spacing-section);
   margin-bottom: var(--spacing-section);
+}
+
+.stat-card.col-span-2 {
+  grid-column: span 2;
 }
 
 /* ========================================

@@ -30,7 +30,7 @@ export function BbLoginLayout({
               </svg>
             </div>
             <div>
-              <p className="text-lg font-bold text-black/87">GROUP 5</p>
+              <p className="text-lg font-bold text-black/87">SKIBIDI</p>
               <p className="text-sm text-black/75">Haircut Booking App</p>
             </div>
           </div>

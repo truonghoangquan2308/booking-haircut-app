@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { ManagerDashboardNav } from "@/components/ManagerDashboardNav";
+import { ReceptionistDashboardNav } from "@/components/ReceptionistDashboardNav";
 import type { StaffUser } from "@/lib/api";
 import type { ManagerBranchRow } from "@/lib/managerApi";
 
@@ -24,36 +24,33 @@ export function ReceptionistShell({
 }: ReceptionistShellProps) {
   return (
     <div style={{ backgroundColor: "var(--color-bg-page)" }} className="min-h-screen">
-      <header style={{ backgroundColor: "var(--color-navbar-bg)" }} className="px-4 py-4 text-white shadow">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-white/80">receptionist-web · Lễ tân chi nhánh</p>
-            <p className="text-lg font-bold">{user?.full_name ?? user?.email ?? "Receptionist"}</p>
-            <ManagerDashboardNav />
-            {branches.length > 0 && selectedBranchId != null && (
-              <div className="mt-2 text-sm">
-                <span className="mb-1 block text-white/80">Chi nhánh</span>
-                {user?.role === "owner" && branches.length > 1 ? (
-                  <select
-                    className="max-w-[min(100%,22rem)] rounded-lg border-0 bg-white px-3 py-2 text-[var(--color-navbar-bg)]"
-                    value={selectedBranchId}
-                    onChange={(e) => onBranchChange(Number(e.target.value))}
-                  >
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name?.trim() ? b.name : `#${b.id}`}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="max-w-[min(100%,22rem)] rounded-lg bg-white/10 px-3 py-2 text-white">
-                    {branches.find((b) => b.id === selectedBranchId)?.name?.trim() || `Chi nhánh #${selectedBranchId}`}
-                  </p>
-                )}
-              </div>
-            )}
+      <header className="sticky top-0 z-50 h-14 bg-[#1C2B4A] px-6 text-white">
+        <div className="mx-auto flex h-full max-w-6xl items-center gap-3">
+          <div className="flex items-center gap-3">
+            <img
+              src="/images/skibidi-logo.svg"
+              alt="SKIBIDI"
+              width={40}
+              height={40}
+              className="h-10 w-10 rounded-full object-cover ring-2 ring-yellow-400/50"
+            />
+            <div className="flex flex-col leading-none">
+              <span className="text-sm font-bold tracking-wide text-white">SKIBIDI</span>
+              <span className="text-[10px] font-medium uppercase tracking-widest text-yellow-400">
+                Receptionist
+              </span>
+            </div>
           </div>
-          <button type="button" onClick={onLogout} className="btn btn-secondary-light">
+
+          <div className="ml-5 flex items-center gap-2">
+            <ReceptionistDashboardNav />
+          </div>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="ml-auto rounded-md border border-red-400/30 px-3 py-1.5 text-sm text-red-400 hover:bg-red-400/10"
+          >
             Đăng xuất
           </button>
         </div>

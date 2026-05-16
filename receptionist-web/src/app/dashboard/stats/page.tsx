@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
-import { ManagerDashboardNav } from "@/components/ManagerDashboardNav";
+import { ReceptionistShell } from "@/components/ReceptionistShell";
 import {
   fetchManagerBranchList,
   fetchManagerStats,
@@ -287,28 +287,16 @@ export default function ManagerStatsPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-page)' }}>
-      <header style={{ backgroundColor: 'var(--color-navbar-bg)' }} className="px-4 py-4 text-white shadow">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-white/80">
-              manager-web · Doanh thu &amp; báo cáo chi nhánh
-            </p>
-            <p className="text-lg font-bold">
-              {user?.full_name ?? user?.email ?? "—"}
-            </p>
-            <ManagerDashboardNav />
-          </div>
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className="btn btn-secondary-light"
-          >
-            Đăng xuất
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
+      <ReceptionistShell
+        user={user}
+        branches={branches}
+        selectedBranchId={selectedBranchId}
+        onBranchChange={(id) => {
+          setSelectedBranchId(id);
+          try { localStorage.setItem(BRANCH_STORAGE_KEY, String(id)); } catch {}
+        }}
+        onLogout={logout}
+      >
         {error && (
           <p
             className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
@@ -568,7 +556,7 @@ export default function ManagerStatsPage() {
             </section>
           </>
         )}
-      </main>
+      </ReceptionistShell>
     </div>
   );
 }

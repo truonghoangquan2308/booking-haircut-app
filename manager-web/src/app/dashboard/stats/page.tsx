@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
-import { ManagerDashboardNav } from "@/components/ManagerDashboardNav";
+import { Navbar } from "@/components/Navbar";
+import { PageHeader } from "@/components/PageHeader";
 import {
   fetchManagerBranchList,
   fetchManagerStats,
@@ -304,26 +305,11 @@ export default function ManagerStatsPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-page)' }}>
-      <header style={{ backgroundColor: 'var(--color-navbar-bg)' }} className="px-4 py-4 text-white shadow">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-white/80">
-              manager-web · Doanh thu &amp; báo cáo chi nhánh
-            </p>
-            <p className="text-lg font-bold">
-              {user?.full_name ?? user?.email ?? "—"}
-            </p>
-            <ManagerDashboardNav />
-          </div>
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className="btn btn-secondary-light"
-          >
-            Đăng xuất
-          </button>
-        </div>
-      </header>
+      <Navbar onLogout={logout} />
+      <PageHeader
+        title="Doanh thu & báo cáo"
+        subtitle="Thống kê chi nhánh và báo cáo hoạt động"
+      />
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
         {error && (
@@ -336,14 +322,19 @@ export default function ManagerStatsPage() {
         )}
 
         {branches.length > 0 && selectedBranchId != null && (
-          <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-              <span className="text-sm font-semibold text-bb-navy">
-                Chi nhánh
-              </span>
+          <section className="rounded-[24px] bg-white px-5 py-4 shadow-[var(--shadow-card)]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  Chi nhánh
+                </p>
+                <div className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900">
+                  {branches.find((b) => b.id === selectedBranchId)?.name?.trim() || `Chi nhánh #${selectedBranchId}`}
+                </div>
+              </div>
               {canSwitchBranch ? (
                 <select
-                  className="max-w-md rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium"
+                  className="max-w-[20rem] rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm"
                   value={selectedBranchId}
                   onChange={(e) => {
                     const id = Number(e.target.value);
@@ -362,12 +353,7 @@ export default function ManagerStatsPage() {
                     </option>
                   ))}
                 </select>
-              ) : (
-                <p className="max-w-md rounded-lg bg-bb-input/60 px-3 py-2 text-sm font-medium text-bb-navy">
-                  {branches.find((b) => b.id === selectedBranchId)?.name?.trim() ||
-                    `Chi nhánh #${selectedBranchId}`}
-                </p>
-              )}
+              ) : null}
             </div>
           </section>
         )}
@@ -420,27 +406,33 @@ export default function ManagerStatsPage() {
         {stats && (
           <>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <p className="text-sm text-gray-600">Doanh thu (lịch đã hoàn thành)</p>
-                <p className="mt-1 text-2xl font-bold text-bb-navy">
+              <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
+                <p className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500">
+                  Doanh thu (lịch đã hoàn thành)
+                </p>
+                <p className="mt-4 text-3xl font-bold text-bb-navy">
                   {fmtMoney(completedRevenue)}
                 </p>
-                <p className="mt-2 text-xs text-gray-500">
+                <p className="mt-2 text-xs text-slate-500">
                   Chi nhánh #{stats.branch_id} · {stats.from} → {stats.to}
                 </p>
               </div>
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <p className="text-sm text-gray-600">Doanh thu từ shop</p>
-                <p className="mt-1 text-2xl font-bold text-bb-navy">
+              <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
+                <p className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500">
+                  Doanh thu từ shop
+                </p>
+                <p className="mt-4 text-3xl font-bold text-bb-navy">
                   {fmtMoney(stats.summary.revenue_shop ?? 0)}
                 </p>
-                <p className="mt-2 text-xs text-gray-500">
+                <p className="mt-2 text-xs text-slate-500">
                   Đơn đã giao / hoàn thành (delivered + hoàn thành) trong kỳ
                 </p>
               </div>
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <p className="text-sm text-gray-600">Số lịch hẹn (trong kỳ)</p>
-                <p className="mt-1 text-2xl font-bold text-bb-navy">
+              <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
+                <p className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500">
+                  Số lịch hẹn (trong kỳ)
+                </p>
+                <p className="mt-4 text-3xl font-bold text-bb-navy">
                   {stats.summary.appointment_count}
                 </p>
               </div>

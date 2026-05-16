@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card, StatCard, ToastContainer, useToast } from "@/components/DesignSystemComponents";
+import PageHeader from "@/components/PageHeader";
 import {
   createAppointmentOnBehalf,
   fetchBarberTimeSlots,
@@ -255,6 +256,8 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
 
   return (
     <>
+      <PageHeader title="Quản lý tại quầy" subtitle="Danh sách lịch hẹn hôm nay" />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Số khách hôm nay" value={stats.total} />
         <StatCard label="Doanh thu hôm nay" value={money(stats.revenue)} />
@@ -262,10 +265,7 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
         <StatCard label="Lịch sắp tới" value={stats.upcoming} />
       </div>
 
-      <Card
-        title="Quản lý tại quầy"
-        description={`Danh sách lịch hôm nay (${today}).`}
-      >
+      <Card>
         {error && (
           <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
             {error}

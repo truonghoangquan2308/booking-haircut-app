@@ -53,7 +53,7 @@ class CommitmentScreen extends StatelessWidget {
                     const SizedBox(width: 10),
                     const Expanded(
                       child: Text(
-                        'Cam kết của GROUP 5',
+                        'Cam kết của SKIBIDI',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

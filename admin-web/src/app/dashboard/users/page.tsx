@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { auth } from "@/lib/firebase";
 import { AdminHeader } from "@/components/AdminHeader";
+import PageHeader from "@/components/PageHeader";
 import { useAdminSession } from "@/hooks/useAdminSession";
 import {
   fetchPlatformUsers,
@@ -12,6 +12,24 @@ import {
 
 const USER_PAGE_SIZE = 20;
 const ROLES = ["", "customer", "barber", "manager", "owner", "admin"] as const;
+
+const roleLabel: Record<string, string> = {
+  admin: "Admin",
+  owner: "Owner",
+  manager: "Manager",
+  receptionist: "Lễ tân",
+  barber: "Thợ",
+  customer: "Khách hàng",
+};
+
+const roleColors: Record<string, { bg: string; text: string }> = {
+  admin: { bg: "bg-purple-100", text: "text-purple-700" },
+  owner: { bg: "bg-yellow-100", text: "text-yellow-700" },
+  manager: { bg: "bg-blue-100", text: "text-blue-700" },
+  receptionist: { bg: "bg-green-100", text: "text-green-700" },
+  barber: { bg: "bg-orange-100", text: "text-orange-700" },
+  customer: { bg: "bg-gray-100", text: "text-gray-700" },
+};
 
 export default function AdminUsersPage() {
   const { user, uid, error, setError, logout } = useAdminSession();
@@ -64,15 +82,14 @@ export default function AdminUsersPage() {
   }
 
   async function toggleUserLock(u: PlatformUser) {
-    const fb = auth.currentUser;
-    if (!fb) return;
+    if (!uid) return;
     setBusyUserId(u.id);
     setError(null);
     try {
-      await patchPlatformUser(fb.uid, u.id, {
+      await patchPlatformUser(uid, u.id, {
         is_locked: Number(u.is_locked) !== 1,
       });
-      await loadUsers(fb.uid);
+      await loadUsers(uid);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -101,14 +118,11 @@ export default function AdminUsersPage() {
 
   return (
     <div className="min-h-screen bg-bb-surface text-gray-900">
-      <AdminHeader
-        user={user}
-        title="Tài khoản hệ thống"
-        subtitle="Lọc / khóa user"
-        onLogout={logout}
-      />
+      <AdminHeader user={user} onLogout={logout} />
 
       <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
+        <PageHeader title="Tài khoản hệ thống" subtitle="Lọc / khóa user" />
+
         {error && (
           <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
@@ -116,9 +130,6 @@ export default function AdminUsersPage() {
         )}
 
         <section>
-          <h2 className="mb-4 text-lg font-bold text-bb-navy">
-            Tài khoản hệ thống (lọc / tìm kiếm / phân trang)
-          </h2>
           <div className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <label className="text-sm">
               <span className="mb-1 block text-gray-600">Tìm (email / SĐT / tên)</span>
@@ -148,7 +159,7 @@ export default function AdminUsersPage() {
             <button
               type="button"
               onClick={applyUserFilters}
-              className="rounded-xl bg-bb-navy px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
+              className="rounded-lg bg-bb-navy px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
             >
               Áp dụng lọc
             </button>
@@ -156,6 +167,7 @@ export default function AdminUsersPage() {
               Tổng khớp: <strong>{userTotal}</strong> · Trang {userPage}/{userTotalPages}
             </p>
           </div>
+
           <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="border-b border-gray-200 bg-bb-input text-xs uppercase text-gray-500">
@@ -180,7 +192,15 @@ export default function AdminUsersPage() {
                   >
                     <td className="cursor-pointer px-4 py-3 font-mono text-gray-400">{u.id}</td>
                     <td className="cursor-pointer px-4 py-3">{u.email ?? u.phone ?? "—"}</td>
-                    <td className="cursor-pointer px-4 py-3">{u.role}</td>
+                    <td className="cursor-pointer px-4 py-3">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          roleColors[u.role]?.bg ?? "bg-gray-100"
+                        } ${roleColors[u.role]?.text ?? "text-gray-700"}`}
+                      >
+                        {roleLabel[u.role] ?? u.role}
+                      </span>
+                    </td>
                     <td className="cursor-pointer px-4 py-3 text-sm text-gray-500">
                       {u.created_at
                         ? new Date(u.created_at).toLocaleString('vi-VN', {
@@ -218,69 +238,13 @@ export default function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
-            {selectedUser && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 py-6">
-                <div className="w-full max-w-2xl rounded-[28px] bg-white p-6 shadow-2xl">
-                  <div className="mb-4 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xl font-semibold text-bb-navy">Chi tiết tài khoản</h3>
-                      <p className="text-sm text-gray-500">Thông tin user hiện có trong bảng.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedUser(null)}
-                      className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                    >
-                      Đóng
-                    </button>
-                  </div>
-                  <div className="grid gap-4 rounded-3xl border border-gray-200 bg-bb-surface/80 p-4">
-                    <div className="grid gap-1">
-                      <span className="text-xs uppercase tracking-wide text-gray-500">ID</span>
-                      <span className="text-sm font-medium text-gray-900">{selectedUser.id}</span>
-                    </div>
-                    <div className="grid gap-1">
-                      <span className="text-xs uppercase tracking-wide text-gray-500">Email / SĐT</span>
-                      <span className="text-sm text-gray-900">{selectedUser.email ?? selectedUser.phone ?? '—'}</span>
-                    </div>
-                    <div className="grid gap-1">
-                      <span className="text-xs uppercase tracking-wide text-gray-500">Role</span>
-                      <span className="text-sm text-gray-900">{selectedUser.role}</span>
-                    </div>
-                    <div className="grid gap-1">
-                      <span className="text-xs uppercase tracking-wide text-gray-500">Trạng thái khóa</span>
-                      <span className="text-sm text-gray-900">
-                        {Number(selectedUser.is_locked) === 1 ? 'Đang khóa' : 'Không khóa'}
-                      </span>
-                    </div>
-                    <div className="grid gap-1">
-                      <span className="text-xs uppercase tracking-wide text-gray-500">Ngày tạo</span>
-                      <span className="text-sm text-gray-900">
-                        {selectedUser.created_at
-                          ? new Date(selectedUser.created_at).toLocaleString('vi-VN', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
-                          : '—'}
-                      </span>
-                    </div>
-                    <div className="grid gap-1">
-                      <span className="text-xs uppercase tracking-wide text-gray-500">Chi nhánh liên kết</span>
-                      <span className="text-sm text-gray-900">{selectedUser.status ?? '—'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
             {platformUsers.length === 0 && (
               <p className="p-6 text-center text-sm text-gray-500">
                 Không có bản ghi (hoặc không khớp lọc).
               </p>
             )}
           </div>
+
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <button
               type="button"
@@ -299,6 +263,64 @@ export default function AdminUsersPage() {
               Sau →
             </button>
           </div>
+
+          {selectedUser && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 py-6">
+              <div className="w-full max-w-2xl rounded-[28px] bg-white p-6 shadow-2xl">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold text-bb-navy">Chi tiết tài khoản</h3>
+                    <p className="text-sm text-gray-500">Thông tin user hiện có trong bảng.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUser(null)}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Đóng
+                  </button>
+                </div>
+                <div className="grid gap-4 rounded-3xl border border-gray-200 bg-bb-surface/80 p-4">
+                  <div className="grid gap-1">
+                    <span className="text-xs uppercase tracking-wide text-gray-500">ID</span>
+                    <span className="text-sm font-medium text-gray-900">{selectedUser.id}</span>
+                  </div>
+                  <div className="grid gap-1">
+                    <span className="text-xs uppercase tracking-wide text-gray-500">Email / SĐT</span>
+                    <span className="text-sm text-gray-900">{selectedUser.email ?? selectedUser.phone ?? '—'}</span>
+                  </div>
+                  <div className="grid gap-1">
+                    <span className="text-xs uppercase tracking-wide text-gray-500">Role</span>
+                    <span className="text-sm text-gray-900">{roleLabel[selectedUser.role] ?? selectedUser.role}</span>
+                  </div>
+                  <div className="grid gap-1">
+                    <span className="text-xs uppercase tracking-wide text-gray-500">Trạng thái khóa</span>
+                    <span className="text-sm text-gray-900">
+                      {Number(selectedUser.is_locked) === 1 ? 'Đang khóa' : 'Không khóa'}
+                    </span>
+                  </div>
+                  <div className="grid gap-1">
+                    <span className="text-xs uppercase tracking-wide text-gray-500">Ngày tạo</span>
+                    <span className="text-sm text-gray-900">
+                      {selectedUser.created_at
+                        ? new Date(selectedUser.created_at).toLocaleString('vi-VN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '—'}
+                    </span>
+                  </div>
+                  <div className="grid gap-1">
+                    <span className="text-xs uppercase tracking-wide text-gray-500">Chi nhánh liên kết</span>
+                    <span className="text-sm text-gray-900">{selectedUser.status ?? '—'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       </main>
     </div>

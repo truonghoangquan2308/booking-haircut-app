@@ -157,9 +157,15 @@ export default function BarberDetailsPage({ params }: { params: Promise<{ id: st
           <div className="grid gap-4 md:grid-cols-2">
             <div className="flex items-center gap-4">
               <img
-                src={barber.avatar_url || "/default-avatar.png"}
+                src={barber.avatar_url || "/default-avatar.svg"}
                 alt="Avatar"
                 className="h-16 w-16 rounded-full border-2 border-gray-200"
+                onError={(event) => {
+                  const img = event.currentTarget;
+                  if (!img.src.endsWith("/default-avatar.svg")) {
+                    img.src = "/default-avatar.svg";
+                  }
+                }}
               />
               <div>
                 <div className="text-lg font-semibold">{barber.full_name || "Chưa cập nhật"}</div>

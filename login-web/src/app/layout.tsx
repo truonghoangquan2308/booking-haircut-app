@@ -6,8 +6,11 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Đăng nhập — BB Haircut Booking",
-  description: "Trang đăng nhập duy nhất cho Admin, Owner, Manager và Receptionist",
+  title: "Skibidi Barber — Owner Login",
+  description: "Đăng nhập Skibidi BBShop Skibidi Barber",
+  icons: {
+    icon: "/images/skibidi-logo.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

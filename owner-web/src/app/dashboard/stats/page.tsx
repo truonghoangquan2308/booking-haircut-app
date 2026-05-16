@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
+import { PageHeader } from "@/components/PageHeader";
 import {
   fetchManagerBranchList,
   fetchManagerStats,
@@ -156,11 +157,6 @@ export default function ManagerStatsPage() {
     }
   }
 
-  async function logout() {
-    await signOut(auth);
-    router.replace("/");
-  }
-
   const mergedRows = (() => {
     if (!stats) return [];
     const map = new Map<
@@ -200,23 +196,10 @@ export default function ManagerStatsPage() {
 
   return (
     <div className="min-h-screen bg-bb-surface">
-      <header className="bg-bb-navy px-4 py-4 text-white shadow">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-white/80">Doanh thu &amp; báo cáo chi nhánh</p>
-            <p className="text-lg font-bold">
-              {user?.full_name ?? user?.email ?? "—"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className="rounded-lg bg-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/25"
-          >
-            Đăng xuất
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        title="Doanh thu & báo cáo chi nhánh"
+        subtitle={user?.full_name ?? ""}
+      />
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
         {error && (
@@ -366,7 +349,7 @@ export default function ManagerStatsPage() {
             <section className="rounded-2xl bg-white p-5 shadow-sm">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-base font-bold text-bb-navy">
-                  Theo ngày (lịch hẹn &amp; đơn shop)
+                  Theo ngày (lịch hẹn & đơn shop)
                 </h3>
                 {stats.shop_orders_scope === "global" && (
                   <span className="text-xs text-amber-800">

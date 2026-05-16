@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
-import { ManagerDashboardNav } from "@/components/ManagerDashboardNav";
+import { Navbar } from "@/components/Navbar";
+import { PageHeader } from "@/components/PageHeader";
 import {
   fetchManagerBarbers,
   fetchManagerBranchList,
@@ -95,7 +96,6 @@ export default function ManagerBarbersPage() {
 
   useEffect(() => {
     if (!uid || selectedBranchId == null) return;
-    let active = true;
     (async () => {
       try {
         await loadBarbers(uid, selectedBranchId);
@@ -103,9 +103,6 @@ export default function ManagerBarbersPage() {
         /* ignored: error already handled in loadBarbers */
       }
     })();
-    return () => {
-      active = false;
-    };
   }, [uid, selectedBranchId, loadBarbers]);
 
   const handleBranchChange = (branchId: number) => {
@@ -172,41 +169,11 @@ export default function ManagerBarbersPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b bg-slate-900/95 text-white shadow-sm">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
-          <div>
-            <p className="text-sm text-slate-300">manager-web · Quản lý chi nhánh</p>
-            <p className="text-lg font-bold">{user?.full_name ?? user?.email ?? "Quản lý"}</p>
-            <ManagerDashboardNav />
-            {branches.length > 0 && selectedBranchId != null && (
-              <div className="mt-3 text-sm">
-                <span className="mb-1 block text-slate-400">Chi nhánh</span>
-                {branches.length > 1 ? (
-                  <select
-                    className="max-w-[min(100%,22rem)] rounded-lg border border-slate-700 bg-white px-3 py-2 text-slate-900"
-                    value={selectedBranchId}
-                    onChange={(e) => handleBranchChange(Number(e.target.value))}
-                  >
-                    {branches.map((branch) => (
-                      <option key={branch.id} value={branch.id}>
-                        {branch.name ?? `#${branch.id}`}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="max-w-[min(100%,22rem)] rounded-lg bg-slate-800 px-3 py-2 text-slate-100">
-                    {branches.find((b) => b.id === selectedBranchId)?.name || `Chi nhánh #${selectedBranchId}`}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          <button type="button" onClick={handleLogout} className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100">
-            Đăng xuất
-          </button>
-        </div>
-      </header>
+      <Navbar onLogout={handleLogout} />
+      <PageHeader
+        title="Quản lý thợ"
+        subtitle="Danh sách thợ và trạng thái"
+      />
 
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">
         {error && (

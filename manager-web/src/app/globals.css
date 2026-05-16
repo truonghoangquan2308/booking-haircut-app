@@ -8,6 +8,11 @@
   --color-primary: #f5a623;
   --color-primary-hover: #e6951a;
   --color-primary-text: #ffffff;
+  --brand-primary: #1a2e4a;
+  --brand-accent: #f5a623;
+  --brand-accent-hover: #e6951a;
+  --radius-card: 14px;
+  --shadow-card: 0 18px 40px rgba(0, 0, 0, 0.08);
 
   /* ---- Legacy Colors (kept for compatibility) ---- */
   --bb-yellow: #ffc107;

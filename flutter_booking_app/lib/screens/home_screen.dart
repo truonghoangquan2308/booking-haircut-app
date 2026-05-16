@@ -165,7 +165,7 @@ class _HomeHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'GROUP 5',
+                    'SKIBIDI',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   Text('Haircut Booking App', style: TextStyle(fontSize: 12)),

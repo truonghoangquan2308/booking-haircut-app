@@ -14,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BB Shop — Owner",
-  description: "Owner portal — Next.js",
+  title: "Skibidi Barber — Owner",
+  description: "Owner portal — Skibidi Barber",
+  icons: {
+    icon: "/images/skibidi-logo.png",
+  },
 };
 
 export default function RootLayout({

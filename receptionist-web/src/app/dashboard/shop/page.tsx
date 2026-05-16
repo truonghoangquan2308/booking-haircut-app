@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ReceptionistShell } from "@/components/ReceptionistShell";
+import PageHeader from "@/components/PageHeader";
 import { useReceptionistSession } from "@/hooks/useReceptionistSession";
 import { getApiBase, readJsonResponse } from "@/lib/api";
 import {
@@ -285,7 +286,7 @@ export default function ReceptionistShopPage() {
         <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{checkoutSuccess}</p>
       )}
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm mb-6">
-        <h2 className="mb-1 text-2xl font-bold text-bb-navy">Bán hàng tại quầy</h2>
+        <PageHeader title="Bán hàng tại quầy" />
         <p className="mb-4 text-sm text-gray-600">Chọn sản phẩm, nhập thông tin khách và thanh toán đơn hàng.</p>
 
         <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
@@ -305,7 +306,8 @@ export default function ReceptionistShopPage() {
                 <button
                   type="button"
                   onClick={() => void loadProducts()}
-                  className="rounded-lg bg-bb-navy px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                  className="rounded-md px-4 py-2 text-sm font-medium text-white"
+                  style={{ backgroundColor: 'var(--brand-primary)' }}
                 >
                   Tìm
                 </button>
@@ -347,7 +349,8 @@ export default function ReceptionistShopPage() {
                           <button
                             type="button"
                             onClick={() => addToCart(product)}
-                            className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-600"
+                            className="rounded-md px-3 py-1.5 text-xs font-medium text-white"
+                            style={{ backgroundColor: 'var(--brand-accent)' }}
                           >
                             Thêm vào hóa đơn
                           </button>

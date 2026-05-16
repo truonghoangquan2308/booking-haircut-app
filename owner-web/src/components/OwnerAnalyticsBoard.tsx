@@ -18,13 +18,13 @@ import {
 } from "recharts";
 import type { OwnerAnalytics } from "@/lib/analytics";
 import { downloadCsv } from "@/lib/analytics";
+import { PageHeader } from "@/components/PageHeader";
 
 const PIE_COLORS = ["#fbbf24", "#38bdf8", "#a78bfa", "#34d399", "#fb7185", "#94a3b8"];
 
 type Props = {
   analytics: OwnerAnalytics;
   userLabel: string;
-  onLogout: () => void;
 };
 
 function num(v: string | number | null | undefined): number {
@@ -34,7 +34,7 @@ function num(v: string | number | null | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-export function OwnerAnalyticsBoard({ analytics, userLabel, onLogout }: Props) {
+export function OwnerAnalyticsBoard({ analytics, userLabel }: Props) {
   const [exportMsg, setExportMsg] = useState<string | null>(null);
 
   const mergedDaily = useMemo(() => {
@@ -102,67 +102,119 @@ export function OwnerAnalyticsBoard({ analytics, userLabel, onLogout }: Props) {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-page)' }}>
-      <header style={{ backgroundColor: 'var(--color-navbar-bg)', borderColor: 'var(--color-border)' }} className="sticky top-0 z-10 shadow-md border-b">
-        <div className="mx-auto flex max-w-[1920px] flex-wrap items-center justify-between gap-4 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-              <svg viewBox="0 0 24 24" className="h-5 w-5" style={{ color: 'var(--color-primary)' }} fill="currentColor" aria-hidden>
-                <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                GROUP 5 · Owner
-              </p>
-              <h1 className="text-xl font-bold md:text-2xl" style={{ color: 'var(--color-navbar-text)' }}>
-                Báo cáo &amp; vận hành
-              </h1>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>{userLabel}</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={exportAll}
-              className="btn btn-primary"
-            >
-              Xuất báo cáo CSV (gói nhanh)
-            </button>
-            <button
-              type="button"
-              onClick={onLogout}
-              className="btn btn-secondary-light"
-            >
-              Đăng xuất
-            </button>
-          </div>
-        </div>
-        {exportMsg && (
-          <p className="border-t px-6 py-2 text-center text-sm font-medium" style={{ borderColor: 'var(--color-border)', backgroundColor: 'rgba(0,0,0,0.1)', color: 'var(--color-primary)' }}>
-            {exportMsg}
-          </p>
-        )}
-      </header>
+      <PageHeader
+        title="Báo cáo & vận hành"
+        subtitle={userLabel}
+        actions={
+          <button
+            type="button"
+            onClick={exportAll}
+            className="btn btn-primary"
+          >
+            Xuất báo cáo CSV (gói nhanh)
+          </button>
+        }
+        className="sticky top-0 z-20 bg-[#1C2B4A] border-white/10 shadow-md"
+      />
+      {exportMsg && (
+        <p className="border-b border-white/10 bg-[#12203d] px-6 py-2 text-center text-sm font-medium text-white/80">
+          {exportMsg}
+        </p>
+      )}
 
-      <main className="mx-auto max-w-[1920px] space-y-6 px-6 py-8">
+      <main className="page-container space-y-6 py-8">
         <section className="stat-grid">
           {[
-            ["Tổng lịch hẹn", num(k?.total_appointments)],
-            ["Hoàn thành", num(k?.completed_appointments)],
-            ["Doanh thu (đặt lịch)", num(k?.total_revenue)],
-            ["Doanh thu bán hàng (shop)", num(k?.shop_revenue)],
-            ["Khách hàng", num(k?.customers)],
-            ["Thợ", num(k?.barbers)],
-            ["Cửa hàng hoạt động", num(k?.active_shops)],
-          ].map(([label, value]) => (
+            {
+              label: "Tổng lịch hẹn",
+              value: num(k?.total_appointments),
+              icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                  <path d="M5 4.5h14" />
+                  <path d="M7 3V7" />
+                  <path d="M17 3V7" />
+                  <rect x="4" y="7" width="16" height="14" rx="2" />
+                </svg>
+              ),
+            },
+            {
+              label: "Hoàn thành",
+              value: num(k?.completed_appointments),
+              icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              ),
+            },
+            {
+              label: "Doanh thu (đặt lịch)",
+              value: num(k?.total_revenue),
+              icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                  <path d="M12 1v22" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              ),
+            },
+            {
+              label: "Doanh thu bán hàng (shop)",
+              value: num(k?.shop_revenue),
+              icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                  <path d="M4 7h16v5H4z" />
+                  <path d="M3 7l1-4h16l1 4" />
+                  <path d="M5 12v8h14v-8" />
+                </svg>
+              ),
+            },
+            {
+              label: "Khách hàng",
+              value: num(k?.customers),
+              icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+                  <circle cx="11" cy="7" r="4" />
+                  <path d="M21 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M21 11a4 4 0 0 0-4-4" />
+                </svg>
+              ),
+            },
+            {
+              label: "Thợ",
+              value: num(k?.barbers),
+              icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+                  <circle cx="11" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M23 11a4 4 0 0 0-4-4" />
+                </svg>
+              ),
+            },
+            {
+              label: "Cửa hàng hoạt động",
+              value: num(k?.active_shops),
+              icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                  <path d="M4 8h16v12H4z" />
+                  <path d="M4 8l2-4h12l2 4" />
+                  <path d="M9 8v-3" />
+                  <path d="M15 8v-3" />
+                </svg>
+              ),
+            },
+          ].map(({ label, value, icon }) => (
             <div
-              key={String(label)}
-              className="stat-card"
+              key={label}
+              className={`stat-card ${label === "Cửa hàng hoạt động" ? "col-span-2" : ""}`}
             >
-              <div className="stat-label">
-                {label}
+              <div className="stat-card-inner">
+                <div className="stat-card-icon">{icon}</div>
+                <div>
+                  <div className="stat-label">{label}</div>
+                  <div className="stat-value">{value}</div>
+                </div>
               </div>
-              <div className="stat-value">{value}</div>
             </div>
           ))}
         </section>
@@ -196,14 +248,16 @@ export function OwnerAnalyticsBoard({ analytics, userLabel, onLogout }: Props) {
                       backgroundColor: "#ffffff",
                       border: "1px solid #e5e7eb",
                       borderRadius: "8px",
+                      boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
                     }}
                   />
                   <Legend />
                   <Line
                     type="monotone"
                     dataKey="appointments"
-                    stroke="var(--color-primary)"
+                    stroke="#378ADD"
                     strokeWidth={2}
+                    dot={{ r: 3 }}
                     name="Số lịch"
                   />
                 </LineChart>
@@ -239,9 +293,16 @@ export function OwnerAnalyticsBoard({ analytics, userLabel, onLogout }: Props) {
                       backgroundColor: "#ffffff",
                       border: "1px solid #e5e7eb",
                       borderRadius: "8px",
+                      boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
                     }}
                   />
-                  <Bar dataKey="revenue" fill="var(--color-info)" name="Doanh thu" radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="revenue"
+                    fill="#378ADD"
+                    name="Doanh thu"
+                    radius={[4, 4, 0, 0]}
+                    label={{ position: "top", fill: "#1F2937", fontSize: 12 }}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -349,9 +410,16 @@ export function OwnerAnalyticsBoard({ analytics, userLabel, onLogout }: Props) {
                       backgroundColor: "#ffffff",
                       border: "1px solid #e5e7eb",
                       borderRadius: "8px",
+                      boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
                     }}
                   />
-                  <Bar dataKey="bookings" fill="#a78bfa" name="Lượt đặt" radius={[0, 4, 4, 0]} />
+                  <Bar
+                    dataKey="bookings"
+                    fill="#378ADD"
+                    name="Lượt đặt"
+                    radius={[0, 4, 4, 0]}
+                    label={{ position: "right", fill: "#1F2937", fontSize: 12 }}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -396,6 +464,7 @@ export function OwnerAnalyticsBoard({ analytics, userLabel, onLogout }: Props) {
                       backgroundColor: "#ffffff",
                       border: "1px solid #e5e7eb",
                       borderRadius: "8px",
+                      boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
                     }}
                   />
                   <Legend />
@@ -403,14 +472,15 @@ export function OwnerAnalyticsBoard({ analytics, userLabel, onLogout }: Props) {
                     yAxisId="left"
                     type="monotone"
                     dataKey="orders"
-                    stroke="#34d399"
+                    stroke="#378ADD"
                     name="Số đơn"
+                    strokeDasharray="4 2"
                   />
                   <Line
                     yAxisId="right"
                     type="monotone"
                     dataKey="revenue"
-                    stroke="#fb7185"
+                    stroke="#378ADD"
                     name="Doanh thu"
                   />
                 </LineChart>
@@ -451,12 +521,13 @@ export function OwnerAnalyticsBoard({ analytics, userLabel, onLogout }: Props) {
                       backgroundColor: "#ffffff",
                       border: "1px solid #e5e7eb",
                       borderRadius: "8px",
+                      boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
                     }}
                   />
                   <Line
                     type="monotone"
                     dataKey="revenue"
-                    stroke="#fbbf24"
+                    stroke="#378ADD"
                     strokeWidth={2}
                     name="Doanh thu"
                   />
@@ -469,7 +540,7 @@ export function OwnerAnalyticsBoard({ analytics, userLabel, onLogout }: Props) {
         {(analytics.barberLeaderboard || []).length > 0 && (
           <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-semibold text-gray-900">Thợ — hiệu suất &amp; rating</h2>
+              <h2 className="font-semibold text-gray-900">Thợ — hiệu suất & rating</h2>
               <button
                 type="button"
                 className="text-xs font-semibold text-bb-navy hover:underline"

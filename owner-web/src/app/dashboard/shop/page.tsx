@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, getApiBase, readJsonResponse } from "@/lib/api";
+import { PageHeader } from "@/components/PageHeader";
 import toast from "react-hot-toast";
 
 type CategoryRow = {
@@ -117,6 +118,40 @@ export default function OwnerShopPage() {
     return `${getApiBase()}${u.startsWith("/") ? u : `/${u}`}`;
   }
 
+  const loadProducts = useCallback(async () => {
+    const base = getApiBase();
+    const params = new URLSearchParams({
+      limit: pageSize.toString(),
+      offset: ((currentPage - 1) * pageSize).toString(),
+      sort_by: sortBy,
+      sort_order: sortOrder,
+    });
+    if (searchQuery) params.append('search', searchQuery);
+    if (selectedCategory) params.append('category_id', selectedCategory);
+    if (stockFilter) params.append('stock_filter', stockFilter);
+
+    const pRes = await fetch(`${base}/api/products?${params}`, { cache: "no-store" });
+    const pJson = await readJsonResponse<{ products?: ProductRow[]; total?: number; error?: string }>(pRes);
+    if (!pRes.ok) throw new Error(pJson.error ?? "Lỗi sản phẩm");
+    setProducts(pJson.products ?? []);
+    setTotalProducts(pJson.total ?? 0);
+  }, [searchQuery, selectedCategory, stockFilter, sortBy, sortOrder, currentPage, pageSize]);
+
+  const loadOrders = useCallback(async () => {
+    const base = getApiBase();
+    const params = new URLSearchParams({
+      limit: '20',
+      offset: '0',
+    });
+    if (orderStatusFilter) params.append('status', orderStatusFilter);
+    if (orderStartDate) params.append('start_date', orderStartDate);
+    if (orderEndDate) params.append('end_date', orderEndDate);
+
+    const oRes = await fetch(`${base}/api/shop/orders?${params}`, { cache: "no-store" });
+    const oJson = await readJsonResponse<{ orders?: OrderRow[]; error?: string }>(oRes);
+    if (oRes.ok) setOrders(oJson.orders ?? []);
+  }, [orderStatusFilter, orderStartDate, orderEndDate]);
+
   const load = useCallback(async () => {
     setError(null);
     const base = getApiBase();
@@ -151,41 +186,7 @@ export default function OwnerShopPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, []);
-
-  const loadProducts = useCallback(async () => {
-    const base = getApiBase();
-    const params = new URLSearchParams({
-      limit: pageSize.toString(),
-      offset: ((currentPage - 1) * pageSize).toString(),
-      sort_by: sortBy,
-      sort_order: sortOrder,
-    });
-    if (searchQuery) params.append('search', searchQuery);
-    if (selectedCategory) params.append('category_id', selectedCategory);
-    if (stockFilter) params.append('stock_filter', stockFilter);
-
-    const pRes = await fetch(`${base}/api/products?${params}`, { cache: "no-store" });
-    const pJson = await readJsonResponse<{ products?: ProductRow[]; total?: number; error?: string }>(pRes);
-    if (!pRes.ok) throw new Error(pJson.error ?? "Lỗi sản phẩm");
-    setProducts(pJson.products ?? []);
-    setTotalProducts(pJson.total ?? 0);
-  }, [searchQuery, selectedCategory, stockFilter, sortBy, sortOrder, currentPage, pageSize]);
-
-  const loadOrders = useCallback(async () => {
-    const base = getApiBase();
-    const params = new URLSearchParams({
-      limit: '20',
-      offset: '0',
-    });
-    if (orderStatusFilter) params.append('status', orderStatusFilter);
-    if (orderStartDate) params.append('start_date', orderStartDate);
-    if (orderEndDate) params.append('end_date', orderEndDate);
-
-    const oRes = await fetch(`${base}/api/shop/orders?${params}`, { cache: "no-store" });
-    const oJson = await readJsonResponse<{ orders?: OrderRow[]; error?: string }>(oRes);
-    if (oRes.ok) setOrders(oJson.orders ?? []);
-  }, [orderStatusFilter, orderStartDate, orderEndDate]);
+  }, [loadProducts, loadOrders]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (fb) => {
@@ -499,12 +500,10 @@ export default function OwnerShopPage() {
 
   return (
     <div className="min-h-screen bg-bb-surface text-gray-900">
-      <header className="border-b border-white/10 bg-bb-navy px-6 py-4 text-white shadow">
-        <h1 className="text-xl font-bold">Quản lý shop</h1>
-        <p className="text-sm text-white/80">
-          Quản lý sản phẩm, danh mục, tồn kho và đơn hàng.
-        </p>
-      </header>
+      <PageHeader
+        title="Quản lý shop"
+        subtitle="Quản lý sản phẩm, danh mục, tồn kho và đơn hàng."
+      />
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-6">
         {error && (

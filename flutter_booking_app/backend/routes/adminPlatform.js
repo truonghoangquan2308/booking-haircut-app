@@ -76,11 +76,16 @@ router.get('/platform/users', requireAdmin, async (req, res) => {
   const pageSize = Math.min(100, Math.max(1, Number(req.query.page_size) || 20));
   const offset = (page - 1) * pageSize;
   try {
-    let where = ' WHERE 1=1';
+    let where = ' WHERE firebase_uid IS NOT NULL AND TRIM(firebase_uid) != ""';
     const params = [];
     if (role) {
-      where += ' AND role = ?';
-      params.push(role);
+      if (role === 'customer') {
+        where += " AND (role = ? OR role IS NULL OR role = '')";
+        params.push(role);
+      } else {
+        where += ' AND role = ?';
+        params.push(role);
+      }
     }
     if (q) {
       where += ' AND (email LIKE ? OR phone LIKE ? OR full_name LIKE ?)';
@@ -95,7 +100,15 @@ router.get('/platform/users', requireAdmin, async (req, res) => {
     // when binding numeric LIMIT/OFFSET in prepared statements (node-mysql2).
     const [rows] = await pool.execute(
       `
-      SELECT id, phone, email, firebase_uid, full_name, role, status, is_locked, created_at
+      SELECT id,
+             phone,
+             email,
+             firebase_uid,
+             full_name,
+             COALESCE(role, 'customer') AS role,
+             COALESCE(status, 'available') AS status,
+             COALESCE(is_locked, 0) AS is_locked,
+             created_at
       FROM users
       ${where}
       ORDER BY created_at DESC

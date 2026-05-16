@@ -61,7 +61,7 @@ class _SplashScreenState extends State<SplashScreen> {
               _buildLogoCircle(logoSize, iconSize),
               SizedBox(height: spacing * 1.5),
               Text(
-                'GROUP 5',
+                'SKIBIDI',
                 style: TextStyle(
                   fontSize: 26 * textScale,
                   fontWeight: FontWeight.bold,

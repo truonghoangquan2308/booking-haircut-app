@@ -2,13 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
 import { fetchOwnerAnalytics, type OwnerAnalytics } from "@/lib/analytics";
 import { OwnerAnalyticsBoard } from "@/components/OwnerAnalyticsBoard";
-
-const LOGIN_WEB_URL = process.env.NEXT_PUBLIC_LOGIN_URL ?? "http://localhost:3005";
 
 export default function OwnerDashboardPage() {
   const router = useRouter();
@@ -59,16 +55,6 @@ export default function OwnerDashboardPage() {
     };
   }, [router]);
 
-  async function logout() {
-    try {
-      await signOut(auth);
-    } finally {
-      localStorage.removeItem("bb_firebase_token");
-      localStorage.removeItem("bb_firebase_uid");
-      window.location.replace(LOGIN_WEB_URL);
-    }
-  }
-
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bb-yellow p-6 text-red-700">
@@ -86,13 +72,12 @@ export default function OwnerDashboardPage() {
     );
   }
 
-  const label = [user.full_name, user.email].filter(Boolean).join(" · ");
+  const label = user.full_name || "Owner";
 
   return (
     <OwnerAnalyticsBoard
       analytics={analytics}
-      userLabel={label || "Owner"}
-      onLogout={() => void logout()}
+      userLabel={label}
     />
   );
 }

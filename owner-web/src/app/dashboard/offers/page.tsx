@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid } from "@/lib/api";
+import { PageHeader } from "@/components/PageHeader";
 import {
   createOwnerOffer,
   deleteOwnerOffer,
@@ -178,7 +179,7 @@ export default function OwnerOffersPage() {
     setSaving(true);
     setError(null);
     try {
-      const payload: any = {
+      const payload = {
         title: title.trim(),
         description: description.trim(),
         discount_percent: d,
@@ -245,12 +246,10 @@ export default function OwnerOffersPage() {
 
   return (
     <div className="min-h-screen bg-bb-surface text-gray-900">
-      <header className="border-b border-white/10 bg-bb-navy px-6 py-4 text-white shadow">
-        <h1 className="text-xl font-bold">Quản lý ưu đãi</h1>
-        <p className="text-sm text-white/80">
-          Nâng cấp hệ thống quản lý phiếu ưu đãi và lịch sử sử dụng.
-        </p>
-      </header>
+      <PageHeader
+        title="Quản lý ưu đãi"
+        subtitle="Nâng cấp hệ thống quản lý phiếu ưu đãi và lịch sử sử dụng."
+      />
 
       <main className="mx-auto max-w-6xl space-y-6 px-6 py-6">
         {toast && (
