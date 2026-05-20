@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
+import { Button, StatCard } from "@/components/DesignSystemComponents";
 import { PageHeader } from "@/components/PageHeader";
 import {
   fetchManagerBranchList,
@@ -269,14 +270,13 @@ export default function ManagerStatsPage() {
                   onChange={(e) => setTo(e.target.value)}
                 />
               </label>
-              <button
+              <Button
                 type="button"
                 onClick={() => void onApplyRange()}
                 disabled={loadingStats}
-                className="rounded-xl bg-bb-yellow px-5 py-2.5 text-sm font-bold text-black/80 disabled:opacity-50"
               >
                 {loadingStats ? "Đang tải…" : "Áp dụng"}
-              </button>
+              </Button>
             </div>
           </section>
         )}
@@ -287,31 +287,19 @@ export default function ManagerStatsPage() {
 
         {stats && (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <p className="text-sm text-gray-600">Doanh thu (lịch đã hoàn thành)</p>
-                <p className="mt-1 text-2xl font-bold text-bb-navy">
-                  {fmtMoney(stats.summary.revenue_completed)}
-                </p>
-                <p className="mt-2 text-xs text-gray-500">
-                  Chi nhánh #{stats.branch_id} · {stats.from} → {stats.to}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <p className="text-sm text-gray-600">Doanh thu từ shop</p>
-                <p className="mt-1 text-2xl font-bold text-bb-navy">
-                  {fmtMoney(stats.summary.revenue_shop ?? 0)}
-                </p>
-                <p className="mt-2 text-xs text-gray-500">
-                  Đơn đã giao / hoàn thành (delivered + hoàn thành) trong kỳ
-                </p>
-              </div>
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <p className="text-sm text-gray-600">Số lịch hẹn (trong kỳ)</p>
-                <p className="mt-1 text-2xl font-bold text-bb-navy">
-                  {stats.summary.appointment_count}
-                </p>
-              </div>
+            <div className="stat-grid">
+              <StatCard
+                label={"Doanh thu l\u1ecbch ho\u00e0n th\u00e0nh"}
+                value={fmtMoney(stats.summary.revenue_completed)}
+              />
+              <StatCard
+                label={"Doanh thu t\u1eeb shop"}
+                value={fmtMoney(stats.summary.revenue_shop ?? 0)}
+              />
+              <StatCard
+                label={"S\u1ed1 l\u1ecbch h\u1eb9n trong k\u1ef3"}
+                value={stats.summary.appointment_count}
+              />
             </div>
 
             <section className="rounded-2xl bg-white p-5 shadow-sm">

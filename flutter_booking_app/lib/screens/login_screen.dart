@@ -217,10 +217,18 @@ class _LoginScreenState extends State<LoginScreen> {
               CircleAvatar(
                 radius: 22,
                 backgroundColor: Colors.white,
-                child: Icon(
-                  Icons.content_cut,
-                  size: 26,
-                  color: Colors.orange.shade900,
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/skibidi-logo.png',
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      Icons.content_cut,
+                      size: 26,
+                      color: Colors.orange.shade900,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

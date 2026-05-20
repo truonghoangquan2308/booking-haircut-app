@@ -59,39 +59,41 @@ export default function AdminHomePage() {
       />
 
       <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
-        <PageHeader title="Tổng quan hệ thống" />
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <PageHeader title="Tổng quan hệ thống" />
 
-        {error && (
-          <p className="rounded-xl border px-4 py-3 text-sm" style={{ borderColor: 'var(--color-danger)', backgroundColor: 'rgba(220,38,38,0.05)', color: 'var(--color-danger)' }}>
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="rounded-xl border px-4 py-3 text-sm mt-4" style={{ borderColor: 'var(--color-danger)', backgroundColor: 'rgba(220,38,38,0.05)', color: 'var(--color-danger)' }}>
+              {error}
+            </p>
+          )}
 
-        {stats && (
-          <section className="stat-grid">
-            {(
-              [
-                { label: "Người dùng", value: stats.users_total, href: "/dashboard/users" },
-                { label: "Cửa hàng", value: stats.shops_total, href: "/dashboard/shops" },
-                { label: "Chờ duyệt", value: stats.shops_pending, href: "/dashboard/shops" },
-                { label: "Đã duyệt", value: stats.shops_approved ?? stats.shops_total - stats.shops_pending, href: "/dashboard/shops" },
-                { label: "Owner", value: stats.owners, href: "/dashboard/users", span: 2 },
-                { label: "Manager", value: stats.managers, href: "/dashboard/users", span: 2 },
-                { label: "Thợ", value: stats.barbers, href: "/dashboard/users", span: 2 },
-              ] as Array<{ label: string; value: number; href: string; span?: number }>
-            ).map(({ label, value, href, span }) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => router.push(href)}
-                className={`stat-card group transition hover:-translate-y-0.5 hover:shadow-hover ${span === 2 ? 'col-span-2' : ''}`}
-              >
-                <p className="stat-label group-hover:text-[var(--color-primary)]">{label}</p>
-                <p className="stat-value">{value}</p>
-              </button>
-            ))}
-          </section>
-        )}
+          {stats && (
+            <div className="stat-grid mt-5">
+              {(
+                [
+                  { label: "Người dùng", value: stats.users_total, href: "/dashboard/users" },
+                  { label: "Cửa hàng", value: stats.shops_total, href: "/dashboard/shops" },
+                  { label: "Chờ duyệt", value: stats.shops_pending, href: "/dashboard/shops" },
+                  { label: "Đã duyệt", value: stats.shops_approved ?? stats.shops_total - stats.shops_pending, href: "/dashboard/shops" },
+                  { label: "Owner", value: stats.owners, href: "/dashboard/users", span: 2 },
+                  { label: "Manager", value: stats.managers, href: "/dashboard/users", span: 2 },
+                  { label: "Thợ", value: stats.barbers, href: "/dashboard/users", span: 2 },
+                ] as Array<{ label: string; value: number; href: string; span?: number }>
+              ).map(({ label, value, href, span }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => router.push(href)}
+                  className={`stat-card group transition hover:-translate-y-0.5 hover:shadow-hover ${span === 2 ? 'col-span-2' : ''}`}
+                >
+                  <p className="stat-label group-hover:text-[var(--color-primary)]">{label}</p>
+                  <p className="stat-value">{value}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );

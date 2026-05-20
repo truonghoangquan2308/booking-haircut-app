@@ -75,7 +75,7 @@ export default function ReceptionistCustomersPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <button type="button" className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm" onClick={() => void loadCustomers()}>
+          <button type="button" className="btn btn-secondary" onClick={() => void loadCustomers()}>
             Tải lại
           </button>
         </div>

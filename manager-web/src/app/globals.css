@@ -1,169 +1,144 @@
 @import "tailwindcss";
 
-/* ========================================
-   UNIFIED DESIGN SYSTEM - COLOR PALETTE
-   ======================================== */
-:root {
-  /* ---- Primary Brand Color ---- */
-  --color-primary: #f5a623;
-  --color-primary-hover: #e6951a;
-  --color-primary-text: #ffffff;
-  --brand-primary: #1a2e4a;
-  --brand-accent: #f5a623;
-  --brand-accent-hover: #e6951a;
-  --radius-card: 14px;
-  --shadow-card: 0 18px 40px rgba(0, 0, 0, 0.08);
-
-  /* ---- Legacy Colors (kept for compatibility) ---- */
-  --bb-yellow: #ffc107;
-  --bb-navy: #003366;
-  --bb-surface: #f4f5f9;
-  --bb-input: #f5f5f7;
-  --bb-ink: #1a1a1a;
-
-  /* ---- Header / Navbar ---- */
-  --color-navbar-bg: #1a2e4a;
-  --color-navbar-text: #ffffff;
-  --color-navbar-active: #f5a623;
-
-  /* ---- Background ---- */
-  --color-bg-page: #f0f2f5;
-  --color-bg-card: #ffffff;
-  --color-bg-section-header: #1a2e4a;
-  --color-section-header-text: #ffffff;
-
-  /* ---- Text Colors ---- */
-  --color-text-primary: #1a2e4a;
-  --color-text-secondary: #6b7280;
-  --color-text-muted: #9ca3af;
-
-  /* ---- Border & Radius ---- */
-  --color-border: #e5e7eb;
-  --border-radius-card: 12px;
-  --border-radius-badge: 6px;
-  --border-radius-button: 8px;
-
-  /* ---- Shadow ---- */
-  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.08);
-  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
-
-  /* ---- Status Colors ---- */
-  --color-success: #16a34a;
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
-  --color-info: #2563eb;
-
-  /* ---- Badge Backgrounds ---- */
-  --color-badge-success-bg: #dcfce7;
-  --color-badge-success-text: #16a34a;
-  --color-badge-warning-bg: #fef3c7;
-  --color-badge-warning-text: #d97706;
-  --color-badge-danger-bg: #fee2e2;
-  --color-badge-danger-text: #dc2626;
-  --color-badge-info-bg: #dbeafe;
-  --color-badge-info-text: #2563eb;
-  --color-badge-gray-bg: #f3f4f6;
-  --color-badge-gray-text: #6b7280;
-
-  /* ---- Spacing ---- */
-  --spacing-section: 24px;
-  --spacing-card: 20px;
-}
-
 @theme inline {
-  --color-bb-yellow: #ffc107;
-  --color-bb-navy: #003366;
-  --color-bb-surface: #f4f5f9;
-  --color-bb-input: #f5f5f7;
+  --color-bb-yellow: var(--bb-yellow);
+  --color-bb-navy: var(--bb-navy);
+  --color-bb-surface: var(--bb-surface);
+  --color-bb-input: var(--bb-input);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* ========================================
-   BASE BODY & PAGE STYLES
-   ======================================== */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
+  margin: 0;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Segoe UI Emoji";
   color: var(--color-text-primary);
   background-color: var(--color-bg-page);
 }
 
-/* ========================================
-   CARD / SECTION STYLING
-   ======================================== */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
 .card,
 .section {
-  background: var(--color-bg-card);
-  border-radius: var(--border-radius-card);
+  background: var(--surface-card);
+  border: 1px solid var(--surface-card-border);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   padding: var(--spacing-card);
   margin-bottom: var(--spacing-section);
 }
 
-.card:hover,
-.section:hover {
-  box-shadow: var(--shadow-hover);
-}
-
-/* Section Title */
-.section-title {
+.section-title,
+.section-heading {
+  margin: 0 0 4px;
   font-size: 18px;
   font-weight: 600;
   color: var(--color-text-primary);
-  margin-bottom: 4px;
 }
 
-/* Section Description */
 .section-description {
+  margin: 0;
   font-size: 13px;
   color: var(--color-text-secondary);
 }
 
-/* ========================================
-   STAT CARDS
-   ======================================== */
-.stat-card {
-  background: var(--color-bg-card);
-  border-radius: var(--border-radius-card);
-  box-shadow: var(--shadow-card);
-  padding: var(--spacing-card);
+.page-container,
+main {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 28px;
+  padding-right: 28px;
+}
+
+.empty-state {
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
-  align-items: flex-start;
-  min-height: 120px;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.empty-state svg {
+  width: 56px;
+  height: 56px;
+  color: #d1d5db;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-card-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+  min-height: 112px;
+}
+
+.stat-card-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.stat-card-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--brand-amber);
+}
+
+.stat-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .stat-value {
+  margin: 0;
   font-size: 28px;
   font-weight: 700;
-  line-height: 1.2;
-  margin-bottom: 8px;
+  line-height: 1.1;
+  color: var(--color-text-primary);
 }
 
 .stat-label {
+  margin: 0;
   font-size: 13px;
-  color: var(--color-text-secondary);
   font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
-/* Stat Grid - keep consistent height */
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--spacing-section);
-  margin-bottom: var(--spacing-section);
-}
-
-/* ========================================
-   BADGE STYLING
-   ======================================== */
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 10px;
-  border-radius: var(--border-radius-badge);
+  padding: 4px 10px;
+  border-radius: var(--radius-badge);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -192,73 +167,66 @@ body {
   color: var(--color-badge-gray-text);
 }
 
-/* ========================================
-   BUTTON STYLING
-   ======================================== */
 .btn {
-  border: none;
-  border-radius: var(--border-radius-button);
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-btn);
   padding: 8px 18px;
-  cursor: pointer;
-  transition: all 0.2s ease;
   font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
-/* Primary Button */
 .btn-primary {
-  background: var(--color-primary);
-  color: var(--color-primary-text);
+  background: var(--brand-amber);
+  color: #1A1A1A;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-  box-shadow: var(--shadow-hover);
+  background: var(--brand-amber-hover);
 }
 
-/* Secondary Button */
 .btn-secondary {
   background: transparent;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
+  color: var(--brand-amber);
+  border: 1px solid var(--brand-amber);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--color-bg-page);
-  border-color: var(--color-primary);
+  background: rgba(245, 158, 11, 0.08);
 }
 
 .btn-secondary-light {
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.28);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-on-dark);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .btn-secondary-light:hover:not(:disabled) {
-  background: rgba(255,255,255,0.18);
-  border-color: rgba(255,255,255,0.42);
+  background: rgba(255, 255, 255, 0.16);
 }
 
-/* Danger Button */
-.btn-danger {
+.btn-danger,
+.btn-ghost-danger {
   background: transparent;
-  border: 1px solid var(--color-danger);
-  color: var(--color-danger);
+  color: var(--status-cancelled-text);
+  border: 1px solid var(--status-cancelled-text);
 }
 
-.btn-danger:hover:not(:disabled) {
-  background: rgba(220, 38, 38, 0.05);
-  border-color: var(--color-danger);
+.btn-danger:hover:not(:disabled),
+.btn-ghost-danger:hover:not(:disabled) {
+  background: rgba(153, 27, 27, 0.08);
 }
 
-/* ========================================
-   TABLE STYLING
-   ======================================== */
 .table-container {
   width: 100%;
   overflow-x: auto;
@@ -275,38 +243,68 @@ thead {
 }
 
 thead th {
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  padding: 12px 16px;
+  padding: 14px 16px;
   text-align: left;
   border-bottom: 1px solid var(--color-border);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
 }
 
 tbody td {
-  padding: 12px 16px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
 }
 
 tbody tr:hover {
   background-color: #f9fafb;
 }
 
-/* ========================================
-   FORM INPUT STYLING
-   ======================================== */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-pill--success {
+  background: var(--status-done-bg);
+  color: var(--status-done-text);
+}
+
+.status-pill--info {
+  background: var(--status-confirmed-bg);
+  color: var(--status-confirmed-text);
+}
+
+.status-pill--danger {
+  background: var(--status-cancelled-bg);
+  color: var(--status-cancelled-text);
+}
+
+.status-pill--warning {
+  background: var(--status-pending-bg);
+  color: var(--status-pending-text);
+}
+
 input,
 select,
 textarea {
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: 14px;
   color: var(--color-text-primary);
   background: #ffffff;
   font-family: inherit;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 input::placeholder,
@@ -318,8 +316,15 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.15);
+  border-color: var(--brand-amber);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
 }
 
 input:disabled,
@@ -330,13 +335,10 @@ textarea:disabled {
   cursor: not-allowed;
 }
 
-/* ========================================
-   TOAST NOTIFICATION STYLING
-   ======================================== */
 .toast-container {
   position: fixed;
-  bottom: 24px;
   right: 24px;
+  bottom: 24px;
   z-index: 9999;
   display: flex;
   flex-direction: column;
@@ -345,14 +347,14 @@ textarea:disabled {
 }
 
 .toast {
-  background: var(--color-bg-card);
-  border-radius: var(--border-radius-card);
-  padding: 16px;
-  box-shadow: var(--shadow-hover);
-  font-size: 14px;
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 16px;
+  font-size: 14px;
+  background: var(--surface-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-hover);
   animation: slideIn 0.3s ease forwards;
 }
 
@@ -361,6 +363,7 @@ textarea:disabled {
     transform: translateX(400px);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -369,24 +372,24 @@ textarea:disabled {
 
 .toast-success {
   border-left: 4px solid var(--color-success);
-  background: rgba(22, 163, 74, 0.05);
+  background: rgba(6, 95, 70, 0.06);
   color: var(--color-success);
 }
 
 .toast-error {
   border-left: 4px solid var(--color-danger);
-  background: rgba(220, 38, 38, 0.05);
+  background: rgba(153, 27, 27, 0.06);
   color: var(--color-danger);
 }
 
 .toast-warning {
   border-left: 4px solid var(--color-warning);
-  background: rgba(217, 119, 6, 0.05);
+  background: rgba(146, 64, 14, 0.06);
   color: var(--color-warning);
 }
 
 .toast-info {
   border-left: 4px solid var(--color-info);
-  background: rgba(37, 99, 235, 0.05);
+  background: rgba(30, 64, 175, 0.06);
   color: var(--color-info);
 }

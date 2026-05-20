@@ -234,8 +234,8 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
             child: const Center(
               child: Icon(
                 Icons.calendar_today_outlined,
-                color: Colors.orange,
-                size: 26,
+                color: Color(0xffffc107),
+                size: 28,
               ),
             ),
           ),

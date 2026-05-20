@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { AdminHeader } from "@/components/AdminHeader";
@@ -121,16 +121,17 @@ export default function AdminUsersPage() {
       <AdminHeader user={user} onLogout={logout} />
 
       <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
-        <PageHeader title="Tài khoản hệ thống" subtitle="Lọc / khóa user" />
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <PageHeader title="Tài khoản hệ thống" subtitle="Lọc / khóa user" />
 
-        {error && (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </p>
+          )}
 
-        <section>
-          <div className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="mt-5">
+            <div className="mb-4 flex flex-wrap items-end gap-3">
             <label className="text-sm">
               <span className="mb-1 block text-gray-600">Tìm (email / SĐT / tên)</span>
               <input
@@ -168,7 +169,7 @@ export default function AdminUsersPage() {
             </p>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="border-b border-gray-200 bg-bb-input text-xs uppercase text-gray-500">
                 <tr>
@@ -321,6 +322,7 @@ export default function AdminUsersPage() {
               </div>
             </div>
           )}
+          </div>
         </section>
       </main>
     </div>

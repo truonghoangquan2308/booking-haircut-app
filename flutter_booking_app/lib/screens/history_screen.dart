@@ -148,9 +148,15 @@ class _HistoryScreenState extends State<HistoryScreen>
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xffffc107),
-        title: const Text(
-          'Lịch sử cắt tóc',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Row(
+          children: const [
+            Icon(Icons.history, size: 28),
+            SizedBox(width: 8),
+            Text(
+              'Lịch sử cắt tóc',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         foregroundColor: Colors.black,
         elevation: 0,

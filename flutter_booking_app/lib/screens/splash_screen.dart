@@ -118,33 +118,24 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         ],
       ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Icon(
-            Icons.content_cut,
-            size: iconSize * 1.3,
-            color: const Color(0xff003366),
-          ),
-          Positioned(
-            top: size * 0.18,
-            left: size * 0.16,
-            child: Icon(
-              Icons.brush,
-              size: iconSize,
-              color: const Color(0xffffc107),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(size * 0.4),
+        child: Padding(
+          padding: EdgeInsets.all(size * 0.08),
+          child: Image.asset(
+            'assets/images/skibidi-logo.png',
+            fit: BoxFit.contain,
+            width: size - (size * 0.16),
+            height: size - (size * 0.16),
+            errorBuilder: (context, error, stackTrace) => Center(
+              child: Icon(
+                Icons.content_cut,
+                size: iconSize * 1.3,
+                color: const Color(0xff003366),
+              ),
             ),
           ),
-          Positioned(
-            bottom: size * 0.18,
-            right: size * 0.16,
-            child: Icon(
-              Icons.format_paint,
-              size: iconSize,
-              color: const Color(0xffffc107),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -177,7 +177,7 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Center(
-              child: Icon(Icons.history, color: Colors.orange, size: 26),
+              child: Icon(Icons.history, color: Color(0xffffc107), size: 28),
             ),
           ),
           const SizedBox(width: 12),

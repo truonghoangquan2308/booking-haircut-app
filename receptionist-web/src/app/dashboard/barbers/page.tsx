@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Users, UserCheck, UserX, Calendar } from "lucide-react";
+import { Button, StatCard } from "@/components/DesignSystemComponents";
 import { ReceptionistShell } from "@/components/ReceptionistShell";
 import PageHeader from "@/components/PageHeader";
+import { StatusBadge } from "@/components/StatusBadge";
 import { useReceptionistSession } from "@/hooks/useReceptionistSession";
 import {
   fetchManagerAppointments,
@@ -103,31 +106,11 @@ export default function ReceptionistBarbersPage() {
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <PageHeader title="Quản lý thợ" subtitle="Theo dõi năng suất thợ hôm nay" />
 
-        <div className="grid gap-4 sm:grid-cols-4">
-          <div className="stat-card">
-            <div className="text-left">
-              <div className="stat-value">{barbers.length}</div>
-              <div className="stat-label">Tổng số thợ</div>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="text-left">
-              <div className="stat-value">{statusCounts.available}</div>
-              <div className="stat-label">Đang làm</div>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="text-left">
-              <div className="stat-value">{statusCounts.off}</div>
-              <div className="stat-label">Đang nghỉ</div>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="text-left">
-              <div className="stat-value">{appointments.length}</div>
-              <div className="stat-label">Lịch trong ngày</div>
-            </div>
-          </div>
+        <div className="stat-grid">
+          <StatCard icon={<Users size={20} />} label="Tổng số thợ" value={barbers.length} />
+          <StatCard icon={<UserCheck size={20} />} label="Đang làm" value={statusCounts.available} />
+          <StatCard icon={<UserX size={20} />} label="Đang nghỉ" value={statusCounts.off} />
+          <StatCard icon={<Calendar size={20} />} label="Lịch trong ngày" value={appointments.length} />
         </div>
 
         <div className="mt-5 overflow-x-auto">
@@ -159,36 +142,30 @@ export default function ReceptionistBarbersPage() {
                       <td className="py-2 pr-2 font-medium">{b.full_name ?? `Thợ #${b.barber_id}`}</td>
                       <td className="py-2 pr-2">
                         {b.status === 'available' ? (
-                          <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                            Đang làm việc
-                          </span>
+                          <StatusBadge status="Hoàn thành" />
                         ) : b.status === 'off' ? (
-                          <span className="inline-flex rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
-                            Nghỉ phép
-                          </span>
+                          <StatusBadge status="Chờ xác nhận" />
                         ) : (
-                          <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-                            {b.status || 'Không rõ'}
-                          </span>
+                          <StatusBadge status={b.status || 'Không rõ'} />
                         )}
                       </td>
                       <td className="py-2 pr-2">{st.total}</td>
                       <td className="py-2 pr-2 text-green-700">{st.completed}</td>
                       <td className="py-2 pr-2 text-red-600">{st.cancelled}</td>
                       <td className="py-2">
-                        <span className={`rounded-full px-2 py-1 text-xs font-semibold ${completionRate >= 70 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                        <span className="text-sm font-semibold text-[var(--text-primary)]">
                           {completionRate}%
                         </span>
                       </td>
                       <td className="py-2 text-right">
-                        <button
+                        <Button
                           type="button"
                           onClick={() => void toggleBarberStatus(b)}
-                          className="rounded-md px-3 py-1 text-xs font-semibold"
-                          style={b.status === 'available' ? { backgroundColor: '#FEE2E2', color: '#DC2626', border: 'none' } : { backgroundColor: 'var(--brand-primary)', color: '#fff', border: 'none' }}
+                          variant={b.status === "available" ? "danger" : "primary"}
+                          className="px-3 py-1 text-xs"
                         >
                           {b.status === 'available' ? 'Đặt nghỉ' : 'Đặt làm'}
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   );

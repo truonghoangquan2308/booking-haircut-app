@@ -28,9 +28,9 @@ export function AdminSubNav() {
             <Link
               key={href}
               href={href}
-              className={`rounded-full px-4 py-2 font-semibold transition ${
+              className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
                 active
-                  ? "bg-[#ffc107] text-black shadow-sm"
+                  ? "bg-white text-[#2d1b4e] shadow-sm"
                   : "bg-white/10 text-white hover:bg-white/20"
               }`}
             >

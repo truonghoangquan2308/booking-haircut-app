@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { StatCard } from "@/components/DesignSystemComponents";
+import { StatusBadge } from "@/components/StatusBadge";
 import { fetchUserByFirebaseUid } from "@/lib/api";
 import { fetchOwnerBarberDetails, type BarberDetails } from "@/lib/ownerBarbersApi";
 
@@ -25,31 +27,31 @@ function getBioBadge(bio: string | null): string {
   return bio;
 }
 
-function getStatusBadge(status: string): { text: string; color: string } {
+function getStatusBadge(status: string): string {
   switch (status) {
     case "available":
-      return { text: "Đang làm việc", color: "bg-green-100 text-green-800" };
+      return "Hoàn thành";
     case "off":
-      return { text: "Nghỉ phép", color: "bg-yellow-100 text-yellow-800" };
+      return "Chờ xác nhận";
     default:
-      return { text: "Đã nghỉ việc", color: "bg-red-100 text-red-800" };
+      return "Đã hủy";
   }
 }
 
-function getApptStatusBadge(status: string): { text: string; color: string } {
+function getApptStatusBadge(status: string): string {
   switch (status) {
     case "pending":
-      return { text: "Chờ xác nhận", color: "bg-yellow-100 text-yellow-800" };
+      return "Chờ xác nhận";
     case "confirmed":
-      return { text: "Đã xác nhận", color: "bg-blue-100 text-blue-800" };
+      return "Đã xác nhận";
     case "in_progress":
-      return { text: "Đang thực hiện", color: "bg-purple-100 text-purple-800" };
+      return "Đang thực hiện";
     case "completed":
-      return { text: "Hoàn thành", color: "bg-green-100 text-green-800" };
+      return "Hoàn thành";
     case "cancelled":
-      return { text: "Đã hủy", color: "bg-red-100 text-red-800" };
+      return "Đã hủy";
     default:
-      return { text: status, color: "bg-gray-100 text-gray-800" };
+      return status;
   }
 }
 
@@ -182,9 +184,7 @@ export default function BarberDetailsPage({ params }: { params: Promise<{ id: st
               <div><strong>Chi nhánh:</strong> {barber.branch_name || "—"}</div>
               <div><strong>Ngày vào làm:</strong> {formatDate(barber.user_created_at)}</div>
               <div><strong>Trạng thái:</strong>{" "}
-                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${getStatusBadge(barber.status).color}`}>
-                  {getStatusBadge(barber.status).text}
-                </span>
+                <StatusBadge status={getStatusBadge(barber.status)} />
               </div>
             </div>
           </div>
@@ -193,23 +193,11 @@ export default function BarberDetailsPage({ params }: { params: Promise<{ id: st
         {/* Thống kê cá nhân */}
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-lg font-bold text-bb-navy">Thống kê cá nhân</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
-              <div className="text-2xl font-bold text-bb-navy">{stats.total_appointments}</div>
-              <div className="text-sm text-gray-600">Tổng lịch đã làm</div>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
-              <div className="text-2xl font-bold text-bb-navy">{formatCurrency(stats.revenue_month)}</div>
-              <div className="text-sm text-gray-600">Doanh thu tháng này</div>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
-              <div className="text-2xl font-bold text-bb-navy">{formatRating(stats.avg_rating)}</div>
-              <div className="text-sm text-gray-600">Đánh giá trung bình</div>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
-              <div className="text-2xl font-bold text-bb-navy">{stats.cancel_rate}%</div>
-              <div className="text-sm text-gray-600">Tỉ lệ huỷ lịch</div>
-            </div>
+          <div className="stat-grid">
+            <StatCard label="Tổng lịch đã làm" value={stats.total_appointments} />
+            <StatCard label="Doanh thu tháng này" value={formatCurrency(stats.revenue_month)} />
+            <StatCard label="Đánh giá trung bình" value={formatRating(stats.avg_rating)} />
+            <StatCard label="Tỉ lệ huỷ lịch" value={`${stats.cancel_rate}%`} />
           </div>
         </section>
 
@@ -237,9 +225,7 @@ export default function BarberDetailsPage({ params }: { params: Promise<{ id: st
                     </td>
                     <td className="px-3 py-2 font-mono">{formatCurrency(appt.total_price)}</td>
                     <td className="px-3 py-2">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${getApptStatusBadge(appt.status).color}`}>
-                        {getApptStatusBadge(appt.status).text}
-                      </span>
+                      <StatusBadge status={getApptStatusBadge(appt.status)} />
                     </td>
                   </tr>
                 ))}

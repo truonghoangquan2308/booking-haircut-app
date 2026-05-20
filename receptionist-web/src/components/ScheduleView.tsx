@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card, StatCard, ToastContainer, useToast } from "@/components/DesignSystemComponents";
+import { Users, DollarSign, UserCheck, Calendar } from "lucide-react";
+import { StatusBadge } from "@/components/StatusBadge";
 import PageHeader from "@/components/PageHeader";
 import {
   createAppointmentOnBehalf,
@@ -256,16 +258,17 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
 
   return (
     <>
-      <PageHeader title="Quản lý tại quầy" subtitle="Danh sách lịch hẹn hôm nay" />
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <PageHeader title="Quản lý tại quầy" subtitle="Danh sách lịch hẹn hôm nay" />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Số khách hôm nay" value={stats.total} />
-        <StatCard label="Doanh thu hôm nay" value={money(stats.revenue)} />
-        <StatCard label="Khách đang chờ" value={stats.waiting} />
-        <StatCard label="Lịch sắp tới" value={stats.upcoming} />
-      </div>
+        <div className="stat-grid">
+          <StatCard icon={<Users size={20} />} label="Số khách hôm nay" value={stats.total} />
+          <StatCard icon={<DollarSign size={20} />} label="Doanh thu hôm nay" value={money(stats.revenue)} />
+          <StatCard icon={<UserCheck size={20} />} label="Khách đang chờ" value={stats.waiting} />
+          <StatCard icon={<Calendar size={20} />} label="Lịch sắp tới" value={stats.upcoming} />
+        </div>
 
-      <Card>
+        <div className="mt-5">
         {error && (
           <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
             {error}
@@ -385,7 +388,7 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
                     </td>
                     <td className="py-2 pr-2">
                       <div className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                        {a.customer_name ?? "—"}
+                        {a.customer_name ?? "-"}
                       </div>
                       {a.note ? (
                         <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
@@ -397,29 +400,7 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
                     <td className="py-2 pr-2">{a.service_name ?? `#${a.service_id}`}</td>
                     <td className="py-2 pr-2">{a.barber_name ?? barberNameById.get(a.barber_id) ?? `#${a.barber_id}`}</td>
                     <td className="py-2 pr-2">
-                      <span
-                        className="rounded-full px-2 py-1 text-xs font-semibold"
-                        style={{
-                          background:
-                            a.status === "completed"
-                              ? "rgba(46, 204, 113, 0.15)"
-                              : a.status === "in_progress"
-                                ? "rgba(52, 152, 219, 0.15)"
-                                : a.status === "cancelled"
-                                  ? "rgba(231, 76, 60, 0.15)"
-                                  : "rgba(245, 166, 35, 0.15)",
-                          color:
-                            a.status === "completed"
-                              ? "var(--color-success)"
-                              : a.status === "in_progress"
-                                ? "var(--color-info)"
-                                : a.status === "cancelled"
-                                  ? "var(--color-danger)"
-                                  : "var(--color-warning)",
-                        }}
-                      >
-                        {APPOINTMENT_STATUS_LABELS[a.status] ?? a.status}
-                      </span>
+                      <StatusBadge status={APPOINTMENT_STATUS_LABELS[a.status] ?? a.status} />
                     </td>
                     <td className="py-2">
                       <div className="flex flex-wrap gap-2">
@@ -452,7 +433,8 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
             </tbody>
           </table>
         </div>
-      </Card>
+        </div>
+      </section>
 
       {createOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -603,4 +585,3 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
     </>
   );
 }
-

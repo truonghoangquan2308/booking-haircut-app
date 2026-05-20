@@ -34,11 +34,12 @@ export function ReceptionistDashboardNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`rounded-md px-3 py-1.5 text-sm ${
+            className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
               active
-                ? "bg-white/12 text-white font-medium"
-                : "text-white/65 hover:text-white hover:bg-white/8"
+                ? "bg-white"
+                : "bg-white/10 text-white hover:bg-white/20"
             }`}
+            style={active ? { color: "#1E3A5F" } : undefined}
           >
             {item.label}
           </Link>

@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
+import { Button, StatCard } from "@/components/DesignSystemComponents";
 import { Navbar } from "@/components/Navbar";
-import { PageHeader } from "@/components/PageHeader";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Calendar, UserCheck, UserX, Users } from "lucide-react";
 import {
   deleteSchedule,
@@ -63,14 +64,6 @@ const APPOINTMENT_STATUS_LABELS: Record<(typeof APPOINTMENT_STATUSES)[number], s
   in_progress: "Đang thực hiện",
   completed: "Hoàn thành",
   cancelled: "Đã hủy",
-};
-
-const APPOINTMENT_STATUS_BADGES: Record<(typeof APPOINTMENT_STATUSES)[number], string> = {
-  pending: "bg-amber-100 text-amber-700",
-  confirmed: "bg-sky-100 text-sky-700",
-  in_progress: "bg-blue-100 text-blue-700",
-  completed: "bg-emerald-100 text-emerald-700",
-  cancelled: "bg-red-100 text-red-700",
 };
 
 function formatApptDate(date: string | null | undefined, start: string | null | undefined, end: string | null | undefined) {
@@ -502,10 +495,7 @@ export default function ManagerDashboardPage() {
   return (
     <div style={{ backgroundColor: 'var(--color-bg-page)' }} className="min-h-screen">
       <Navbar onLogout={logout} />
-      <PageHeader
-        title="Vận hành chi nhánh"
-        subtitle={`Quản lý ${user?.role === "owner" ? "Owner" : "Manager"}`}
-      />
+      
 
       <main className="mx-auto max-w-5xl space-y-8 px-4 py-6">
         {branches.length > 0 && selectedBranchId != null && (
@@ -550,9 +540,9 @@ export default function ManagerDashboardPage() {
         )}
 
         <section className="rounded-2xl bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-bb-navy">Lịch hẹn chi nhánh</h2>
+          <h2 className="text-lg font-bold text-bb-navy">Lịch hẹn Chi nhánh</h2>
           <p className="mb-4 text-sm text-gray-600">
-            Xem và cập nhật trạng thái đặt lịch tại chi nhánh (tối đa 300 bản ghi).
+            Xem và Cập nhật trạng thái đặt lịch tại Chi nhánh (tối đa 300 bản ghi).
           </p>
           {process.env.NODE_ENV === "development" && (
             <p className="mb-4 text-sm text-gray-600">
@@ -636,7 +626,7 @@ export default function ManagerDashboardPage() {
                   <th className="py-2 pr-2">Khách</th>
                   <th className="py-2 pr-2">Thợ</th>
                   <th className="py-2 pr-2">Dịch vụ</th>
-                  <th className="py-2 pr-2">Ngày / giờ</th>
+                  <th className="py-2 pr-2">Ngày/Giờ</th>
                   <th className="py-2 pr-2">Giá</th>
                   <th className="py-2">Trạng thái</th>
                 </tr>
@@ -645,7 +635,7 @@ export default function ManagerDashboardPage() {
                 {currentAppointments.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-6 text-center text-gray-500">
-                      Chưa có lịch hẹn (hoặc không khớp bộ lọc).
+                      Chưa có Lịch hẹn (hoặc không khớp bộ lọc).
                     </td>
                   </tr>
                 ) : (
@@ -656,7 +646,7 @@ export default function ManagerDashboardPage() {
                         <td className="py-2 pr-2 font-mono">{a.id}</td>
                         <td className="py-2 pr-2">
                           <div className="font-medium">
-                            {a.customer_name ?? "—"}
+                            {a.customer_name ?? "-”"}
                           </div>
                           <div className="text-xs text-gray-500">
                             {a.customer_phone ?? ""}
@@ -665,18 +655,14 @@ export default function ManagerDashboardPage() {
                         <td className="py-2 pr-2">
                           {a.barber_name ?? `#${a.barber_id}`}
                         </td>
-                        <td className="py-2 pr-2">{a.service_name ?? "—"}</td>
+                        <td className="py-2 pr-2">{a.service_name ?? "-"}</td>
                         <td className="py-2 pr-2 text-xs text-gray-700">
                           {formatApptDate(a.appt_date, a.start_time, a.end_time)}
                         </td>
                         <td className="py-2 pr-2">{String(a.total_price)}</td>
                         <td className="py-2 pr-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`min-w-[99px] rounded-full px-3 py-1 text-xs font-semibold ${APPOINTMENT_STATUS_BADGES[statusKey] ?? "bg-slate-100 text-slate-700"}`}
-                            >
-                              {APPOINTMENT_STATUS_LABELS[statusKey] ?? a.status}
-                            </span>
+                            <StatusBadge status={APPOINTMENT_STATUS_LABELS[statusKey] ?? a.status} />
                             <select
                               className="rounded-lg border border-gray-200 bg-bb-input px-2 py-1 text-xs"
                               value={a.status}
@@ -729,10 +715,10 @@ export default function ManagerDashboardPage() {
         <section className="rounded-2xl bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-lg font-bold text-bb-navy">Quản lý thợ</h2>
+              <h2 className="text-lg font-bold text-bb-navy">Quản lý Thợ</h2>
               {process.env.NODE_ENV === "development" ? (
                 <p className="text-sm text-gray-600">
-                  Danh sách thợ chi nhánh {branches.find((b) => b.id === selectedBranchId)?.name ?? "—"}.
+                  Danh sách Thợ Chi nhánh {branches.find((b) => b.id === selectedBranchId)?.name ?? "-"}.
                 </p>
               ) : null}
             </div>
@@ -744,7 +730,7 @@ export default function ManagerDashboardPage() {
                   value={barberSearch}
                   onChange={(e) => setBarberSearch(e.target.value)}
                   className="w-full rounded-lg border-0 bg-bb-input px-3 py-2"
-                  placeholder="Tên hoặc ID"
+                  placeholder="Tìm thợ ID"
                 />
               </label>
               <label className="text-sm">
@@ -765,45 +751,15 @@ export default function ManagerDashboardPage() {
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-4">
-            <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
-                  <Users className="h-5 w-5" />
-                </span>
-                <p className="text-sm font-medium text-slate-600">Tổng số thợ</p>
-              </div>
-              <p className="mt-4 text-3xl font-semibold text-slate-900">{barbers.length}</p>
-            </div>
-            <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-                  <UserCheck className="h-5 w-5" />
-                </span>
-                <p className="text-sm font-medium text-slate-600">Đang làm việc hôm nay</p>
-              </div>
-              <p className="mt-4 text-3xl font-semibold text-emerald-700">{barberStatusCounts.available}</p>
-            </div>
-            <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
-                  <UserX className="h-5 w-5" />
-                </span>
-                <p className="text-sm font-medium text-slate-600">Đang nghỉ hôm nay</p>
-              </div>
-              <p className="mt-4 text-3xl font-semibold text-amber-700">{barberStatusCounts.off}</p>
-            </div>
-            <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
-                  <Calendar className="h-5 w-5" />
-                </span>
-                <p className="text-sm font-medium text-slate-600">Tổng lịch hôm nay</p>
-              </div>
-              <p className="mt-4 text-3xl font-semibold text-slate-900">
-                {Array.from(barberWorkToday.values()).reduce((sum, value) => sum + value, 0)}
-              </p>
-            </div>
+          <div className="mt-4 stat-grid">
+            <StatCard label="Tổng số thợ" value={barbers.length} icon={<Users className="h-5 w-5" />} />
+            <StatCard label="Đang làm việc hôm nay" value={barberStatusCounts.available} icon={<UserCheck className="h-5 w-5" />} />
+            <StatCard label="Đang nghỉ hôm nay" value={barberStatusCounts.off} icon={<UserX className="h-5 w-5" />} />
+            <StatCard
+              label="Tổng lịch hôm nay"
+              value={Array.from(barberWorkToday.values()).reduce((sum, value) => sum + value, 0)}
+              icon={<Calendar className="h-5 w-5" />}
+            />
           </div>
 
           <div className="mt-5 overflow-x-auto">
@@ -822,7 +778,7 @@ export default function ManagerDashboardPage() {
                 {filteredBarbers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-6 text-center text-slate-500">
-                      Không tìm thấy thợ.
+                      Không tìm thấy Thợ.
                     </td>
                   </tr>
                 ) : (
@@ -833,13 +789,9 @@ export default function ManagerDashboardPage() {
                       </td>
                       <td className="py-3 pr-4">
                         {barber.status === "available" ? (
-                          <span className="inline-flex rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">
-                            Đang làm
-                          </span>
+                          <StatusBadge status="Hoàn thành" />
                         ) : barber.status === "off" ? (
-                          <span className="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
-                            Nghỉ
-                          </span>
+                          <StatusBadge status="Chờ xác nhận" />
                         ) : (
                           <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
                             {barber.status ?? "Không rõ"}
@@ -850,19 +802,20 @@ export default function ManagerDashboardPage() {
                         {barberWorkToday.get(barber.barber_id) ?? 0}
                       </td>
                       <td className="py-3 pr-4 text-slate-600">
-                        {branches.find((b) => b.id === selectedBranchId)?.name ?? "—"}
+                        {branches.find((b) => b.id === selectedBranchId)?.name ?? "Có"}
                       </td>
                       <td className="py-3 pr-4 text-slate-600">
                         {barber.status === "available" ? "Có" : "Không"}
                       </td>
                       <td className="py-3">
-                        <button
+                        <Button
                           type="button"
+                          variant="secondary"
+                          size="sm"
                           onClick={() => void toggleBarberStatus(barber)}
-                          className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
                         >
                           {barber.status === "available" ? "Đặt nghỉ" : "Đặt làm"}
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))
@@ -873,9 +826,9 @@ export default function ManagerDashboardPage() {
         </section>
 
         <section className="rounded-2xl bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-bb-navy">Đơn shop</h2>
+          <h2 className="text-lg font-bold text-bb-navy">Quản lý shop</h2>
           <p className="mb-4 text-sm text-gray-600">
-            Cập nhật trạng thái đơn (tối đa 200 đơn gần nhất).
+            Cập nhật trạng thái Đơn (tối đa 200 đơn gần nhất).
           </p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-sm">
@@ -901,7 +854,7 @@ export default function ManagerDashboardPage() {
                       <td className="py-2 pr-2 font-mono">{o.id}</td>
                       <td className="py-2 pr-2">
                         <div className="font-medium">
-                          {o.customer_name ?? "—"}
+                          {o.customer_name ?? "_”"}
                         </div>
                         <div className="text-xs text-gray-500">
                           {o.customer_phone ?? o.customer_email ?? ""}
@@ -961,9 +914,9 @@ export default function ManagerDashboardPage() {
         </section>
 
         <section className="rounded-2xl bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-bb-navy">Lịch làm việc thợ</h2>
+          <h2 className="text-lg font-bold text-bb-navy">Lịch làm việc Thợ</h2>
           <p className="mb-4 text-sm text-gray-600">
-            Thêm / sửa theo cặp thợ + ngày (API{" "}
+            Thêm / sửa theo cấp Thợ + ngày (API{" "}
             <code className="rounded bg-bb-input px-1">/api/manager/working-schedules</code>
             ).
           </p>
@@ -982,7 +935,7 @@ export default function ManagerDashboardPage() {
                 }
               >
                 {barbers.length === 0 ? (
-                  <option value="">—</option>
+                  <option value="">_”</option>
                 ) : (
                   barbers.map((b) => (
                     <option key={b.barber_id} value={b.barber_id}>
@@ -1097,7 +1050,7 @@ export default function ManagerDashboardPage() {
                       </td>
                       <td className="py-2 pr-2">{String(s.work_date)}</td>
                       <td className="py-2 pr-2">
-                        {String(s.start_time).slice(0, 5)} –{" "}
+                        {String(s.start_time).slice(0, 5)} _“{" "}
                         {String(s.end_time).slice(0, 5)}
                       </td>
                       <td className="py-2 pr-2">
@@ -1122,14 +1075,14 @@ export default function ManagerDashboardPage() {
 
         {process.env.NODE_ENV === "development" ? (
           <p className="text-center text-xs text-gray-500">
-            Web: đơn shop, lịch thợ, lịch hẹn chi nhánh (
-            <code className="rounded bg-gray-200 px-1">/api/manager/*</code>
-            ). Manager cần{" "}
-            <code className="rounded bg-gray-200 px-1">users.branch_id</code>{" "}
-            khớp chi nhánh; thợ cần{" "}
-            <code className="rounded bg-gray-200 px-1">barbers.branch_id</code>{" "}
-            tương ứng.
-          </p>
+          Web: đơn shop, lịch thợ, lịch hẹn chi nhánh (
+          <code className="rounded bg-gray-200 px-1">/api/manager/*</code>
+          ). Manager cần{" "}
+          <code className="rounded bg-gray-200 px-1">users.branch_id</code>{" "}
+          khớp chi nhánh; thợ cần{" "}
+          <code className="rounded bg-gray-200 px-1">barbers.branch_id</code>{" "}
+          tương ứng.
+        </p>
         ) : null}
       </main>
 
@@ -1137,13 +1090,13 @@ export default function ManagerDashboardPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-bb-navy">Chi tiết lịch hẹn #{selectedAppt?.id}</h3>
-              <button className="text-gray-500 hover:text-black" onClick={() => setSelectedAppt(null)}>✕</button>
+              <h3 className="text-xl font-bold text-bb-navy">Chi tiết Lịch hẹn #{selectedAppt?.id}</h3>
+              <button className="text-gray-500 hover:text-black" onClick={() => setSelectedAppt(null)}>X</button>
             </div>
             <div className="space-y-3 text-sm text-gray-700">
-              <p><strong>Khách hàng:</strong> {selectedAppt?.customer_name ?? "—"} ({selectedAppt?.customer_phone ?? "—"})</p>
-              <p><strong>Thợ:</strong> {selectedAppt?.barber_name ?? "—"}</p>
-              <p><strong>Dịch vụ:</strong> {selectedAppt?.service_name ?? "—"}</p>
+              <p><strong>Khách hàng:</strong> {selectedAppt?.customer_name ?? "_"} ({selectedAppt?.customer_phone ?? "_”"})</p>
+              <p><strong>Thợ:</strong> {selectedAppt?.barber_name ?? "_"}</p>
+              <p><strong>Dịch vụ:</strong> {selectedAppt?.service_name ?? "_"}</p>
               <p><strong>Ngày giờ:</strong> {selectedAppt?.appt_date} {String(selectedAppt?.start_time || "").slice(0, 5)} - {String(selectedAppt?.end_time || "").slice(0, 5)}</p>
               <p><strong>Giá:</strong> {selectedAppt?.total_price} đ</p>
               <p><strong>Ghi chú:</strong> {selectedAppt?.note || "—"}</p>
@@ -1180,3 +1133,6 @@ export default function ManagerDashboardPage() {
     </div>
   );
 }
+
+
+

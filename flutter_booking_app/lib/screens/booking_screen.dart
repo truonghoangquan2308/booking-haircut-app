@@ -598,9 +598,15 @@ class _BookingScreenState extends State<BookingScreen> {
       backgroundColor: const Color(0xfff4f5f9),
       appBar: AppBar(
         backgroundColor: const Color(0xffffc107),
-        title: const Text(
-          'Đặt lịch cắt tóc',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Row(
+          children: const [
+            Icon(Icons.calendar_today, size: 28),
+            SizedBox(width: 8),
+            Text(
+              'Đặt lịch cắt tóc',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         foregroundColor: Colors.black,
         elevation: 0,

@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { ReceptionistShell } from "@/components/ReceptionistShell";
 import PageHeader from "@/components/PageHeader";
+import { StatusBadge } from "@/components/StatusBadge";
 import { useReceptionistSession } from "@/hooks/useReceptionistSession";
 import {
   deleteSchedule,
@@ -91,7 +92,7 @@ export default function ReceptionistShiftsPage() {
 
   async function onDeleteSchedule(id: number) {
     if (!uid || !selectedBranchId) return;
-    if (!confirm("Bạn có chắc muốn xóa ca làm này?")) return;
+    if (!confirm("Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a ca lÃ m nÃ y?")) return;
     setBusy(true);
     try {
       await deleteSchedule(uid, id, selectedBranchId);
@@ -108,7 +109,7 @@ export default function ReceptionistShiftsPage() {
   }, [schedules]);
 
   if (loading) {
-    return <div className="p-6 text-center text-gray-600">Đang tải dữ liệu...</div>;
+    return <div className="p-6 text-center text-gray-600">Äang táº£i dá»¯ liá»‡u...</div>;
   }
 
   return (
@@ -121,12 +122,12 @@ export default function ReceptionistShiftsPage() {
     >
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <PageHeader title="Quản lý ca làm" subtitle="Phân ca cho thợ theo ngày" />
+        <PageHeader title="Quản lý ca làm" subtitle="Phân ca cho Thợ theo ngày" />
 
         <form onSubmit={onSubmit} className="mb-5 grid gap-3 rounded-xl bg-bb-input/40 p-4 md:grid-cols-5">
           <input type="date" required value={formDate} onChange={(e) => setFormDate(e.target.value)} />
           <select required value={formBarberId} onChange={(e) => setFormBarberId(Number(e.target.value))}>
-            <option value={0}>-- Chọn thợ --</option>
+            <option value={0}>-- Chọn Thợ --</option>
             {barbers.map((b) => (
               <option key={b.barber_id} value={b.barber_id}>
                 {b.full_name ?? `#${b.barber_id}`}
@@ -148,7 +149,7 @@ export default function ReceptionistShiftsPage() {
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           <select value={barberId} onChange={(e) => setBarberId(Number(e.target.value))}>
-            <option value={0}>Tất cả thợ</option>
+            <option value={0}>Tất cả Thợ</option>
             {barbers.map((b) => (
               <option key={b.barber_id} value={b.barber_id}>
                 {b.full_name ?? `#${b.barber_id}`}
@@ -183,15 +184,13 @@ export default function ReceptionistShiftsPage() {
                   <tr key={s.id} className="border-b border-gray-100">
                     <td className="py-2 pr-2">{s.work_date}</td>
                     <td className="py-2 pr-2">{barbers.find((b) => b.barber_id === s.barber_id)?.full_name ?? `#${s.barber_id}`}</td>
-                    <td className="py-2 pr-2">{s.is_day_off ? "—" : `${String(s.start_time).slice(0, 5)} - ${String(s.end_time).slice(0, 5)}`}</td>
+                    <td className="py-2 pr-2">{s.is_day_off ? "_”" : `${String(s.start_time).slice(0, 5)} - ${String(s.end_time).slice(0, 5)}`}</td>
                     <td className="py-2 pr-2">
-                      <span className={`rounded-full px-2 py-1 text-xs ${s.is_day_off ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
-                        {s.is_day_off ? "Nghỉ" : "Làm việc"}
-                      </span>
+                      <StatusBadge status={s.is_day_off ? "Đã hủy" : "Hoàn thành"} />
                     </td>
                     <td className="py-2">
                       <button type="button" onClick={() => void onDeleteSchedule(s.id)} className="rounded-lg border border-red-300 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
-                        Xóa
+                        XÃ³a
                       </button>
                     </td>
                   </tr>
@@ -204,3 +203,4 @@ export default function ReceptionistShiftsPage() {
     </ReceptionistShell>
   );
 }
+

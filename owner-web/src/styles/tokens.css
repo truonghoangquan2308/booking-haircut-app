@@ -1,0 +1,76 @@
+:root {
+  --brand-navy: #1E3A5F;
+  --brand-amber: #F59E0B;
+  --brand-amber-hover: #D97706;
+
+  --role-owner: #F59E0B;
+  --role-manager: #3B82F6;
+  --role-receptionist: #10B981;
+  --role-admin: #EF4444;
+
+  --surface-page: #F3F4F6;
+  --surface-card: #FFFFFF;
+  --surface-card-border: #E5E7EB;
+
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-on-dark: #FFFFFF;
+
+  --status-pending-bg: #FEF3C7;
+  --status-pending-text: #92400E;
+  --status-confirmed-bg: #DBEAFE;
+  --status-confirmed-text: #1E40AF;
+  --status-done-bg: #D1FAE5;
+  --status-done-text: #065F46;
+  --status-cancelled-bg: #FEE2E2;
+  --status-cancelled-text: #991B1B;
+
+  --radius-card: 12px;
+  --radius-btn: 8px;
+  --radius-badge: 6px;
+
+  --brand-primary: var(--brand-navy);
+  --brand-accent: var(--brand-amber);
+  --brand-accent-hover: var(--brand-amber-hover);
+  --color-primary: var(--brand-amber);
+  --color-primary-hover: var(--brand-amber-hover);
+  --color-primary-text: #1A1A1A;
+  --color-navbar-bg: var(--brand-navy);
+  --color-navbar-text: var(--text-on-dark);
+  --color-navbar-active: rgba(255, 255, 255, 0.14);
+  --color-bg-page: var(--surface-page);
+  --color-bg-card: var(--surface-card);
+  --color-bg-section-header: var(--brand-navy);
+  --color-section-header-text: var(--text-on-dark);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: #9CA3AF;
+  --color-border: var(--surface-card-border);
+  --border-radius-card: var(--radius-card);
+  --border-radius-badge: var(--radius-badge);
+  --border-radius-button: var(--radius-btn);
+  --color-success: var(--status-done-text);
+  --color-warning: var(--status-pending-text);
+  --color-danger: var(--status-cancelled-text);
+  --color-info: var(--status-confirmed-text);
+  --color-badge-success-bg: var(--status-done-bg);
+  --color-badge-success-text: var(--status-done-text);
+  --color-badge-warning-bg: var(--status-pending-bg);
+  --color-badge-warning-text: var(--status-pending-text);
+  --color-badge-danger-bg: var(--status-cancelled-bg);
+  --color-badge-danger-text: var(--status-cancelled-text);
+  --color-badge-info-bg: var(--status-confirmed-bg);
+  --color-badge-info-text: var(--status-confirmed-text);
+  --color-badge-gray-bg: var(--surface-page);
+  --color-badge-gray-text: var(--text-secondary);
+  --spacing-section: 24px;
+  --spacing-card: 20px;
+  --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.05);
+  --shadow-hover: 0 14px 38px rgba(15, 23, 42, 0.08);
+
+  --bb-yellow: var(--brand-amber);
+  --bb-navy: var(--brand-navy);
+  --bb-surface: var(--surface-page);
+  --bb-input: #F9FAFB;
+  --bb-ink: var(--text-primary);
+}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
+import { StatCard } from "@/components/DesignSystemComponents";
 import { PageHeader } from "@/components/PageHeader";
 import {
   fetchManagerAppointments,
@@ -242,23 +243,11 @@ export default function ManagerDashboardPage() {
             </code>
             .
           </p>
-          <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <div className="rounded-lg bg-blue-50 p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{appointmentSummary.today}</div>
-              <div className="text-sm text-blue-800">Hôm nay</div>
-            </div>
-            <div className="rounded-lg bg-yellow-50 p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-600">{appointmentSummary.pending}</div>
-              <div className="text-sm text-yellow-800">Đang chờ</div>
-            </div>
-            <div className="rounded-lg bg-green-50 p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{appointmentSummary.completed}</div>
-              <div className="text-sm text-green-800">Hoàn thành</div>
-            </div>
-            <div className="rounded-lg bg-red-50 p-4 text-center">
-              <div className="text-2xl font-bold text-red-600">{appointmentSummary.cancelled}</div>
-              <div className="text-sm text-red-800">Đã huỷ</div>
-            </div>
+          <div className="stat-grid mb-6">
+            <StatCard label="Hôm nay" value={appointmentSummary.today} />
+            <StatCard label="Đang chờ" value={appointmentSummary.pending} />
+            <StatCard label="Hoàn thành" value={appointmentSummary.completed} />
+            <StatCard label="Đã huỷ" value={appointmentSummary.cancelled} />
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[400px] text-left text-sm">

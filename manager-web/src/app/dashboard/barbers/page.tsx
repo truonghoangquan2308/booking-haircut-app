@@ -1,18 +1,20 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
+import { Button, StatCard } from "@/components/DesignSystemComponents";
 import { auth } from "@/lib/firebase";
-import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
+import { fetchUserByFirebaseUid } from "@/lib/api";
 import { Navbar } from "@/components/Navbar";
 import { PageHeader } from "@/components/PageHeader";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Users, UserCheck, UserX } from "lucide-react";
 import {
   fetchManagerBarbers,
   fetchManagerBranchList,
   patchManagerBarberAvailability,
   type BarberOption,
-  type ManagerBranchRow,
 } from "@/lib/managerApi";
 
 const BRANCH_STORAGE_KEY = "manager-web-branch-id";
@@ -20,8 +22,6 @@ const BRANCH_STORAGE_KEY = "manager-web-branch-id";
 export default function ManagerBarbersPage() {
   const router = useRouter();
   const [uid, setUid] = useState<string | null>(null);
-  const [user, setUser] = useState<StaffUser | null>(null);
-  const [branches, setBranches] = useState<ManagerBranchRow[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
   const [barbers, setBarbers] = useState<BarberOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,17 +58,15 @@ export default function ManagerBarbersPage() {
           return;
         }
         if (row.is_locked === 1 || row.is_locked === true) {
-          setError("Tài khoản đã bị khóa.");
+          setError("TÃ i khoáº£n đÃ£ bá»‹ khÃ³a.");
           setLoading(false);
           return;
         }
 
-        setUser(row);
         setUid(storedUid);
 
         const branchList = await fetchManagerBranchList(storedUid);
         if (!active) return;
-        setBranches(branchList);
 
         if (branchList.length > 0) {
           const saved = Number(localStorage.getItem(BRANCH_STORAGE_KEY));
@@ -104,15 +102,6 @@ export default function ManagerBarbersPage() {
       }
     })();
   }, [uid, selectedBranchId, loadBarbers]);
-
-  const handleBranchChange = (branchId: number) => {
-    setSelectedBranchId(branchId);
-    try {
-      localStorage.setItem(BRANCH_STORAGE_KEY, String(branchId));
-    } catch {
-      /* ignore */
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -162,7 +151,7 @@ export default function ManagerBarbersPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 text-slate-900">
         <div className="h-10 w-10 animate-pulse rounded-full bg-slate-300" />
-        <p className="font-medium">Đang tải…</p>
+        <p className="font-medium">Đang tải...</p>
       </div>
     );
   }
@@ -171,8 +160,8 @@ export default function ManagerBarbersPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <Navbar onLogout={handleLogout} />
       <PageHeader
-        title="Quản lý thợ"
-        subtitle="Danh sách thợ và trạng thái"
+        title="Quản lý Thợ"
+        subtitle="Danh sách Thợ và Trạng thái"
       />
 
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">
@@ -185,29 +174,20 @@ export default function ManagerBarbersPage() {
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm text-slate-500">Quản lý thợ</p>
-              <h1 className="text-2xl font-bold text-slate-900">Danh sách thợ</h1>
+              <p className="text-sm text-slate-500">Quản lý Thợ</p>
+              <h1 className="text-2xl font-bold text-slate-900">Danh sách Thợ</h1>
             </div>
             <div className="text-sm text-slate-500">
               {selectedBranchId == null
-                ? "Chưa chọn chi nhánh"
-                : `${barbers.length} thợ trong chi nhánh`}
+                ? "Chưa chọn Chi nhánh"
+                : `${barbers.length} Thợ trong Chi nhánh`}
             </div>
           </div>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Tổng thợ</p>
-              <p className="mt-2 text-3xl font-semibold text-slate-900">{barbers.length}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Đang làm</p>
-              <p className="mt-2 text-3xl font-semibold text-emerald-700">{statusCounts.available}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Đang nghỉ</p>
-              <p className="mt-2 text-3xl font-semibold text-amber-700">{statusCounts.off}</p>
-            </div>
+            <StatCard label="Tổng Thợ" value={barbers.length} icon={<Users className="h-5 w-5" />} />
+            <StatCard label="Đang làm" value={statusCounts.available} icon={<UserCheck className="h-5 w-5" />} />
+            <StatCard label="Đang nghỉ" value={statusCounts.off} icon={<UserX className="h-5 w-5" />} />
           </div>
 
           <div className="mt-6 overflow-x-auto">
@@ -224,7 +204,7 @@ export default function ManagerBarbersPage() {
                 {barbers.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-6 text-center text-slate-500">
-                      Không tìm thấy thợ trong chi nhánh này.
+                      Không tìm thấy Thợ trong Chi nhánh này.
                     </td>
                   </tr>
                 ) : (
@@ -235,13 +215,9 @@ export default function ManagerBarbersPage() {
                       </td>
                       <td className="py-3 pr-4">
                         {barber.is_available === 1 || barber.status === "available" ? (
-                          <span className="inline-flex rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">
-                            Đang làm
-                          </span>
+                          <StatusBadge status="Hoàn thành" />
                         ) : barber.status === "off" ? (
-                          <span className="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
-                            Nghỉ
-                          </span>
+                          <StatusBadge status="Chờ xác nhận" />
                         ) : (
                           <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
                             {barber.status ?? "Không rõ"}
@@ -249,17 +225,12 @@ export default function ManagerBarbersPage() {
                         )}
                       </td>
                       <td className="py-3 pr-4 text-slate-600">
-                        {barber.status ?? "—"}
+                        {barber.status ?? "_”"}
                       </td>
                       <td className="py-3">
-                        <button
-                          type="button"
-                          disabled={savingBarber === barber.barber_id}
-                          onClick={() => void toggleBarberStatus(barber)}
-                          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
+                        <Button type="button" variant="secondary" size="sm" disabled={savingBarber === barber.barber_id} onClick={() => void toggleBarberStatus(barber)}>
                           {barber.status === "available" ? "Đặt nghỉ" : "Đặt làm"}
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))
@@ -272,3 +243,4 @@ export default function ManagerBarbersPage() {
     </div>
   );
 }
+

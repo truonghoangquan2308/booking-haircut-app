@@ -132,8 +132,21 @@ class _AccountScreenState extends State<AccountScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Center(
-              child: Icon(Icons.content_cut, color: Colors.orange, size: 26),
+            child: Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  'assets/images/skibidi-logo.png',
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.content_cut,
+                    color: Colors.orange,
+                    size: 26,
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 12),

@@ -152,11 +152,20 @@ class _HomeHeader extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Center(
-                  child: Icon(
-                    Icons.content_cut,
-                    color: Colors.orange,
-                    size: 26,
+                child: Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.asset(
+                      'assets/images/skibidi-logo.png',
+                      width: 36,
+                      height: 36,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.content_cut,
+                        color: Colors.orange,
+                        size: 26,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -298,8 +307,12 @@ class _RatingCard extends StatelessWidget {
               color: const Color(0xffffc107),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Center(
-              child: Icon(Icons.person, size: 34, color: Colors.white),
+            child: Center(
+              child: const Icon(
+                Icons.content_cut,
+                size: 36,
+                color: Colors.white,
+              ),
             ),
           ),
           const SizedBox(width: 12),

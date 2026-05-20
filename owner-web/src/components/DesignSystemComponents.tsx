@@ -1,159 +1,90 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState, useCallback } from "react";
-
-/* ============================================
-   STAT CARD COMPONENT
-   ============================================ */
+import { useCallback, useState } from "react";
+import { Button } from "@/components/Button";
+import { StatusBadge } from "@/components/StatusBadge";
 
 interface StatCardProps {
+  icon?: ReactNode;
   label: string;
   value: string | number;
-  color?: "success" | "warning" | "danger" | "info" | "default";
-  icon?: ReactNode;
   onClick?: () => void;
   href?: string;
 }
 
-export function StatCard({
-  label,
-  value,
-  color = "default",
-  icon,
-  onClick,
-  href,
-}: StatCardProps) {
-  const colorBorder = {
-    success: "border-l-4 border-[var(--color-success)]",
-    warning: "border-l-4 border-[var(--color-warning)]",
-    danger: "border-l-4 border-[var(--color-danger)]",
-    info: "border-l-4 border-[var(--color-info)]",
-    default: "",
-  }[color];
-
-  const className = `stat-card ${colorBorder} transition-all cursor-pointer`;
-
+export function StatCard({ icon, label, value, onClick, href }: StatCardProps) {
   const content = (
-    <div className="flex w-full items-start justify-between">
-      <div className="text-left">
-        <div className="stat-value">{value}</div>
-        <div className="stat-label">{label}</div>
+    <div className="stat-card-content">
+      <div className="stat-card-icon">{icon}</div>
+      <div className="stat-card-text">
+        <p className="stat-label">{label}</p>
+        <p className="stat-value">{value}</p>
       </div>
-      {icon && <div className="text-2xl">{icon}</div>}
     </div>
   );
 
   if (href) {
     return (
-      <a href={href} className={className}>
+      <a href={href} className="stat-card">
         {content}
       </a>
     );
   }
 
-  return (
-    <button
-      onClick={onClick}
-      className={className}
-      type="button"
-    >
-      {content}
-    </button>
-  );
-}
+  if (onClick) {
+    return (
+      <button type="button" className="stat-card text-left" onClick={onClick}>
+        {content}
+      </button>
+    );
+  }
 
-/* ============================================
-   BADGE COMPONENT
-   ============================================ */
+  return <div className="stat-card">{content}</div>;
+}
 
 interface BadgeProps {
   status?: string;
   variant?: "success" | "warning" | "danger" | "info" | "gray";
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
 }
 
-export function Badge({
-  status,
-  variant,
-  children,
-  className = "",
-}: BadgeProps) {
-  let badgeClass = "badge ";
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Chờ xác nhận",
+  confirmed: "Đã xác nhận",
+  in_progress: "Đang thực hiện",
+  completed: "Hoàn thành",
+  cancelled: "Đã hủy",
+  available: "Hoàn thành",
+  delivered: "Hoàn thành",
+  shipping: "Đã xác nhận",
+  off: "Đã hủy",
+};
 
-  if (variant) {
-    badgeClass += `badge-${variant}`;
-  } else if (status) {
-    const statusMap: Record<string, string> = {
-      completed: "badge-success",
-      available: "badge-success",
-      "in-stock": "badge-success",
-      confirmed: "badge-info",
-      "in-progress": "badge-info",
-      pending: "badge-warning",
-      "on-leave": "badge-warning",
-      low: "badge-warning",
-      cancelled: "badge-danger",
-      off: "badge-danger",
-      "out-of-stock": "badge-danger",
-      delivered: "badge-success",
-      shipping: "badge-info",
-    };
-    badgeClass += statusMap[status] || "badge-gray";
-  } else {
-    badgeClass += "badge-gray";
-  }
+const VARIANT_FALLBACK: Record<NonNullable<BadgeProps["variant"]>, string> = {
+  success: "Hoàn thành",
+  warning: "Chờ xác nhận",
+  danger: "Đã hủy",
+  info: "Đã xác nhận",
+  gray: "Không rõ",
+};
 
-  return <span className={`${badgeClass} ${className}`}>{children}</span>;
-}
-
-/* ============================================
-   BUTTON COMPONENT
-   ============================================ */
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "danger";
-  size?: "sm" | "md" | "lg";
-  isLoading?: boolean;
-  children: ReactNode;
-}
-
-export function Button({
-  variant = "primary",
-  size = "md",
-  isLoading = false,
-  disabled,
-  children,
-  className = "",
-  ...props
-}: ButtonProps) {
-  const variantClass = {
-    primary: "btn-primary",
-    secondary: "btn-secondary",
-    danger: "btn-danger",
-  }[variant];
-
-  const sizeClass = {
-    sm: "text-xs px-2 py-1",
-    md: "",
-    lg: "text-lg px-6 py-3",
-  }[size];
+export function Badge({ status, variant, children, className = "" }: BadgeProps) {
+  const rawLabel =
+    typeof children === "string"
+      ? children
+      : typeof status === "string"
+        ? status
+        : VARIANT_FALLBACK[variant ?? "gray"];
+  const normalizedLabel = STATUS_LABELS[rawLabel] ?? rawLabel;
 
   return (
-    <button
-      className={`btn ${variantClass} ${sizeClass} ${className}`}
-      disabled={disabled || isLoading}
-      {...props}
-    >
-      {isLoading ? "Đang xử lý..." : children}
-    </button>
+    <span className={className}>
+      <StatusBadge status={normalizedLabel} />
+    </span>
   );
 }
-
-/* ============================================
-   CARD COMPONENT
-   ============================================ */
 
 interface CardProps {
   title?: string;
@@ -173,24 +104,18 @@ export function Card({
   noPadding = false,
 }: CardProps) {
   return (
-    <div className={`card ${!noPadding ? "" : "p-0"} ${className}`}>
-      {title && (
+    <div className={`card ${noPadding ? "p-0" : ""} ${className}`.trim()}>
+      {title ? (
         <div className="mb-4">
           <h2 className="section-title">{title}</h2>
-          {description && <p className="section-description">{description}</p>}
+          {description ? <p className="section-description">{description}</p> : null}
         </div>
-      )}
-      <div className={title && !footer ? "" : "mb-4"}>{children}</div>
-      {footer && (
-        <div className="border-t border-[var(--color-border)] pt-4">{footer}</div>
-      )}
+      ) : null}
+      <div className={footer ? "mb-4" : ""}>{children}</div>
+      {footer ? <div className="border-t border-[var(--color-border)] pt-4">{footer}</div> : null}
     </div>
   );
 }
-
-/* ============================================
-   TABLE COMPONENT
-   ============================================ */
 
 interface TableProps {
   headers: string[];
@@ -228,7 +153,7 @@ export function Table({
   }
 
   return (
-    <div className={`table-container ${className}`}>
+    <div className={`table-container ${className}`.trim()}>
       <table>
         <thead>
           <tr>
@@ -255,10 +180,6 @@ export function Table({
   );
 }
 
-/* ============================================
-   TOAST HOOK & COMPONENT
-   ============================================ */
-
 type ToastType = "success" | "error" | "warning" | "info";
 
 interface Toast {
@@ -272,28 +193,27 @@ export function useToast() {
 
   const show = useCallback((message: string, type: ToastType = "info") => {
     const id = Date.now().toString();
-    const toast: Toast = { id, message, type };
-
-    setToasts((prev) => [...prev, toast]);
+    setToasts((prev) => [...prev, { id, type, message }]);
 
     setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
+      setToasts((prev) => prev.filter((item) => item.id !== id));
     }, 3000);
   }, []);
 
   const remove = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToasts((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
   return { toasts, show, remove };
 }
 
-interface ToastContainerProps {
+export function ToastContainer({
+  toasts,
+  onRemove,
+}: {
   toasts: Toast[];
   onRemove: (id: string) => void;
-}
-
-export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
+}) {
   if (toasts.length === 0) return null;
 
   return (
@@ -311,10 +231,6 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
     </div>
   );
 }
-
-/* ============================================
-   FORM SECTION COMPONENT
-   ============================================ */
 
 interface FormField {
   name: string;
@@ -359,10 +275,7 @@ export function FormSection({
       await onSubmit(values);
       show("Saved successfully!", "success");
     } catch (error) {
-      show(
-        error instanceof Error ? error.message : "Failed to save",
-        "error",
-      );
+      show(error instanceof Error ? error.message : "Failed to save", "error");
     } finally {
       setIsLoading(false);
     }
@@ -376,18 +289,16 @@ export function FormSection({
             <div key={field.name}>
               <label className="mb-1 block text-sm font-medium text-[var(--color-text-primary)]">
                 {field.label}
-                {field.required && (
-                  <span className="text-[var(--color-danger)]"> *</span>
-                )}
+                {field.required ? <span className="text-[var(--color-danger)]"> *</span> : null}
               </label>
 
               {field.type === "select" ? (
                 <select
                   value={values[field.name] ?? field.value ?? ""}
                   onChange={(e) => {
-                    const newValue = e.target.value;
-                    setValues((prev) => ({ ...prev, [field.name]: newValue }));
-                    field.onChange?.(newValue);
+                    const nextValue = e.target.value;
+                    setValues((prev) => ({ ...prev, [field.name]: nextValue }));
+                    field.onChange?.(nextValue);
                   }}
                   required={field.required}
                 >
@@ -402,9 +313,9 @@ export function FormSection({
                 <textarea
                   value={values[field.name] ?? field.value ?? ""}
                   onChange={(e) => {
-                    const newValue = e.target.value;
-                    setValues((prev) => ({ ...prev, [field.name]: newValue }));
-                    field.onChange?.(newValue);
+                    const nextValue = e.target.value;
+                    setValues((prev) => ({ ...prev, [field.name]: nextValue }));
+                    field.onChange?.(nextValue);
                   }}
                   placeholder={field.placeholder}
                   required={field.required}
@@ -415,9 +326,9 @@ export function FormSection({
                   type={field.type || "text"}
                   value={values[field.name] ?? field.value ?? ""}
                   onChange={(e) => {
-                    const newValue = e.target.value;
-                    setValues((prev) => ({ ...prev, [field.name]: newValue }));
-                    field.onChange?.(newValue);
+                    const nextValue = e.target.value;
+                    setValues((prev) => ({ ...prev, [field.name]: nextValue }));
+                    field.onChange?.(nextValue);
                   }}
                   placeholder={field.placeholder}
                   required={field.required}
@@ -427,18 +338,14 @@ export function FormSection({
           ))}
 
           <div className="flex gap-2 pt-4">
-            <Button
-              variant="primary"
-              type="submit"
-              isLoading={isLoading || loading}
-            >
+            <Button variant="primary" type="submit" isLoading={isLoading || loading}>
               {submitLabel}
             </Button>
-            {onCancel && (
+            {onCancel ? (
               <Button variant="secondary" type="button" onClick={onCancel}>
                 {cancelLabel}
               </Button>
-            )}
+            ) : null}
           </div>
         </form>
       </Card>
@@ -446,3 +353,5 @@ export function FormSection({
     </>
   );
 }
+
+export { Button };

@@ -111,23 +111,24 @@ export default function AdminAuditPage() {
       <AdminHeader user={user} onLogout={logout} />
 
       <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
-        <PageHeader
-          title="Nhật ký hoạt động"
-          subtitle="Audit log toàn hệ thống"
-        />
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <PageHeader
+            title="Nhật ký hoạt động"
+            subtitle="Audit log toàn hệ thống"
+          />
 
-        {error && (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </p>
+          )}
 
-        <section>
-          <p className="mb-3 text-sm text-gray-600">
-            Ghi khi khóa/mở user, duyệt/chặn shop hoặc chi nhánh. Trang {auditPage}/{auditTotalPages} · Tổng{" "}
-            <strong>{auditTotal}</strong> bản ghi.
-          </p>
-          <div className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="mt-5">
+            <p className="mb-3 text-sm text-gray-600">
+              Ghi khi khóa/mở user, duyệt/chặn shop hoặc chi nhánh. Trang {auditPage}/{auditTotalPages} · Tổng{" "}
+              <strong>{auditTotal}</strong> bản ghi.
+            </p>
+            <div className="mb-4 flex flex-wrap items-end gap-3">
             <label className="min-w-[220px] text-sm">
               <span className="mb-1 block text-gray-600">Hành động</span>
               <select
@@ -240,6 +241,7 @@ export default function AdminAuditPage() {
             >
               Sau →
             </button>
+          </div>
           </div>
         </section>
       </main>

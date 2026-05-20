@@ -19,7 +19,7 @@ export function PageHeader({ title, subtitle, nav, action }: PageHeaderProps) {
           <div className="flex items-center gap-3">
             <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/10">
               <Image
-                src="/images/skibidi-logo.png"
+                src="/skibidi-logo.png"
                 alt="SKIBIDI"
                 fill
                 className="object-contain"

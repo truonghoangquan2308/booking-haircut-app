@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
+import { Button, StatCard } from "@/components/DesignSystemComponents";
+import { DollarSign, ShoppingCart, Calendar } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
-import { PageHeader } from "@/components/PageHeader";
 import {
   fetchManagerBranchList,
   fetchManagerStats,
@@ -272,16 +273,16 @@ export default function ManagerStatsPage() {
   function exportExcel() {
     if (!stats) return;
 
-    // Sheet 1: Tổng quan
+    // Sheet 1: Tá»•ng quan
     const ws1 = XLSX.utils.json_to_sheet(mergedRows.map(r => ({
       "Ngày": r.d,
       "Lịch hẹn": r.appt,
       "DT Lịch hẹn": r.revAppt,
-      "Đơn shop": r.ord,
-      "DT Đơn shop": r.revShop,
+      "Quản lý shop": r.ord,
+      "DT Quản lý shop": r.revShop,
     })));
 
-    // Sheet 2: Doanh thu theo thợ
+    // Sheet 2: Doanh thu theo Thợ
     const ws2 = XLSX.utils.json_to_sheet(barberStats.map(b => ({
       "Tên Thợ": b.name,
       "Số lịch HT": b.count,
@@ -306,10 +307,7 @@ export default function ManagerStatsPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-page)' }}>
       <Navbar onLogout={logout} />
-      <PageHeader
-        title="Doanh thu & báo cáo"
-        subtitle="Thống kê chi nhánh và báo cáo hoạt động"
-      />
+      
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
         {error && (
@@ -360,7 +358,7 @@ export default function ManagerStatsPage() {
 
         {branchesLoaded && branches.length === 0 && uid && !error && (
           <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Chưa có chi nhánh gắn tài khoản (Manager cần{" "}
+            Chưa có Chi nhánh gắn tài khoản (Manager cần{" "}
             <code className="rounded bg-white px-1">users.branch_id</code>).
           </p>
         )}
@@ -387,60 +385,32 @@ export default function ManagerStatsPage() {
                   onChange={(e) => setTo(e.target.value)}
                 />
               </label>
-              <button
+              <Button
                 type="button"
                 onClick={() => void onApplyRange()}
                 disabled={loadingStats}
-                className="rounded-xl bg-bb-yellow px-5 py-2.5 text-sm font-bold text-black/80 disabled:opacity-50"
               >
-                {loadingStats ? "Đang tải…" : "Áp dụng"}
-              </button>
+                {loadingStats ? "Đang tải..." : "Áp dụng"}
+              </Button>
             </div>
           </section>
         )}
 
         {loadingStats && !stats && (
-          <p className="text-center text-gray-600">Đang tải thống kê…</p>
+          <p className="text-center text-gray-600">Đang tải thống kê...</p>
         )}
 
         {stats && (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500">
-                  Doanh thu (lịch đã hoàn thành)
-                </p>
-                <p className="mt-4 text-3xl font-bold text-bb-navy">
-                  {fmtMoney(completedRevenue)}
-                </p>
-                <p className="mt-2 text-xs text-slate-500">
-                  Chi nhánh #{stats.branch_id} · {stats.from} → {stats.to}
-                </p>
-              </div>
-              <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500">
-                  Doanh thu từ shop
-                </p>
-                <p className="mt-4 text-3xl font-bold text-bb-navy">
-                  {fmtMoney(stats.summary.revenue_shop ?? 0)}
-                </p>
-                <p className="mt-2 text-xs text-slate-500">
-                  Đơn đã giao / hoàn thành (delivered + hoàn thành) trong kỳ
-                </p>
-              </div>
-              <div className="rounded-[18px] bg-white p-5 shadow-[var(--shadow-card)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500">
-                  Số lịch hẹn (trong kỳ)
-                </p>
-                <p className="mt-4 text-3xl font-bold text-bb-navy">
-                  {stats.summary.appointment_count}
-                </p>
-              </div>
+            <div className="stat-grid">
+              <StatCard icon={<DollarSign size={20} />} label="Doanh thu lịch hoàn thành" value={fmtMoney(completedRevenue)} />
+              <StatCard icon={<ShoppingCart size={20} />} label="Doanh thu từ shop" value={fmtMoney(stats.summary.revenue_shop ?? 0)} />
+              <StatCard icon={<Calendar size={20} />} label="Số lịch hẹn trong kỳ" value={stats.summary.appointment_count} />
             </div>
 
             <section className="rounded-2xl bg-white p-5 shadow-sm">
               <h3 className="mb-3 text-base font-bold text-bb-navy">
-                Lịch hẹn theo trạng thái
+                Lịch hẹn theo Trạng thái
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[320px] text-left text-sm">
@@ -473,11 +443,11 @@ export default function ManagerStatsPage() {
             <section className="rounded-2xl bg-white p-5 shadow-sm">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-base font-bold text-bb-navy">
-                  Theo ngày (lịch hẹn &amp; đơn shop)
+                  Theo ngày (Lịch hẹn &amp; đơn shop)
                 </h3>
                 {stats.shop_orders_scope === "global" && (
                   <span className="text-xs text-amber-800">
-                    Đơn shop: toàn hệ thống (DB chưa có{" "}
+                    Quản lý shop: toàn hệ thống (DB chưa có{" "}
                     <code className="rounded bg-amber-100 px-1">branch_id</code>)
                   </span>
                 )}
@@ -488,8 +458,8 @@ export default function ManagerStatsPage() {
                     <tr className="border-b border-gray-200 text-gray-600">
                       <th className="py-2 pr-2">Ngày</th>
                       <th className="py-2 pr-2">Lịch hẹn</th>
-                      <th className="py-2 pr-2">Doanh thu dịch vụ (đã HT)</th>
-                      <th className="py-2 pr-2">Đơn shop</th>
+                      <th className="py-2 pr-2">Doanh thu Dịch vụ (đã HT)</th>
+                      <th className="py-2 pr-2">Quản lý shop</th>
                       <th className="py-2">Doanh thu shop</th>
                     </tr>
                   </thead>
@@ -497,7 +467,7 @@ export default function ManagerStatsPage() {
                     {mergedRows.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-6 text-center text-gray-500">
-                          Không có dữ liệu trong kỳ.
+                          KhÔng cã¡ dá»¯ liá»‡u trong ká»³.
                         </td>
                       </tr>
                     ) : (
@@ -527,13 +497,13 @@ export default function ManagerStatsPage() {
                   <thead>
                     <tr className="border-b border-gray-200 text-gray-600">
                       <th className="py-2 pr-2">Thợ</th>
-                      <th className="py-2 pr-2">Số lịch HT</th>
+                      <th className="py-2 pr-2">Số lượng</th>
                       <th className="py-2">Doanh thu</th>
                     </tr>
                   </thead>
                   <tbody>
                     {barberStats.length === 0 ? (
-                      <tr><td colSpan={3} className="py-4 text-center text-gray-500">Không có dữ liệu.</td></tr>
+                      <tr><td colSpan={3} className="py-4 text-center text-gray-500">KhÔng cã¡ dá»¯ liá»‡u.</td></tr>
                     ) : (
                       barberStats.map((row, idx) => (
                         <tr key={idx} className="border-b border-gray-100">
@@ -555,7 +525,7 @@ export default function ManagerStatsPage() {
                   <thead>
                     <tr className="border-b border-gray-200 text-gray-600">
                       <th className="py-2 pr-2">Dịch vụ</th>
-                      <th className="py-2 pr-2">Số lịch HT</th>
+                      <th className="py-2 pr-2">Số lượng</th>
                       <th className="py-2">Doanh thu</th>
                     </tr>
                   </thead>
@@ -581,3 +551,5 @@ export default function ManagerStatsPage() {
     </div>
   );
 }
+
+

@@ -153,15 +153,25 @@ export async function fetchManagerBarbers(
     cache: "no-store",
   });
   const data = await readJsonResponse<{
-    barbers?: Array<{ barber_id: number; full_name?: string | null }>;
+    barbers?: Array<{
+      barber_id: number;
+      full_name?: string | null;
+      is_available?: number | boolean | null;
+      status?: string | null;
+    }>;
     error?: string;
   }>(res);
   if (!res.ok) throw new Error(data.error ?? "Lỗi tải danh sách thợ");
   return (data.barbers ?? []).map((b) => ({
     barber_id: b.barber_id,
     full_name: b.full_name ?? null,
-    is_available: b.is_available,
-    status: b.status,
+    is_available:
+      typeof b.is_available === "boolean"
+        ? Number(b.is_available)
+        : typeof b.is_available === "number"
+          ? b.is_available
+          : undefined,
+    status: typeof b.status === "string" ? b.status : undefined,
   }));
 }
 
