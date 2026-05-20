@@ -5,6 +5,8 @@ import 'package:flutter_booking_app/screens/edit_profile_screen.dart';
 import 'package:flutter_booking_app/screens/settings_screen.dart';
 import 'package:flutter_booking_app/services/api_service.dart';
 import 'package:flutter_booking_app/services/barber_notifications_service.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_booking_app/core/theme/app_theme.dart';
 
 import 'customer_reviews_screen.dart';
 import 'barber_notifications_screen.dart';
@@ -59,9 +61,7 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
           final barber = await ApiService.getBarberByUserId(uid);
           final b = (barber['branch_id'] as num?)?.toInt();
           if (b != null && b > 0) bid = b;
-        } catch (_) {
-          /* không có dòng barbers */
-        }
+        } catch (_) {}
         if (bid == null || bid <= 0) {
           final raw = map['branch_id'];
           if (raw is num) bid = raw.toInt();
@@ -109,16 +109,48 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
 
   Future<void> _refreshAccount() async {
     final future = _loadAccount();
-    setState(() {
-      _accountFuture = future;
-    });
+    setState(() => _accountFuture = future);
     await future;
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      color: const Color(0xffffc107),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Center(
+              child: Icon(Icons.person, color: Color(0xffffc107), size: 28),
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Tài khoản',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Text('Thông tin cá nhân', style: TextStyle(fontSize: 12)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffffc107),
+      backgroundColor: AppTheme.primaryColor,
       body: Column(
         children: [
           _buildHeader(),
@@ -162,90 +194,6 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-      // Hotline button removed for barber screen
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      color: const Color(0xffffc107),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.asset(
-                  'assets/images/skibidi-logo.png',
-                  width: 36,
-                  height: 36,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.content_cut,
-                    color: Colors.orange,
-                    size: 26,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'SKIBIDI',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              Text('Haircut Booking — Thợ', style: TextStyle(fontSize: 12)),
-            ],
-          ),
-          const Spacer(),
-          ValueListenableBuilder<List<BarberNotificationItem>>(
-            valueListenable: _notifications.notifications,
-            builder: (context, _, child) {
-              final showDot = _notifications.unreadCount > 0;
-              return GestureDetector(
-                onTap: _openNotifications,
-                child: Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Stack(
-                    children: [
-                      const Icon(Icons.notifications_outlined, size: 22),
-                      if (showDot)
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            },
           ),
         ],
       ),
@@ -318,12 +266,22 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
-          Text(phone, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.phone, size: 14, color: Colors.grey),
+              const SizedBox(width: 6),
+              Text(
+                phone,
+                style: const TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xffffc107).withValues(alpha: 0.2),
+              color: const Color(0xffffc107).withOpacity(0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Text(
@@ -388,34 +346,39 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
       {
         'icon': Icons.notifications_outlined,
         'label': 'Thông báo',
+        'color': Colors.blue,
         'onTap': _openNotifications,
       },
       {
-        'icon': Icons.payments_outlined,
+        'icon': Icons.receipt_long_outlined,
         'label': 'Lịch sử thu nhập',
+        'color': Colors.green,
         'onTap': () => ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Xem chi tiết ở tab Lịch sử')),
         ),
       },
       {
-        'icon': Icons.reviews_outlined,
+        'icon': Icons.star_outline_rounded,
         'label': 'Đánh giá của khách',
+        'color': Colors.amber,
         'onTap': () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const CustomerReviewsScreen()),
+          CupertinoPageRoute(builder: (_) => const CustomerReviewsScreen()),
         ),
       },
       {
         'icon': Icons.settings_outlined,
         'label': 'Cài đặt',
+        'color': Colors.grey,
         'onTap': () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const SettingsScreen()),
+          CupertinoPageRoute(builder: (_) => const SettingsScreen()),
         ),
       },
       {
-        'icon': Icons.logout,
+        'icon': Icons.logout_rounded,
         'label': 'Đăng xuất',
+        'color': Colors.red,
         'onTap': _logout,
         'danger': true,
       },
@@ -424,14 +387,7 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: AppTheme.cardRadius,
       ),
       child: Column(
         children: menus.asMap().entries.map((e) {
@@ -440,43 +396,69 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
           final danger = menu['danger'] == true;
           return Column(
             children: [
-              ListTile(
+              _MenuTile(
+                icon: menu['icon'] as IconData,
+                label: menu['label'] as String,
+                labelColor: danger ? Colors.red : null,
+                iconColor: menu['color'] as Color,
                 onTap: menu['onTap'] as VoidCallback,
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: danger
-                        ? Colors.red.shade50
-                        : const Color(0xffffc107).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    menu['icon'] as IconData,
-                    color: danger
-                        ? Colors.red.shade700
-                        : const Color(0xffffa000),
-                    size: 22,
-                  ),
-                ),
-                title: Text(
-                  menu['label'] as String,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: danger ? Colors.red.shade800 : null,
-                  ),
-                ),
-                trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                showChevron: !(danger),
               ),
               if (i < menus.length - 1)
-                Divider(
+                const Divider(
                   height: 1,
                   indent: 16,
                   endIndent: 16,
-                  color: Colors.grey.shade100,
+                  color: Color(0xFFF3F4F6),
                 ),
             ],
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+class _MenuTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color? labelColor;
+  final Color iconColor;
+  final VoidCallback onTap;
+  final bool showChevron;
+
+  const _MenuTile({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.labelColor,
+    required this.iconColor,
+    required this.onTap,
+    this.showChevron = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: ListTile(
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: iconColor, size: 18),
+        ),
+        title: Text(
+          label,
+          style: TextStyle(fontWeight: FontWeight.w500, color: labelColor),
+        ),
+        trailing: showChevron
+            ? const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF))
+            : null,
       ),
     );
   }

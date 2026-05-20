@@ -1,5 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_booking_app/core/widgets/appointment_card.dart';
+import 'package:flutter_booking_app/core/widgets/empty_state_widget.dart';
+import 'package:flutter_booking_app/core/widgets/skeleton_loader.dart';
+import 'package:flutter_booking_app/core/theme/app_theme.dart';
 import 'dart:async';
 import 'package:flutter_booking_app/app_session.dart';
 import 'package:flutter_booking_app/screens/edit_profile_screen.dart';
@@ -14,6 +19,96 @@ class BarberHomeScreen extends StatefulWidget {
 
   @override
   State<BarberHomeScreen> createState() => _BarberHomeScreenState();
+}
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color bgColor;
+  final Color textColor;
+
+  const _StatCard({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.bgColor,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: AppTheme.cardRadius,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RatingCard extends StatelessWidget {
+  final double rating;
+  const _RatingCard({super.key, required this.rating});
+
+  @override
+  Widget build(BuildContext context) {
+    final stars = rating.clamp(0, 5);
+    int filled = stars.floor();
+    if (stars - filled >= 0.5) filled = filled + 1;
+    filled = filled.clamp(0, 5);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: AppTheme.cardRadius,
+        border: Border.all(color: AppTheme.borderColor, width: 0.5),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.star_rounded, color: Colors.amber),
+          const SizedBox(width: 8),
+          const Text('Đánh giá', style: TextStyle(fontWeight: FontWeight.w600)),
+          const Spacer(),
+          Row(
+            children: [
+              for (int i = 0; i < 5; i++)
+                Icon(
+                  i < filled ? Icons.star : Icons.star_border,
+                  color: Colors.amber,
+                  size: 16,
+                ),
+            ],
+          ),
+          const SizedBox(width: 8),
+          Text(
+            rating.toStringAsFixed(1),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _BarberHomeScreenState extends State<BarberHomeScreen> {
@@ -193,62 +288,85 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                       children: [
                         Text(
                           'Xin chào, $name',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.displayLarge,
                         ),
                         const SizedBox(height: 20),
                         Row(
                           children: [
                             Expanded(
-                              child: _buildStatCard(
-                                'Lịch hôm nay',
-                                '$_todayCount khách',
-                                true,
+                              child: _StatCard(
+                                label: 'Lịch hôm nay',
+                                value: '$_todayCount khách',
+                                bgColor: AppTheme.primaryColor,
+                                textColor: Colors.black87,
                               ),
                             ),
-                            const SizedBox(width: 15),
+                            const SizedBox(width: 12),
                             Expanded(
-                              child: _buildStatCard(
-                                'Thu nhập hôm nay',
-                                _fmtVnd(_todayIncome),
-                                false,
+                              child: _StatCard(
+                                label: 'Thu nhập hôm nay',
+                                value: _fmtVnd(_todayIncome),
+                                bgColor: const Color(0xFFF3F4F6),
+                                textColor: AppTheme.textPrimary,
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 15),
-                        _buildRatingBar(),
+                        _RatingCard(rating: _rating),
                         const SizedBox(height: 25),
-                        const Text(
-                          'Lịch sắp tới',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'Lịch sắp tới',
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            const Spacer(),
+                            TextButton(
+                              onPressed: () {},
+                              child: const Text('Xem tất cả'),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 15),
                         if (_futureAppointments.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 24),
-                            child: Center(child: Text('Không có lịch sắp tới')),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            child: Center(
+                              child: EmptyStateWidget(
+                                title: 'Chưa có lịch hôm nay',
+                                subtitle: 'Lịch đặt mới sẽ xuất hiện ở đây',
+                              ),
+                            ),
                           )
                         else
                           ..._futureAppointments.asMap().entries.map((entry) {
                             final index = entry.key;
                             final a = entry.value as Map<String, dynamic>;
+                            final amount = _toDouble(a['total_price']);
                             return Column(
                               children: [
-                                _AppointmentTile(
-                                  appointment: a,
-                                  time: a['start_time']?.toString() ?? '---',
-                                  name:
+                                AppointmentCard(
+                                  customerName:
                                       a['customer_name']?.toString() ??
                                       a['customer_full_name']?.toString() ??
                                       '---',
-                                  service:
+                                  time: a['start_time']?.toString() ?? '---',
+                                  serviceCode:
                                       a['service_name']?.toString() ?? '---',
+                                  amount: amount,
+                                  isRated: (a['is_rated'] == true),
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      CupertinoPageRoute(
+                                        builder: (_) => AppointmentDetailScreen(
+                                          appointment: a,
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                                 if (index != _futureAppointments.length - 1)
                                   const SizedBox(height: 10),
@@ -351,138 +469,9 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, bool highlight) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: highlight ? const Color(0xffffc107) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: highlight ? Colors.black87 : Colors.black54,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              color: highlight ? Colors.black87 : Colors.black,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRatingBar() {
-    final rating = _rating;
-    final stars = rating.clamp(0, 5);
-    int filled = stars.floor();
-    if (stars - filled >= 0.5) filled = filled + 1;
-    filled = filled.clamp(0, 5);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xffffc107),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            'Đánh giá',
-            style: TextStyle(
-              color: Colors.black87,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Row(
-            children: [
-              for (int i = 0; i < 5; i++)
-                Icon(
-                  i < filled ? Icons.star : Icons.star_border,
-                  color: Color(0xffffa000),
-                  size: 20,
-                ),
-              const SizedBox(width: 8),
-              Text(
-                rating.toStringAsFixed(1),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _pollTimer?.cancel();
     super.dispose();
-  }
-}
-
-class _AppointmentTile extends StatelessWidget {
-  final String time;
-  final String name;
-  final String service;
-  final Map<String, dynamic> appointment;
-
-  const _AppointmentTile({
-    required this.time,
-    required this.name,
-    required this.service,
-    required this.appointment,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        leading: Text(
-          time,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(service, style: const TextStyle(color: Colors.grey)),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AppointmentDetailScreen(appointment: appointment),
-            ),
-          );
-        },
-      ),
-    );
   }
 }

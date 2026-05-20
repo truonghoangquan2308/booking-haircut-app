@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_booking_app/core/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
 import 'barber_home_screen.dart';
@@ -34,30 +35,48 @@ class _BarberMainScreenState extends State<BarberMainScreen> {
         body: SafeArea(
           child: IndexedStack(index: _selectedIndex, children: _screens),
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          currentIndex: _selectedIndex,
-          selectedItemColor: const Color(0xffffc107),
-          unselectedItemColor: Colors.grey,
-          onTap: (i) => setState(() => _selectedIndex = i),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              label: 'Trang chủ',
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: AppTheme.borderColor, width: 0.5),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_outlined),
-              label: 'Lịch làm việc',
+          ),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _selectedIndex,
+            selectedItemColor: AppTheme.primaryDark,
+            unselectedItemColor: const Color(0xFF9CA3AF),
+            selectedLabelStyle: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.history),
-              label: 'Lịch sử',
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              label: 'Tài khoản',
-            ),
-          ],
+            selectedIconTheme: const IconThemeData(size: 26),
+            unselectedIconTheme: const IconThemeData(size: 20),
+            elevation: 0,
+            onTap: (i) => setState(() => _selectedIndex = i),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined, size: 22),
+                label: 'Trang chủ',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.calendar_today_outlined, size: 22),
+                label: 'Lịch làm việc',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.history, size: 22),
+                label: 'Lịch sử',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline, size: 22),
+                label: 'Tài khoản',
+              ),
+            ],
+          ),
         ),
       ),
     );

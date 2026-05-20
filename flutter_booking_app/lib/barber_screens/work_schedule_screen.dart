@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_booking_app/core/widgets/skeleton_loader.dart';
+import 'package:flutter_booking_app/core/widgets/appointment_card.dart';
+import 'package:flutter_booking_app/core/theme/app_theme.dart';
 import 'dart:async';
 import 'package:flutter_booking_app/app_session.dart';
 import 'package:flutter_booking_app/services/api_service.dart';
@@ -150,9 +154,12 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                                     physics:
                                         const AlwaysScrollableScrollPhysics(),
                                     children: const [
-                                      SizedBox(height: 180),
-                                      Center(
-                                        child: CircularProgressIndicator(),
+                                      SizedBox(height: 8),
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                        ),
+                                        child: SkeletonScheduleList(),
                                       ),
                                     ],
                                   )
@@ -183,17 +190,41 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                                       final a =
                                           dayAppointments[index]
                                               as Map<String, dynamic>;
-                                      return _AppointmentTile(
-                                        appointment: a,
-                                        time: a['start_time']?.toString() ?? '',
-                                        name:
-                                            a['customer_name']?.toString() ??
-                                            a['customer_full_name']
-                                                ?.toString() ??
-                                            '---',
-                                        service:
-                                            a['service_name']?.toString() ??
-                                            '---',
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 10,
+                                        ),
+                                        child: AppointmentCard(
+                                          customerName:
+                                              a['customer_name']?.toString() ??
+                                              a['customer_full_name']
+                                                  ?.toString() ??
+                                              '---',
+                                          time:
+                                              a['start_time']?.toString() ?? '',
+                                          serviceCode:
+                                              a['service_name']?.toString() ??
+                                              '---',
+                                          amount:
+                                              double.tryParse(
+                                                (a['total_price']?.toString() ??
+                                                        '0')
+                                                    .replaceAll(',', ''),
+                                              ) ??
+                                              0,
+                                          isRated: (a['is_rated'] == true),
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              CupertinoPageRoute(
+                                                builder: (_) =>
+                                                    AppointmentDetailScreen(
+                                                      appointment: a,
+                                                    ),
+                                              ),
+                                            );
+                                          },
+                                        ),
                                       );
                                     },
                                   ),

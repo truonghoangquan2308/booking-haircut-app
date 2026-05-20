@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_booking_app/core/widgets/appointment_card.dart';
+import 'package:flutter_booking_app/core/widgets/skeleton_loader.dart';
+import 'package:flutter_booking_app/core/theme/app_theme.dart';
 import 'package:flutter_booking_app/app_session.dart';
 import 'package:flutter_booking_app/services/api_service.dart';
 import 'customer_reviews_screen.dart';
@@ -93,9 +98,42 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
         })
         .toList(growable: false);
 
+    final formatter = NumberFormat('#,###', 'vi_VN');
+
     return Column(
       children: [
         _buildHeader(),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+              ],
+            ),
+            child: Row(
+              children: [
+                Text(
+                  '${filtered.length} lịch',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const Spacer(),
+                Text(
+                  'Tổng: ${formatter.format(filtered.fold<double>(0, (p, a) => p + (double.tryParse((a['total_price']?.toString() ?? '0').replaceAll(',', '')) ?? 0)))}đ',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         Expanded(
           child: Container(
             color: const Color(0xfff4f5f9),
@@ -103,19 +141,26 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Row(
-                      children: [
-                        _buildFilterTab('Hôm nay', _filter == 'Hôm nay'),
-                        _buildFilterTab('Tuần', _filter == 'Tuần'),
-                        _buildFilterTab('Tháng', _filter == 'Tháng'),
-                      ],
-                    ),
+                  child: Row(
+                    children: [
+                      _FilterTab(
+                        label: 'Hôm nay',
+                        selected: _filter == 'Hôm nay',
+                        onTap: () => setState(() => _filter = 'Hôm nay'),
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterTab(
+                        label: 'Tuần',
+                        selected: _filter == 'Tuần',
+                        onTap: () => setState(() => _filter = 'Tuần'),
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterTab(
+                        label: 'Tháng',
+                        selected: _filter == 'Tháng',
+                        onTap: () => setState(() => _filter = 'Tháng'),
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(
@@ -126,8 +171,11 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
                         ? ListView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             children: const [
-                              SizedBox(height: 220),
-                              Center(child: CircularProgressIndicator()),
+                              SizedBox(height: 24),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: SkeletonScheduleList(),
+                              ),
                             ],
                           )
                         : _error != null
@@ -135,22 +183,79 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
                             physics: const AlwaysScrollableScrollPhysics(),
                             children: [Center(child: Text('Lỗi: $_error'))],
                           )
-                        : filtered.isEmpty
-                        ? ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            children: const [
-                              SizedBox(height: 120),
-                              Center(child: Text('Không có lịch')),
+                        : Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      '${filtered.length} lịch',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: AppTheme.textSecondary,
+                                          ),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      'Tổng: ${formatter.format(filtered.fold<double>(0, (p, a) => p + (double.tryParse((a['total_price']?.toString() ?? '0').replaceAll(',', '')) ?? 0)))}đ',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.primaryDark,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              ListView.builder(
+                                physics: const NeverScrollableScrollPhysics(),
+                                shrinkWrap: true,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                itemCount: filtered.length,
+                                itemBuilder: (context, index) {
+                                  final a =
+                                      filtered[index] as Map<String, dynamic>;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: AppointmentCard(
+                                      customerName:
+                                          a['customer_name']?.toString() ??
+                                          a['customer_full_name']?.toString() ??
+                                          '---',
+                                      time:
+                                          a['start_time']?.toString() ?? '---',
+                                      serviceCode:
+                                          a['service_name']?.toString() ??
+                                          '---',
+                                      amount:
+                                          double.tryParse(
+                                            (a['total_price']?.toString() ??
+                                                    '0')
+                                                .replaceAll(',', ''),
+                                          ) ??
+                                          0,
+                                      isRated: (a['is_rated'] == true),
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          CupertinoPageRoute(
+                                            builder: (_) =>
+                                                const CustomerReviewsScreen(),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
                             ],
-                          )
-                        : ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: filtered.length,
-                            itemBuilder: (context, index) {
-                              final a = filtered[index] as Map<String, dynamic>;
-                              return _buildHistoryTile(a);
-                            },
                           ),
                   ),
                 ),
@@ -181,14 +286,19 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Lịch sử cắt tóc',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
-              Text('Haircut Booking — Thợ', style: TextStyle(fontSize: 12)),
+              Text(
+                'Haircut Booking — Thợ',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
             ],
           ),
         ],
@@ -314,6 +424,47 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FilterTab extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterTab({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(99),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+          decoration: BoxDecoration(
+            color: selected ? AppTheme.primaryColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(99),
+            border: Border.all(color: AppTheme.borderColor, width: 0.5),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.black87 : AppTheme.textSecondary,
+                fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

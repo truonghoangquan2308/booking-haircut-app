@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_booking_app/core/theme/app_theme.dart';
 import 'booking_screen.dart';
 import 'commitment_screen.dart';
 import 'history_screen.dart';
@@ -54,17 +55,33 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          currentIndex: _selectedIndex,
-          selectedItemColor: const Color(0xffffc107),
-          unselectedItemColor: Colors.grey,
-          onTap: _onTap,
-          items: List.generate(
-            _bottomLabels.length,
-            (index) => BottomNavigationBarItem(
-              icon: Icon(_bottomIcons[index]),
-              label: _bottomLabels[index],
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: AppTheme.borderColor, width: 0.5),
+            ),
+          ),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _selectedIndex,
+            selectedItemColor: AppTheme.primaryColor,
+            unselectedItemColor: const Color(0xFF9CA3AF),
+            selectedLabelStyle: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+            ),
+            elevation: 0,
+            onTap: _onTap,
+            items: List.generate(
+              _bottomLabels.length,
+              (index) => BottomNavigationBarItem(
+                icon: Icon(_bottomIcons[index], size: 22),
+                label: _bottomLabels[index],
+              ),
             ),
           ),
         ),
