@@ -306,8 +306,8 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                               child: _StatCard(
                                 label: 'Thu nhập hôm nay',
                                 value: _fmtVnd(_todayIncome),
-                                bgColor: const Color(0xFFF3F4F6),
-                                textColor: AppTheme.textPrimary,
+                                bgColor: AppTheme.primaryColor,
+                                textColor: Colors.black87,
                               ),
                             ),
                           ],
@@ -321,11 +321,6 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                               'Lịch sắp tới',
                               style: Theme.of(context).textTheme.headlineMedium
                                   ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            const Spacer(),
-                            TextButton(
-                              onPressed: () {},
-                              child: const Text('Xem tất cả'),
                             ),
                           ],
                         ),

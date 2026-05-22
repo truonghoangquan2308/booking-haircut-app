@@ -22,8 +22,15 @@ String? _barberAvatarUrl(String? stored, {int? cacheKey}) {
 class _BarberAccountSnapshot {
   final UserProfile? profile;
   final String branchLabel;
+  final bool isAssigned;
+  final String? barberBio;
 
-  _BarberAccountSnapshot({required this.profile, required this.branchLabel});
+  _BarberAccountSnapshot({
+    required this.profile,
+    required this.branchLabel,
+    this.isAssigned = false,
+    this.barberBio,
+  });
 }
 
 /// Barber account — layout similar to [AccountScreen], menu tailored for barbers.
@@ -54,11 +61,15 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
       AppSession.setFromUserMap(map);
 
       var branchLabel = 'chưa thêm';
+      var isAssigned = false;
+      String? barberBio;
       final uid = p.id;
       if (uid > 0) {
         int? bid;
         try {
           final barber = await ApiService.getBarberByUserId(uid);
+          isAssigned = true;
+          barberBio = (barber['bio']?.toString() ?? '').trim();
           final b = (barber['branch_id'] as num?)?.toInt();
           if (b != null && b > 0) bid = b;
         } catch (_) {}
@@ -88,7 +99,12 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
         }
       }
 
-      return _BarberAccountSnapshot(profile: p, branchLabel: branchLabel);
+      return _BarberAccountSnapshot(
+        profile: p,
+        branchLabel: branchLabel,
+        isAssigned: isAssigned,
+        barberBio: barberBio,
+      );
     } catch (_) {
       return null;
     }
@@ -142,6 +158,42 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
               Text('Thông tin cá nhân', style: TextStyle(fontSize: 12)),
             ],
           ),
+          const Spacer(),
+          ValueListenableBuilder<List<BarberNotificationItem>>(
+            valueListenable: _notifications.notifications,
+            builder: (context, _, child) {
+              final showDot = _notifications.unreadCount > 0;
+              return GestureDetector(
+                onTap: _openNotifications,
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Stack(
+                    children: [
+                      const Icon(Icons.notifications_outlined, size: 22),
+                      if (showDot)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -184,6 +236,8 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
                             context,
                             data?.profile,
                             data?.branchLabel ?? 'chưa thêm',
+                            data?.isAssigned ?? false,
+                            data?.barberBio,
                           );
                         },
                       ),
@@ -204,6 +258,8 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
     BuildContext context,
     UserProfile? profile,
     String branchLabel,
+    bool isAssigned,
+    String? barberBio,
   ) {
     final fallback = UserProfile(
       id: AppSession.userId ?? 0,
@@ -284,9 +340,13 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
               color: const Color(0xffffc107).withOpacity(0.2),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text(
-              'Barber',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            child: Text(
+              isAssigned
+                  ? (barberBio != null && barberBio.isNotEmpty
+                        ? barberBio
+                        : 'Barber')
+                  : 'Chưa được cấp',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
           ),
           const SizedBox(height: 10),
