@@ -779,6 +779,22 @@ app.post('/api/reviews', async (req, res) => {
       [avgRating, totalReviews, barberId],
     );
 
+    try {
+      // Notify barber (user_id from barbers table)
+      const [[b]] = await pool.execute('SELECT user_id FROM barbers WHERE id = ? LIMIT 1', [barberId]);
+      const [[c]] = await pool.execute('SELECT full_name FROM users WHERE id = ? LIMIT 1', [customerId]);
+      const barberUserId = b?.user_id || null;
+      const customerName = c?.full_name || 'Khách';
+      if (barberUserId) {
+        await pool.execute(
+          `INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'review', 'Bạn nhận được đánh giá mới', ?)`,
+          [barberUserId, `Khách ${customerName} vừa đánh giá ${Math.floor(ratingNum)} sao cho dịch vụ.`]
+        );
+      }
+    } catch (e) {
+      console.error('notify review:', e?.message || e);
+    }
+
     return res.status(201).json({ status: 'success' });
   } catch (err) {
     const msg = (err?.message ?? '').toLowerCase();
@@ -793,6 +809,36 @@ app.post('/api/reviews', async (req, res) => {
 // ─────────────────────────────────────────────
 app.get('/test', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// NOTIFICATIONS API
+// GET /api/notifications/:userId
+app.get('/api/notifications/:userId', async (req, res) => {
+  const userId = Number(req.params.userId);
+  if (!userId || userId <= 0) return res.status(400).json({ error: 'userId không hợp lệ' });
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, user_id, type, title, message, is_read, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 500`,
+      [userId],
+    );
+    return res.json({ notifications: rows });
+  } catch (e) {
+    console.error('get notifications:', e?.message || e);
+    return res.status(500).json({ error: e?.message ?? 'Server error' });
+  }
+});
+
+// PUT /api/notifications/:id/read
+app.put('/api/notifications/:id/read', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id || id <= 0) return res.status(400).json({ error: 'id không hợp lệ' });
+  try {
+    await pool.execute('UPDATE notifications SET is_read = 1 WHERE id = ?', [id]);
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('mark notification read:', e?.message || e);
+    return res.status(500).json({ error: e?.message ?? 'Server error' });
+  }
 });
 
 async function start() {
@@ -819,6 +865,13 @@ async function start() {
     console.log('Đã chạy ensureShopOrdersStatusEnumCompleted (completed trong ENUM).');
   } catch (e) {
     console.error('ensureShopOrdersStatusEnumCompleted:', e.message);
+  }
+  try {
+    const { ensureNotificationsTable } = require('./lib/ensureNotificationsTable');
+    await ensureNotificationsTable();
+    console.log('Đã chạy ensureNotificationsTable.');
+  } catch (e) {
+    console.error('ensureNotificationsTable:', e.message);
   }
   try {
     await ensureAppointmentsPaymentColumns();

@@ -436,6 +436,22 @@ router.post('/appointments', async (req, res) => {
       [timeSlotId],
     );
 
+    try {
+      // Notify barber user about new booking
+      const [[barberRow]] = await pool.execute('SELECT user_id FROM barbers WHERE id = ? LIMIT 1', [barberId]);
+      const [[cust]] = await pool.execute('SELECT full_name FROM users WHERE id = ? LIMIT 1', [customerId]);
+      const barberUserId = barberRow?.user_id || null;
+      const customerName = cust?.full_name || 'Khách';
+      if (barberUserId) {
+        await pool.execute(
+          `INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'booking', 'Có khách đặt lịch mới', ?)`,
+          [barberUserId, `Khách ${customerName} vừa đặt lịch ${effectiveApptDate} ${start_time}`],
+        );
+      }
+    } catch (e) {
+      console.error('notify booking:', e?.message || e);
+    }
+
     const [rows] = await pool.execute(
       `
       SELECT
@@ -508,6 +524,22 @@ router.put('/appointments/:appointmentId/status', async (req, res) => {
 
     if (status === 'cancelled') {
       await pool.execute(`UPDATE time_slots SET is_booked = 0 WHERE id = ?`, [timeSlotId]);
+    }
+
+    try {
+      // Notify customer when appointment status changes (e.g., cancelled)
+      const [[appt]] = await pool.execute('SELECT customer_id, barber_id FROM appointments WHERE id = ? LIMIT 1', [appointmentId]);
+      const customerIdNotify = appt?.customer_id || null;
+      const [[barberRow]] = await pool.execute('SELECT user_id FROM barbers WHERE id = ? LIMIT 1', [appt?.barber_id || 0]);
+      const barberUserId = barberRow?.user_id || null;
+      if (customerIdNotify && status === 'cancelled') {
+        await pool.execute(
+          `INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'booking', 'Lịch bị hủy', ?)`,
+          [customerIdNotify, `Lịch hẹn #${appointmentId} đã bị hủy.`],
+        );
+      }
+    } catch (e) {
+      console.error('notify appointment status:', e?.message || e);
     }
 
     const [updated] = await pool.execute(

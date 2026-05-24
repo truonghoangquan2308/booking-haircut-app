@@ -189,6 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: () => _login(controller.text, role),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xffffc107),
+                    foregroundColor: Colors.black87,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -196,7 +197,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: const Text(
                     'Đăng nhập',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
         ],

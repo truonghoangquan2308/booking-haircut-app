@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_booking_app/services/app_events_service.dart';
+import 'package:flutter_booking_app/widgets/boxed_icon.dart';
 import 'package:flutter_booking_app/services/api_service.dart';
 
 import 'cart_screen.dart';
@@ -216,8 +217,8 @@ class _ShopScreenState extends State<ShopScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.storefront, size: 28),
-              const SizedBox(width: 8),
+              const BoxedIcon(Icons.storefront),
+              const SizedBox(width: 12),
               const Text(
                 'Shop',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),

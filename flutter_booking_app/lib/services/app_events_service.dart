@@ -53,11 +53,9 @@ class LocalNotificationItem {
 }
 
 class AppEventsService {
-  AppEventsService._() {
-    _seedInitialNotifications();
-  }
-
   static final AppEventsService instance = AppEventsService._();
+
+  AppEventsService._();
 
   final ValueNotifier<List<CartEntry>> cartItems =
       ValueNotifier<List<CartEntry>>(const []);
@@ -72,27 +70,6 @@ class AppEventsService {
 
   int get unreadNotificationCount =>
       localNotifications.value.where((item) => !item.isRead).length;
-
-  void _seedInitialNotifications() {
-    if (localNotifications.value.isNotEmpty) return;
-    final now = DateTime.now();
-    localNotifications.value = [
-      LocalNotificationItem(
-        id: _nextNotificationId++,
-        title: 'Nhắc lịch cắt tóc',
-        message: 'Bạn có lịch cắt tóc vào ngày mai lúc 09:00.',
-        isRead: false,
-        createdAt: now.subtract(const Duration(hours: 2)),
-      ),
-      LocalNotificationItem(
-        id: _nextNotificationId++,
-        title: 'Cập nhật giao diện',
-        message: 'Ứng dụng vừa cập nhật giao diện mới cho trang tài khoản.',
-        isRead: false,
-        createdAt: now.subtract(const Duration(minutes: 30)),
-      ),
-    ];
-  }
 
   void addToCart({required String name, required int price}) {
     final list = List<CartEntry>.from(cartItems.value);

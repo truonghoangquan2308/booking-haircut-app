@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'date_time_picker_screen.dart';
 import '../services/api_service.dart';
 import 'promotions_screen.dart';
+import 'package:flutter_booking_app/widgets/boxed_icon.dart';
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -598,10 +599,11 @@ class _BookingScreenState extends State<BookingScreen> {
       backgroundColor: const Color(0xfff4f5f9),
       appBar: AppBar(
         backgroundColor: const Color(0xffffc107),
+        // Put the boxed icon inside the title row to match Account header spacing
         title: Row(
           children: const [
-            Icon(Icons.calendar_today, size: 28),
-            SizedBox(width: 8),
+            BoxedIcon(Icons.calendar_today),
+            SizedBox(width: 12),
             Text(
               'Đặt lịch cắt tóc',
               style: TextStyle(fontWeight: FontWeight.bold),

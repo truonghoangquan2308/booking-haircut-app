@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'api_service.dart';
 
 class BarberNotificationItem {
   final int id;
@@ -37,9 +40,7 @@ class BarberNotificationItem {
 }
 
 class BarberNotificationsService {
-  BarberNotificationsService._() {
-    _seedInitialNotifications();
-  }
+  BarberNotificationsService._();
 
   static final BarberNotificationsService instance =
       BarberNotificationsService._();
@@ -49,45 +50,69 @@ class BarberNotificationsService {
 
   int _nextId = 1;
 
+  int? _currentUserId;
+  Timer? _pollingTimer;
+
   int get unreadCount =>
       notifications.value.where((item) => !item.isRead).length;
 
-  void _seedInitialNotifications() {
-    if (notifications.value.isNotEmpty) return;
-    final now = DateTime.now();
-    notifications.value = [
-      BarberNotificationItem(
-        id: _nextId++,
-        type: 'booking',
-        title: 'Có khách đặt lịch mới',
-        message: 'Khách Nguyễn Minh Anh vừa đặt lịch cắt tóc lúc 09:00.',
-        isRead: false,
-        createdAt: now.subtract(const Duration(hours: 1)),
-      ),
-      BarberNotificationItem(
-        id: _nextId++,
-        type: 'review',
-        title: 'Bạn nhận được đánh giá mới',
-        message: 'Khách Đoàn Minh Huy vừa đánh giá 5 sao cho dịch vụ.',
-        isRead: false,
-        createdAt: now.subtract(const Duration(minutes: 40)),
-      ),
-      BarberNotificationItem(
-        id: _nextId++,
-        type: 'income',
-        title: 'Cập nhật thu nhập ăn chia',
-        message: 'Bạn nhận 340.000đ sau khi chia doanh thu với salon.',
-        isRead: false,
-        createdAt: now.subtract(const Duration(minutes: 15)),
-      ),
-    ];
+  Future<void> load(int userId) async {
+    _currentUserId = userId;
+    await _fetchFromApi(userId);
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_currentUserId != null) _fetchFromApi(_currentUserId!);
+    });
+  }
+
+  void dispose() {
+    _pollingTimer?.cancel();
+    _currentUserId = null;
+    notifications.value = const [];
+  }
+
+  Future<void> _fetchFromApi(int userId) async {
+    try {
+      final raw = await ApiService.getNotifications(userId);
+      final apiItems = raw.whereType<Map>().map((m) {
+        final map = Map<String, dynamic>.from(m);
+        final idRaw = map['id'];
+        final id = idRaw is num
+            ? idRaw.toInt()
+            : int.tryParse(idRaw?.toString() ?? '') ?? 0;
+        final type = (map['type'] ?? '').toString();
+        final title = (map['title'] ?? map['type'] ?? 'Thông báo').toString();
+        final message = (map['message'] ?? map['body'] ?? '').toString();
+        final isRead = map['is_read'] == true || map['is_read'] == 1;
+        final createdAt =
+            DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+            DateTime.now();
+        return BarberNotificationItem(
+          id: id,
+          type: type,
+          title: title,
+          message: message,
+          isRead: isRead,
+          createdAt: createdAt,
+        );
+      }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      final apiIds = apiItems.map((e) => e.id).toSet();
+      final localOnly = notifications.value
+          .where((e) => e.id < 0 && !apiIds.contains(e.id))
+          .toList();
+
+      notifications.value = [...localOnly, ...apiItems];
+    } catch (e) {
+      // keep existing list unchanged on error
+    }
   }
 
   void addBookingNotification({
     required String customerName,
     required String timeText,
   }) {
-    _push(
+    _pushLocal(
       type: 'booking',
       title: 'Có khách đặt lịch mới',
       message: 'Khách $customerName vừa đặt lịch lúc $timeText.',
@@ -98,7 +123,7 @@ class BarberNotificationsService {
     required String customerName,
     required int rating,
   }) {
-    _push(
+    _pushLocal(
       type: 'review',
       title: 'Bạn nhận được đánh giá mới',
       message: 'Khách $customerName vừa đánh giá $rating sao cho dịch vụ.',
@@ -106,7 +131,7 @@ class BarberNotificationsService {
   }
 
   void addIncomeNotification({required int amount}) {
-    _push(
+    _pushLocal(
       type: 'income',
       title: 'Cập nhật thu nhập ăn chia',
       message:
@@ -114,7 +139,7 @@ class BarberNotificationsService {
     );
   }
 
-  void _push({
+  void _pushLocal({
     required String type,
     required String title,
     required String message,
@@ -123,7 +148,7 @@ class BarberNotificationsService {
     list.insert(
       0,
       BarberNotificationItem(
-        id: _nextId++,
+        id: -(list.length + 1),
         type: type,
         title: title,
         message: message,
@@ -140,6 +165,14 @@ class BarberNotificationsService {
     if (index < 0) return;
     list[index] = list[index].copyWith(isRead: true);
     notifications.value = list;
+
+    if (id < 0) return; // local-only, no API call
+
+    try {
+      ApiService.markNotificationRead(id);
+    } catch (_) {
+      // ignore errors, keep optimistic update
+    }
   }
 
   static String _formatMoney(int amount) {

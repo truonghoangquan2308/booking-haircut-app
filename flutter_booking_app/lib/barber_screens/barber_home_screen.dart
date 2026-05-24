@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_booking_app/core/widgets/appointment_card.dart';
 import 'package:flutter_booking_app/core/widgets/empty_state_widget.dart';
-import 'package:flutter_booking_app/core/widgets/skeleton_loader.dart';
+// removed unused import
 import 'package:flutter_booking_app/core/theme/app_theme.dart';
 import 'dart:async';
 import 'package:flutter_booking_app/app_session.dart';
@@ -13,6 +13,7 @@ import 'package:flutter_booking_app/services/barber_notifications_service.dart';
 
 import 'appointment_detail_screen.dart';
 import 'barber_notifications_screen.dart';
+import 'work_schedule_screen.dart';
 
 class BarberHomeScreen extends StatefulWidget {
   const BarberHomeScreen({super.key});
@@ -66,50 +67,7 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _RatingCard extends StatelessWidget {
-  final double rating;
-  const _RatingCard({super.key, required this.rating});
-
-  @override
-  Widget build(BuildContext context) {
-    final stars = rating.clamp(0, 5);
-    int filled = stars.floor();
-    if (stars - filled >= 0.5) filled = filled + 1;
-    filled = filled.clamp(0, 5);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
-        borderRadius: AppTheme.cardRadius,
-        border: Border.all(color: AppTheme.borderColor, width: 0.5),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.star_rounded, color: Colors.amber),
-          const SizedBox(width: 8),
-          const Text('Đánh giá', style: TextStyle(fontWeight: FontWeight.w600)),
-          const Spacer(),
-          Row(
-            children: [
-              for (int i = 0; i < 5; i++)
-                Icon(
-                  i < filled ? Icons.star : Icons.star_border,
-                  color: Colors.amber,
-                  size: 16,
-                ),
-            ],
-          ),
-          const SizedBox(width: 8),
-          Text(
-            rating.toStringAsFixed(1),
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// rating card removed — reviews are shown only in history screen
 
 class _BarberHomeScreenState extends State<BarberHomeScreen> {
   late Future<UserProfile?> _profileFuture;
@@ -118,8 +76,9 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
   bool _loadingHome = false;
   int _todayCount = 0;
   double _todayIncome = 0;
-  double _rating = 0;
-  List<dynamic> _futureAppointments = [];
+  // rating removed from home; reviews shown in history only
+  // removed unused future appointments list
+  List<dynamic> _todayAppointments = [];
 
   Timer? _pollTimer;
 
@@ -192,7 +151,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           (barberRow['id'] as num?)?.toInt() ??
           0;
 
-      _rating = _toDouble(barberRow['rating']);
+      // rating intentionally ignored on home screen
 
       // 2) Lấy lịch của barber
       final appts = await ApiService.getBarberAppointments(barberId);
@@ -244,7 +203,8 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
       setState(() {
         _todayCount = todayList.length;
         _todayIncome = income;
-        _futureAppointments = futureList;
+        // futureList is not shown on this screen; keep for potential future use
+        _todayAppointments = todayList;
         _loadingHome = false;
       });
     } catch (_) {
@@ -312,20 +272,36 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 15),
-                        _RatingCard(rating: _rating),
                         const SizedBox(height: 25),
-                        Row(
-                          children: [
-                            Text(
-                              'Lịch sắp tới',
-                              style: Theme.of(context).textTheme.headlineMedium
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                          ],
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              CupertinoPageRoute(
+                                builder: (_) => const WorkScheduleScreen(),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(6),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Lịch sắp tới',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Colors.grey,
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 15),
-                        if (_futureAppointments.isEmpty)
+                        if (_todayAppointments.isEmpty)
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 24),
                             child: Center(
@@ -336,7 +312,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                             ),
                           )
                         else
-                          ..._futureAppointments.asMap().entries.map((entry) {
+                          ..._todayAppointments.asMap().entries.map((entry) {
                             final index = entry.key;
                             final a = entry.value as Map<String, dynamic>;
                             final amount = _toDouble(a['total_price']);
@@ -352,6 +328,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                                       a['service_name']?.toString() ?? '---',
                                   amount: amount,
                                   isRated: (a['is_rated'] == true),
+                                  showReviewButton: false,
                                   onTap: () {
                                     Navigator.push(
                                       context,
@@ -363,7 +340,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                                     );
                                   },
                                 ),
-                                if (index != _futureAppointments.length - 1)
+                                if (index != _todayAppointments.length - 1)
                                   const SizedBox(height: 10),
                               ],
                             );

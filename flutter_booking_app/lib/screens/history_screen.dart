@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_booking_app/app_session.dart';
 import 'package:flutter_booking_app/services/api_service.dart';
 import 'review_screen.dart';
+import 'package:flutter_booking_app/widgets/boxed_icon.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key, this.initialTab = 0});
@@ -148,10 +149,11 @@ class _HistoryScreenState extends State<HistoryScreen>
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xffffc107),
+        // Put the boxed icon inside the title row to match Account header spacing
         title: Row(
           children: const [
-            Icon(Icons.history, size: 28),
-            SizedBox(width: 8),
+            BoxedIcon(Icons.history),
+            SizedBox(width: 12),
             Text(
               'Lịch sử cắt tóc',
               style: TextStyle(fontWeight: FontWeight.bold),

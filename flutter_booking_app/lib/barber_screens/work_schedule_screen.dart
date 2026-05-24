@@ -213,6 +213,7 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                                               ) ??
                                               0,
                                           isRated: (a['is_rated'] == true),
+                                          showReviewButton: false,
                                           onTap: () {
                                             Navigator.push(
                                               context,

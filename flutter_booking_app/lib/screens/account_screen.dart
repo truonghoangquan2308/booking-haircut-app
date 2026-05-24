@@ -12,6 +12,7 @@ import 'promotions_screen.dart';
 import 'settings_screen.dart';
 import 'support_screen.dart';
 import 'shop_order_history_screen.dart';
+import 'home_screen.dart';
 
 String? _accountAvatarUrl(String? stored) {
   return ApiService.resolveMediaUrl(stored);
@@ -126,27 +127,14 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  'assets/images/skibidi-logo.png',
-                  width: 36,
-                  height: 36,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.content_cut,
-                    color: Colors.orange,
-                    size: 26,
-                  ),
-                ),
-              ),
+            child: const Center(
+              child: Icon(Icons.person, color: Colors.orange, size: 22),
             ),
           ),
           const SizedBox(width: 12),
@@ -154,10 +142,10 @@ class _AccountScreenState extends State<AccountScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'SKIBIDI',
+                'Tài khoản',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              Text('Haircut Booking App', style: TextStyle(fontSize: 12)),
+              Text('Thông tin cá nhân', style: TextStyle(fontSize: 12)),
             ],
           ),
           const Spacer(),
@@ -213,7 +201,7 @@ class _AccountScreenState extends State<AccountScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -228,27 +216,27 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Column(
         children: [
           Container(
-            width: 90,
-            height: 90,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xffffc107), width: 3),
+              border: Border.all(color: const Color(0xffffc107), width: 4),
               color: const Color(0xfff5f5f7),
             ),
             child: ClipOval(
               child: avatarUrl != null
                   ? Image.network(
                       avatarUrl,
-                      width: 90,
-                      height: 90,
+                      width: 80,
+                      height: 80,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.person,
-                        size: 50,
+                        size: 44,
                         color: Colors.grey,
                       ),
                     )
-                  : const Icon(Icons.person, size: 50, color: Colors.grey),
+                  : const Icon(Icons.person, size: 44, color: Colors.grey),
             ),
           ),
           const SizedBox(height: 12),
@@ -256,8 +244,29 @@ class _AccountScreenState extends State<AccountScreen> {
             name,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(phone, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xffffc107).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Khách hàng',
+                  style: TextStyle(color: Colors.black87, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: p.id == 0 && profile == null
@@ -284,7 +293,8 @@ class _AccountScreenState extends State<AccountScreen> {
               style: TextStyle(color: Colors.grey),
             ),
             style: OutlinedButton.styleFrom(
-              side: BorderSide(color: Colors.grey.shade300),
+              backgroundColor: Colors.white,
+              side: BorderSide(color: Colors.grey.shade200),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -299,24 +309,17 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _buildMenuList(BuildContext context) {
     final menus = [
       {
-        'icon': Icons.calendar_month_outlined,
-        'label': 'Đặt Lịch của tôi',
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const MyAppointmentsScreen()),
-        ),
-      },
-      {
         'icon': Icons.history,
         'label': 'Lịch Sử cắt tóc',
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const HistoryScreen()),
-        ),
+        'color': Colors.orange,
+        'onTap': () {
+          HomeScreen.tabIndexNotifier.value = 3;
+        },
       },
       {
         'icon': Icons.shopping_bag_outlined,
         'label': 'Đơn hàng của tui',
+        'color': Colors.orange,
         'onTap': () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const ShopOrderHistoryScreen()),
@@ -325,6 +328,7 @@ class _AccountScreenState extends State<AccountScreen> {
       {
         'icon': Icons.card_giftcard_outlined,
         'label': 'Ưu đãi',
+        'color': Colors.orange,
         'onTap': () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const PromotionsScreen()),
@@ -333,6 +337,7 @@ class _AccountScreenState extends State<AccountScreen> {
       {
         'icon': Icons.support_agent_outlined,
         'label': 'Hỗ trợ & FAQ',
+        'color': Colors.orange,
         'onTap': () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const SupportScreen()),
@@ -341,6 +346,7 @@ class _AccountScreenState extends State<AccountScreen> {
       {
         'icon': Icons.settings_outlined,
         'label': 'Cài Đặt',
+        'color': Colors.orange,
         'onTap': () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -367,24 +373,29 @@ class _AccountScreenState extends State<AccountScreen> {
           return Column(
             children: [
               ListTile(
-                onTap: menu['onTap'] as VoidCallback,
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xffffc107).withValues(alpha: 0.15),
+                    color: (menu['color'] as Color).withOpacity(0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     menu['icon'] as IconData,
-                    color: const Color(0xffffa000),
+                    color: menu['color'] as Color,
                     size: 22,
                   ),
                 ),
                 title: Text(
                   menu['label'] as String,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: menu['onTap'] == null ? Colors.red : Colors.black87,
+                  ),
                 ),
-                trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                trailing: menu['onTap'] == null
+                    ? null
+                    : const Icon(Icons.chevron_right, color: Colors.grey),
+                onTap: menu['onTap'] as VoidCallback?,
               ),
               if (i < menus.length - 1)
                 Divider(

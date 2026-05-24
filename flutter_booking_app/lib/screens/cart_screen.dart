@@ -24,8 +24,9 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Giỏ hàng'),
+        title: const Text('Giỏ hàng', style: TextStyle(color: Colors.black87)),
         backgroundColor: const Color(0xffffc107),
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: ValueListenableBuilder<List<CartEntry>>(
         valueListenable: _events.cartItems,
@@ -148,6 +149,7 @@ class _CartScreenState extends State<CartScreen> {
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xffffc107),
+                        foregroundColor: Colors.black87,
                       ),
                       child: const Text('Tiếp tục đặt hàng'),
                     ),

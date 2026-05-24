@@ -12,12 +12,16 @@ import '../services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  /// External notifier to request tab changes from other widgets.
+  static final ValueNotifier<int> tabIndexNotifier = ValueNotifier<int>(0);
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  late final VoidCallback _notifierListener;
   static const _bottomLabels = [
     'Trang chủ',
     'Shop',
@@ -36,7 +40,25 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onTap(int index) => setState(() => _selectedIndex = index);
 
   @override
+  void initState() {
+    super.initState();
+    _selectedIndex = HomeScreen.tabIndexNotifier.value;
+    _notifierListener = () {
+      final v = HomeScreen.tabIndexNotifier.value;
+      if (v != _selectedIndex) setState(() => _selectedIndex = v);
+    };
+    HomeScreen.tabIndexNotifier.addListener(_notifierListener);
+  }
+
+  @override
+  void dispose() {
+    HomeScreen.tabIndexNotifier.removeListener(_notifierListener);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Ensure selected index follows external notifier (keeps in sync).
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: const Color(0xffffc107),
@@ -75,7 +97,10 @@ class _HomeScreenState extends State<HomeScreen> {
               fontWeight: FontWeight.w400,
             ),
             elevation: 0,
-            onTap: _onTap,
+            onTap: (index) {
+              HomeScreen.tabIndexNotifier.value = index;
+              _onTap(index);
+            },
             items: List.generate(
               _bottomLabels.length,
               (index) => BottomNavigationBarItem(
@@ -146,6 +171,36 @@ class _HomeTabState extends State<HomeTab> {
         ),
       ],
     );
+  }
+}
+
+class _HomeScreenStateSync extends StatefulWidget {
+  const _HomeScreenStateSync({super.key, required this.child});
+  final Widget child;
+  @override
+  State<_HomeScreenStateSync> createState() => _HomeScreenStateSyncState();
+}
+
+class _HomeScreenStateSyncState extends State<_HomeScreenStateSync> {
+  @override
+  void initState() {
+    super.initState();
+    HomeScreen.tabIndexNotifier.addListener(_onNotifier);
+  }
+
+  void _onNotifier() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    HomeScreen.tabIndexNotifier.removeListener(_onNotifier);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }
 
@@ -280,7 +335,10 @@ class _ActionGrid extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     action.label,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
                   ),
                 ],
               ),
@@ -367,7 +425,10 @@ class _RatingCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: const Text('Đánh giá'),
+            child: const Text(
+              'Đánh giá',
+              style: TextStyle(color: Colors.black87),
+            ),
           ),
         ],
       ),

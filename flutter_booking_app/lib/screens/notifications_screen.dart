@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_booking_app/app_session.dart';
 import 'package:flutter_booking_app/services/api_service.dart';
@@ -13,11 +15,21 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final _events = AppEventsService.instance;
   late Future<List<Map<String, dynamic>>> _apiNotificationsFuture;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _apiNotificationsFuture = _loadApiNotifications();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _refresh();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
   }
 
   Future<List<Map<String, dynamic>>> _loadApiNotifications() async {

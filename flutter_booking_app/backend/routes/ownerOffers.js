@@ -154,6 +154,21 @@ router.post('/offers', requireOwner, async (req, res) => {
 
     const id = result.insertId;
     const [[row]] = await pool.execute('SELECT * FROM offers WHERE id = ?', [id]);
+    // Notify assigned customer if present
+    try {
+      if (assignedCustId) {
+        const [[cust]] = await pool.execute('SELECT id, full_name FROM users WHERE id = ? LIMIT 1', [assignedCustId]);
+        if (cust) {
+          await pool.execute(
+            `INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'voucher', 'Bạn nhận được voucher', ?)`,
+            [assignedCustId, `Bạn được tặng voucher: ${String(title).trim()}`],
+          );
+        }
+      }
+    } catch (e) {
+      console.error('notify voucher:', e?.message || e);
+    }
+
     return res.status(201).json({ offer: row });
   } catch (e) {
     console.error(e);

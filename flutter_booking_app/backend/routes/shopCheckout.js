@@ -330,6 +330,15 @@ router.post('/shop/checkout', async (req, res) => {
         };
         response.payment_url = `${vnpayUrl}?${buildVnpayQuery(params, vnpaySecret)}`;
       }
+      try {
+        // Notify customer about order creation
+        await conn.execute(
+          `INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'order', 'Đơn hàng đã được tạo', ?)`,
+          [customerId, `Đơn hàng #${insOrder.insertId} đã được tạo. Tổng: ${total.toLocaleString('vi-VN')}đ`]
+        );
+      } catch (e) {
+        console.error('notify order:', e?.message || e);
+      }
       return res.status(201).json(response);
     }
 
@@ -385,6 +394,15 @@ router.post('/shop/checkout', async (req, res) => {
         vnp_SecureHashType: 'SHA512',
       };
       response.payment_url = `${vnpayUrl}?${buildVnpayQuery(params, vnpaySecret)}`;
+    }
+    try {
+      // Notify customer about order creation
+      await conn.execute(
+        `INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'order', 'Đơn hàng đã được tạo', ?)`,
+        [customerId, `Đơn hàng #${insOrder.insertId} đã được tạo. Tổng: ${total.toLocaleString('vi-VN')}đ`]
+      );
+    } catch (e) {
+      console.error('notify order:', e?.message || e);
     }
     return res.status(201).json(response);
   } catch (e) {

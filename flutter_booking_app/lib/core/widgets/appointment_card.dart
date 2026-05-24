@@ -8,6 +8,7 @@ class AppointmentCard extends StatelessWidget {
   final String serviceCode;
   final double amount;
   final bool isRated;
+  final bool showReviewButton;
   final VoidCallback? onTap;
 
   const AppointmentCard({
@@ -17,6 +18,7 @@ class AppointmentCard extends StatelessWidget {
     required this.serviceCode,
     required this.amount,
     this.isRated = false,
+    this.showReviewButton = true,
     this.onTap,
   });
 
@@ -57,7 +59,10 @@ class AppointmentCard extends StatelessWidget {
               child: Center(
                 child: Text(
                   _initials(customerName),
-                  style: const TextStyle(color: AppTheme.primaryDark, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: AppTheme.primaryDark,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -66,27 +71,57 @@ class AppointmentCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(customerName, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: AppTheme.textPrimary)),
+                  Text(
+                    customerName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(serviceCode, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  Text(
+                    serviceCode,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(_fmt(amount), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.successColor)),
-                const SizedBox(height: 4),
-                if (isRated)
-                  const Icon(Icons.star, size: 14, color: Colors.amber)
-                else
-                  TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                    child: const Text('Đánh giá', style: TextStyle(fontSize: 11, color: AppTheme.primaryColor)),
+                Text(
+                  _fmt(amount),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: AppTheme.successColor,
                   ),
+                ),
+                const SizedBox(height: 4),
+                if (showReviewButton)
+                  isRated
+                      ? const Icon(Icons.star, size: 14, color: Colors.amber)
+                      : TextButton(
+                          onPressed: () {},
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 0),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            'Đánh giá',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                        ),
               ],
-            )
+            ),
           ],
         ),
       ),
