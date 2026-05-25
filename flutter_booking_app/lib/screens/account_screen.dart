@@ -5,8 +5,6 @@ import 'package:flutter_booking_app/services/api_service.dart';
 import 'package:flutter_booking_app/services/app_events_service.dart';
 
 import 'edit_profile_screen.dart';
-import 'history_screen.dart';
-import 'my_appointments_screen.dart';
 import 'notifications_screen.dart';
 import 'promotions_screen.dart';
 import 'settings_screen.dart';
@@ -256,7 +254,9 @@ class _AccountScreenState extends State<AccountScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xffffc107).withOpacity(0.12),
+                  color: const Color(
+                    0xffffc107,
+                  ).withAlpha((0.12 * 255).round()),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
@@ -376,7 +376,9 @@ class _AccountScreenState extends State<AccountScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: (menu['color'] as Color).withOpacity(0.12),
+                    color: (menu['color'] as Color).withAlpha(
+                      (0.12 * 255).round(),
+                    ),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(

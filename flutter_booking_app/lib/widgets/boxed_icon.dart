@@ -8,11 +8,11 @@ class BoxedIcon extends StatelessWidget {
 
   const BoxedIcon(
     this.icon, {
-    Key? key,
+    super.key,
     this.iconColor,
     this.size = 22,
     this.boxSize = 42,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

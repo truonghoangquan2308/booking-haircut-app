@@ -54,7 +54,7 @@ export default function ReceptionistBarbersPage() {
     for (const appt of appointments) {
       const item = map.get(appt.barber_id) ?? { total: 0, completed: 0, cancelled: 0 };
       item.total += 1;
-      if (appt.status === "completed") item.completed += 1;
+      if (appt.status === "completed" || appt.status === 'paid_and_done') item.completed += 1;
       if (appt.status === "cancelled") item.cancelled += 1;
       map.set(appt.barber_id, item);
     }

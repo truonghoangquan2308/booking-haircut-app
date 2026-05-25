@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import { Button } from "@/components/Button";
@@ -136,6 +137,11 @@ export function Table({
   emptyMessage = "No data available",
   className = "",
 }: TableProps) {
+  const [page, setPage] = useState(1);
+  const pageSize = rows.length > 100 ? 50 : rows.length;
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  if (page > totalPages && totalPages > 0) setPage(totalPages);
+
   if (loading) {
     return (
       <div className="card">
@@ -151,6 +157,8 @@ export function Table({
       </div>
     );
   }
+  const start = (page - 1) * pageSize;
+  const rowsToRender = rows.slice(start, start + pageSize);
 
   return (
     <div className={`table-container ${className}`.trim()}>
@@ -163,10 +171,10 @@ export function Table({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, idx) => (
+          {rowsToRender.map((row, idx) => (
             <tr
-              key={idx}
-              onClick={() => onRowClick?.(idx)}
+              key={start + idx}
+              onClick={() => onRowClick?.(start + idx)}
               className={onRowClick ? "cursor-pointer" : ""}
             >
               {row.map((cell, cidx) => (
@@ -176,6 +184,17 @@ export function Table({
           ))}
         </tbody>
       </table>
+      {totalPages > 1 && (
+        <div className="mt-3 flex items-center justify-end gap-2">
+          <button className="btn" onClick={() => setPage(Math.max(1, page - 1))}>
+            Prev
+          </button>
+          <div className="text-sm text-[var(--color-text-secondary)]">Page {page} / {totalPages}</div>
+          <button className="btn" onClick={() => setPage(Math.min(totalPages, page + 1))}>
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

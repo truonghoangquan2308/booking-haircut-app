@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState, useMemo } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -382,16 +383,13 @@ export default function OwnerBarbersPage() {
                   <tr key={b.barber_id} className="border-b border-gray-100">
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-3">
-                        <img
+                        <Image
                           src={b.avatar_url || "/default-avatar.svg"}
-                          alt="Avatar"
+                          alt={b.full_name ?? "Avatar"}
+                          width={32}
+                          height={32}
                           className="h-8 w-8 rounded-full border border-gray-200"
-                          onError={(event) => {
-                            const img = event.currentTarget;
-                            if (!img.src.endsWith("/default-avatar.svg")) {
-                              img.src = "/default-avatar.svg";
-                            }
-                          }}
+                          unoptimized
                         />
                         <div>
                           <div className="font-medium">{b.full_name ?? "—"}</div>

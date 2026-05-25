@@ -48,6 +48,8 @@ const APPOINTMENT_STATUSES = new Set([
   'pending',
   'confirmed',
   'in_progress',
+  'technician_completed',
+  'paid_and_done',
   'completed',
   'cancelled',
 ]);
@@ -314,7 +316,8 @@ router.patch('/appointments/:id/status', requireManagerOrOwner, requireManagerBr
     if (Number(row.branch_id) !== bid) {
       return res.status(403).json({ error: 'Lịch không thuộc chi nhánh của bạn' });
     }
-    if (status === 'completed') {
+    if (status === 'paid_and_done') {
+      // Manager/receptionist finalizes payment
       await pool.execute(
         `
         UPDATE appointments
@@ -323,10 +326,7 @@ router.patch('/appointments/:id/status', requireManagerOrOwner, requireManagerBr
               WHEN payment_status = 'paid' AND payment_method = 'vnpay' THEN payment_method
               ELSE 'cod'
             END,
-            payment_status = CASE
-              WHEN payment_status = 'paid' THEN payment_status
-              ELSE 'paid'
-            END,
+            payment_status = 'paid',
             paid_at = COALESCE(paid_at, NOW())
         WHERE id = ?
         `,

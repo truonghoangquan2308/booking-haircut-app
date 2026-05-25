@@ -6,7 +6,9 @@ const STATUS_MAP: Record<string, [string, string]> = {
   "Đã hủy": ["--status-cancelled-bg", "--status-cancelled-text"],
 };
 
-export function StatusBadge({ status }: { status: string }) {
+import React from "react";
+
+export function StatusBadgeInner({ status }: { status: string }) {
   const [bg, text] = STATUS_MAP[status] ?? [
     "--surface-card-border",
     "--text-secondary",
@@ -24,3 +26,5 @@ export function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
+
+export const StatusBadge = React.memo(StatusBadgeInner);

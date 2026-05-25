@@ -6,6 +6,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
 import { StatCard } from "@/components/DesignSystemComponents";
+import { Calendar, Clock3, CheckCircle2, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import {
   fetchManagerAppointments,
@@ -244,10 +245,34 @@ export default function ManagerDashboardPage() {
             .
           </p>
           <div className="stat-grid mb-6">
-            <StatCard label="Hôm nay" value={appointmentSummary.today} />
-            <StatCard label="Đang chờ" value={appointmentSummary.pending} />
-            <StatCard label="Hoàn thành" value={appointmentSummary.completed} />
-            <StatCard label="Đã huỷ" value={appointmentSummary.cancelled} />
+            <StatCard
+              label="Hôm nay"
+              value={appointmentSummary.today}
+              icon={<Calendar className="h-5 w-5" />}
+              iconBg={"var(--status-pending-bg)"}
+              iconColor={"var(--brand-amber)"}
+            />
+            <StatCard
+              label="Đang chờ"
+              value={appointmentSummary.pending}
+              icon={<Clock3 className="h-5 w-5" />}
+              iconBg={"var(--status-pending-bg)"}
+              iconColor={"var(--brand-amber)"}
+            />
+            <StatCard
+              label="Hoàn thành"
+              value={appointmentSummary.completed}
+              icon={<CheckCircle2 className="h-5 w-5" />}
+              iconBg={"var(--status-pending-bg)"}
+              iconColor={"var(--brand-amber)"}
+            />
+            <StatCard
+              label="Đã huỷ"
+              value={appointmentSummary.cancelled}
+              icon={<XCircle className="h-5 w-5" />}
+              iconBg={"var(--status-pending-bg)"}
+              iconColor={"var(--brand-amber)"}
+            />
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[400px] text-left text-sm">

@@ -172,6 +172,36 @@ async function ensureAppointmentsPaymentColumns() {
   }
 }
 
+async function ensureAppointmentsStatusEnumExtended() {
+  const [[t]] = await pool.execute(
+    `
+    SELECT COUNT(*) AS c FROM information_schema.tables
+    WHERE table_schema = DATABASE() AND table_name = 'appointments'
+    `,
+  );
+  if (!t || Number(t.c) === 0) return;
+
+  const [[row]] = await pool.execute(
+    `
+    SELECT COLUMN_TYPE AS ct FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'appointments' AND COLUMN_NAME = 'status'
+    LIMIT 1
+    `,
+  );
+  const ct = String(row?.ct ?? '');
+  if (ct.includes("'technician_completed'") && ct.includes("'paid_and_done'")) return;
+
+  // Add the intermediate statuses to appointments.status enum
+  await pool.execute(
+    `
+    ALTER TABLE appointments
+    MODIFY COLUMN status
+      ENUM('pending','confirmed','in_progress','technician_completed','paid_and_done','completed','cancelled')
+      NOT NULL DEFAULT 'pending'
+    `,
+  ).catch((e) => console.error('ensureAppointmentsStatusEnumExtended:', e?.message || e));
+}
+
 async function ensureShopOrdersPaymentColumns() {
   const [[t]] = await pool.execute(
     `
@@ -266,6 +296,7 @@ module.exports = {
   ensureShopOrdersBranchId,
   ensureShopOrdersStatusEnumCompleted,
   ensureAppointmentsPaymentColumns,
+  ensureAppointmentsStatusEnumExtended,
   ensureShopOrdersPaymentColumns,
   ensureStockHistoryTable,
 };

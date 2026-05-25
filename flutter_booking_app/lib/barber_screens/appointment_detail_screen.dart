@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_booking_app/services/api_service.dart';
 
@@ -13,6 +14,14 @@ class AppointmentDetailScreen extends StatefulWidget {
 
 class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
   bool _busy = false;
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    final status = widget.appointment['status']?.toString() ?? '';
+    if (status == 'technician_completed') _startPollingForPaid();
+  }
 
   String _statusText(String? status, String customerName) {
     switch (status) {
@@ -22,6 +31,10 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
         return 'Đã xác nhận';
       case 'in_progress':
         return 'Đang làm cho: $customerName';
+      case 'technician_completed':
+        return '⏳ Chờ lễ tân xác nhận thanh toán';
+      case 'paid_and_done':
+        return '✅ Hoàn thành - Đã nhận tiền';
       case 'completed':
         return 'Đã hoàn thành';
       case 'cancelled':
@@ -56,10 +69,59 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
     }
   }
 
+  void _startPollingForPaid() {
+    // only poll when appointment is waiting for confirmation
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      final apptId = (widget.appointment['id'] as num?)?.toInt() ?? 0;
+      final barberId = (widget.appointment['barber_id'] as num?)?.toInt() ?? 0;
+      if (apptId <= 0 || barberId <= 0) return;
+      try {
+        final list = await ApiService.getBarberAppointments(barberId);
+        final updated = list.firstWhere(
+          (e) => (e['id'] as num?)?.toInt() == apptId,
+          orElse: () => null,
+        );
+        if (updated != null) {
+          final s = updated['status']?.toString() ?? '';
+          if (s == 'paid_and_done') {
+            // debug log for automated tests / verification
+            // ignore: avoid_print
+            print(
+              '[BARBER APP] Detected paid_and_done for appt $apptId — ${updated['total_price']}',
+            );
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Hoàn thành — đã nhận ${updated['total_price']} VNĐ',
+                ),
+              ),
+            );
+            // update local UI and stop polling
+            setState(() {
+              widget.appointment['status'] = 'paid_and_done';
+            });
+            _pollTimer?.cancel();
+          }
+        }
+      } catch (_) {
+        // ignore
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final appt = widget.appointment;
     final status = appt['status']?.toString();
+    // debug: log when rendering a paid appointment
+    if (status == 'paid_and_done') {
+      // ignore: avoid_print
+      print(
+        '[BARBER APP] Rendering appointment ${appt['id']} with paid_and_done',
+      );
+    }
     final customerName =
         appt['customer_name']?.toString() ??
         appt['customer_full_name']?.toString() ??
@@ -206,7 +268,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                       child: ElevatedButton(
                         onPressed: _busy
                             ? null
-                            : () => _updateStatus('completed'),
+                            : () => _updateStatus('technician_completed'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.black87,
@@ -250,6 +312,12 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
   }
 
   Widget _buildInfoRow(String label, String value) {

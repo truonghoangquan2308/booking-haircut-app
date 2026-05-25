@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import { Button } from "@/components/Button";
@@ -13,7 +14,7 @@ interface StatCardProps {
   href?: string;
 }
 
-export function StatCard({ icon, label, value, onClick, href }: StatCardProps) {
+function StatCardInner({ icon, label, value, onClick, href }: StatCardProps) {
   const content = (
     <div className="stat-card-content">
       <div className="stat-card-icon">{icon}</div>
@@ -42,6 +43,8 @@ export function StatCard({ icon, label, value, onClick, href }: StatCardProps) {
 
   return <div className="stat-card">{content}</div>;
 }
+
+export const StatCard = React.memo(StatCardInner);
 
 interface BadgeProps {
   status?: string;
@@ -127,7 +130,7 @@ interface TableProps {
   className?: string;
 }
 
-export function Table({
+function TableInner({
   headers,
   rows,
   onRowClick,
@@ -179,6 +182,8 @@ export function Table({
     </div>
   );
 }
+
+export const Table = React.memo(TableInner) as typeof TableInner;
 
 type ToastType = "success" | "error" | "warning" | "info";
 

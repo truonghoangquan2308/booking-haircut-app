@@ -8,6 +8,8 @@ const VALID_APPOINTMENT_STATUSES = new Set([
   'pending',
   'confirmed',
   'in_progress',
+  'technician_completed',
+  'paid_and_done',
   'completed',
   'cancelled',
 ]);
@@ -524,6 +526,72 @@ router.put('/appointments/:appointmentId/status', async (req, res) => {
 
     if (status === 'cancelled') {
       await pool.execute(`UPDATE time_slots SET is_booked = 0 WHERE id = ?`, [timeSlotId]);
+    }
+
+    // When technician marks completed -> notify receptionists for confirmation
+    if (status === 'technician_completed') {
+      try {
+        // find branch for this appointment (via barber)
+        const [[barberRow]] = await pool.execute(
+          `SELECT b.branch_id, b.user_id FROM barbers b JOIN appointments a ON a.barber_id = b.id WHERE a.id = ? LIMIT 1`,
+          [appointmentId],
+        );
+        const branchId = barberRow?.branch_id || null;
+        // notify all receptionists/managers assigned to that branch
+        if (branchId) {
+          const [users] = await pool.execute(
+            `SELECT id FROM users WHERE (role = 'receptionist' OR role = 'manager') AND branch_id = ?`,
+            [branchId],
+          );
+          for (const u of users) {
+            try {
+              await pool.execute(
+                `INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'appt', ?, ?)`,
+                [u.id, 'Yêu cầu xác nhận thanh toán', `Khách #${appointmentId} đã được thợ đánh dấu hoàn thành, chờ xác nhận.`],
+              );
+            } catch (e) {
+              console.error('notify receptionist:', e?.message || e);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('notify on technician_completed:', e?.message || e);
+      }
+    }
+
+    // When receptionist confirms payment => mark paid and set payment fields
+    if (status === 'paid_and_done') {
+      try {
+        await pool.execute(
+          `UPDATE appointments
+           SET status = ?,
+               payment_method = CASE WHEN payment_status = 'paid' AND payment_method = 'vnpay' THEN payment_method ELSE 'cod' END,
+               payment_status = 'paid',
+               paid_at = COALESCE(paid_at, NOW())
+           WHERE id = ?`,
+          [status, appointmentId],
+        );
+
+        // Notify barber user about payment / income
+        const [[apptInfo]] = await pool.execute(
+          `SELECT a.barber_id, a.total_price, b.user_id AS barber_user_id FROM appointments a JOIN barbers b ON b.id = a.barber_id WHERE a.id = ? LIMIT 1`,
+          [appointmentId],
+        );
+        const barberUserId = apptInfo?.barber_user_id || null;
+        const amount = apptInfo?.total_price || 0;
+        if (barberUserId) {
+          await pool.execute(
+            `INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'income', ?, ?)`,
+            [
+              barberUserId,
+              'Đã nhận tiền',
+              `Lịch #${appointmentId} đã được thanh toán — thu nhập: ${amount} VNĐ`,
+            ],
+          );
+        }
+      } catch (e) {
+        console.error('finalize paid_and_done:', e?.message || e);
+      }
     }
 
     try {

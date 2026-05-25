@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { StatCard } from "@/components/DesignSystemComponents";
+import { CalendarDays, DollarSign, Star, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { fetchUserByFirebaseUid } from "@/lib/api";
 import { fetchOwnerBarberDetails, type BarberDetails } from "@/lib/ownerBarbersApi";
@@ -194,10 +195,34 @@ export default function BarberDetailsPage({ params }: { params: Promise<{ id: st
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-lg font-bold text-bb-navy">Thống kê cá nhân</h2>
           <div className="stat-grid">
-            <StatCard label="Tổng lịch đã làm" value={stats.total_appointments} />
-            <StatCard label="Doanh thu tháng này" value={formatCurrency(stats.revenue_month)} />
-            <StatCard label="Đánh giá trung bình" value={formatRating(stats.avg_rating)} />
-            <StatCard label="Tỉ lệ huỷ lịch" value={`${stats.cancel_rate}%`} />
+            <StatCard
+              label="Tổng lịch đã làm"
+              value={stats.total_appointments}
+              icon={<CalendarDays className="h-5 w-5" />}
+              iconBg={"var(--status-pending-bg)"}
+              iconColor={"var(--brand-amber)"}
+            />
+            <StatCard
+              label="Doanh thu tháng này"
+              value={formatCurrency(stats.revenue_month)}
+              icon={<DollarSign className="h-5 w-5" />}
+              iconBg={"var(--status-pending-bg)"}
+              iconColor={"var(--brand-amber)"}
+            />
+            <StatCard
+              label="Đánh giá trung bình"
+              value={formatRating(stats.avg_rating)}
+              icon={<Star className="h-5 w-5" />}
+              iconBg={"var(--status-pending-bg)"}
+              iconColor={"var(--brand-amber)"}
+            />
+            <StatCard
+              label="Tỉ lệ huỷ lịch"
+              value={`${stats.cancel_rate}%`}
+              icon={<XCircle className="h-5 w-5" />}
+              iconBg={"var(--status-pending-bg)"}
+              iconColor={"var(--brand-amber)"}
+            />
           </div>
         </section>
 

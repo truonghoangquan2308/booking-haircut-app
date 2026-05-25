@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_booking_app/core/widgets/skeleton_loader.dart';
 import 'package:flutter_booking_app/core/widgets/appointment_card.dart';
-import 'package:flutter_booking_app/core/theme/app_theme.dart';
 import 'dart:async';
 import 'package:flutter_booking_app/app_session.dart';
 import 'package:flutter_booking_app/services/api_service.dart';
@@ -108,7 +107,9 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
           if (date != todayIso) return false;
           final status = a['status']?.toString() ?? '';
           // Lịch đã hoàn thành/đã hủy không hiển thị ở màn Lịch làm việc.
-          return status != 'completed' && status != 'cancelled';
+          return status != 'completed' &&
+              status != 'paid_and_done' &&
+              status != 'cancelled';
         })
         .toList(growable: false);
 
@@ -363,61 +364,6 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AppointmentTile extends StatelessWidget {
-  final Map<String, dynamic> appointment;
-  final String time;
-  final String name;
-  final String service;
-
-  const _AppointmentTile({
-    required this.time,
-    required this.name,
-    required this.service,
-    required this.appointment,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: ListTile(
-          leading: Text(
-            time,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          title: Text(
-            name,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          subtitle: Text(service, style: const TextStyle(color: Colors.grey)),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    AppointmentDetailScreen(appointment: appointment),
-              ),
-            );
-          },
-        ),
       ),
     );
   }

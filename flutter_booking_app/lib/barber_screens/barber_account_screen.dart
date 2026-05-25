@@ -337,7 +337,7 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xffffc107).withOpacity(0.2),
+              color: const Color(0xffffc107).withAlpha((0.2 * 255).round()),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -488,7 +488,6 @@ class _MenuTile extends StatelessWidget {
   final bool showChevron;
 
   const _MenuTile({
-    super.key,
     required this.icon,
     required this.label,
     this.labelColor,
@@ -507,7 +506,7 @@ class _MenuTile extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
+            color: iconColor.withAlpha((0.1 * 255).round()),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: iconColor, size: 18),

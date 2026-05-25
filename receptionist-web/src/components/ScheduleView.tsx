@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Card, StatCard, ToastContainer, useToast } from "@/components/DesignSystemComponents";
+import { Button, StatCard, ToastContainer, useToast } from "@/components/DesignSystemComponents";
 import { Users, DollarSign, UserCheck, Calendar } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import PageHeader from "@/components/PageHeader";
@@ -72,6 +72,7 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
   const [busyApptId, setBusyApptId] = useState<number | null>(null);
 
   const [appointments, setAppointments] = useState<ManagerAppointmentRow[]>([]);
+  const [pendingConfirmations, setPendingConfirmations] = useState<ManagerAppointmentRow[]>([]);
   const [barbers, setBarbers] = useState<BarberOption[]>([]);
   const [services, setServices] = useState<ServiceOption[]>([]);
 
@@ -150,16 +151,28 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
     return rows;
   }, [appointments, fromTime, toTime]);
 
+  // Pagination for large appointment lists to avoid rendering too many rows at once
+  const [pageSize] = useState(() => 50);
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
+
   const stats = useMemo(() => {
     const total = filtered.length;
     const revenue = filtered.reduce((sum, a) => {
-      if (a.status !== "completed") return sum;
+      if (a.status !== "completed" && a.status !== 'paid_and_done') return sum;
       return sum + (Number(a.total_price) || 0);
     }, 0);
     const waiting = filtered.filter((a) => a.status === "pending" || a.status === "confirmed").length;
     const nowHm = `${pad2(new Date().getHours())}:${pad2(new Date().getMinutes())}`;
     const upcoming = filtered.filter((a) => {
-      if (a.status === "cancelled" || a.status === "completed") return false;
+      if (a.status === "cancelled" || a.status === "completed" || a.status === 'paid_and_done') return false;
       return timeHm(a.start_time) >= nowHm;
     }).length;
     return { total, revenue, waiting, upcoming };
@@ -202,6 +215,26 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
     if (!createOpen) return;
     void loadSlots();
   }, [createOpen, loadSlots]);
+
+  // Poll for technician-completed appointments (waiting confirmation)
+  useEffect(() => {
+    let mounted = true;
+    let timer: number | null = null;
+    async function fetchPending() {
+      try {
+        const list = await fetchManagerAppointments(uid, { from: today, to: today, status: 'technician_completed' }, branchId);
+        if (!mounted) return;
+        setPendingConfirmations(list);
+      } catch {
+        // ignore polling errors
+      }
+    }
+    void fetchPending();
+    timer = window.setInterval(() => {
+      void fetchPending();
+    }, 5000);
+    return () => { mounted = false; if (timer) clearInterval(timer); };
+  }, [uid, branchId, today]);
 
   async function onCreate() {
     if (!cPhone.trim()) {
@@ -267,6 +300,88 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
           <StatCard icon={<UserCheck size={20} />} label="Khách đang chờ" value={stats.waiting} />
           <StatCard icon={<Calendar size={20} />} label="Lịch sắp tới" value={stats.upcoming} />
         </div>
+
+        {pendingConfirmations.length > 0 && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-amber-200 flex items-center justify-center font-semibold">
+                  ⚠
+                </div>
+                <div>
+                  <div className="font-semibold">Chờ xác nhận hoàn thành</div>
+                  <div className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                    {pendingConfirmations.length} đơn chờ xác nhận
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {pendingConfirmations.map((p) => (
+                <div key={p.id} className="rounded-lg border border-amber-200 bg-amber-25 p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{p.customer_name ?? '-'}</div>
+                      <div className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                        {p.barber_name ?? `#${p.barber_id}`} · {p.service_name ?? `#${p.service_id}`}
+                      </div>
+                    </div>
+                    <div className="text-sm font-mono">{timeHm(p.start_time)}</div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{money(p.total_price)}</div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        isLoading={busyApptId === p.id}
+                        onClick={async () => {
+                          setBusyApptId(p.id);
+                          try {
+                            // mark appointment as completed / awaiting payment then navigate to payment page
+                            await patchAppointmentStatus(uid, p.id, 'completed', branchId);
+                            show('Đã chuyển sang chờ thanh toán.', 'success');
+                            // navigate to payment screen (parent handles navigation via onPay)
+                            onPay?.(p.id);
+                            // refresh list in background
+                            await load();
+                          } catch (e) {
+                            const msg = e instanceof Error ? e.message : String(e);
+                            show(msg, 'error');
+                          } finally {
+                            setBusyApptId(null);
+                          }
+                        }}
+                      >
+                        Xác nhận & Thanh toán
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={async () => {
+                          setBusyApptId(p.id);
+                          try {
+                            await patchAppointmentStatus(uid, p.id, 'in_progress', branchId);
+                            show('Đã gửi lại thợ.', 'success');
+                            await load();
+                          } catch (e) {
+                            const msg = e instanceof Error ? e.message : String(e);
+                            show(msg, 'error');
+                          } finally {
+                            setBusyApptId(null);
+                          }
+                        }}
+                      >
+                        Gửi lại thợ làm
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-5">
         {error && (
@@ -381,7 +496,7 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
                   </td>
                 </tr>
               ) : (
-                filtered.map((a) => (
+                paginated.map((a) => (
                   <tr key={a.id} className="border-b border-[var(--color-border)]/60">
                     <td className="py-2 pr-2 font-mono text-xs">
                       {timeHm(a.start_time)}–{timeHm(a.end_time)}
@@ -407,24 +522,12 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
                         <Button
                           type="button"
                           size="sm"
-                          variant="primary"
-                          disabled={busyApptId === a.id || a.status === "cancelled"}
-                          onClick={() => onPay?.(a.id)}
+                          variant="danger"
+                          disabled={busyApptId === a.id || a.status === "cancelled" || a.status === 'paid_and_done'}
+                          onClick={() => void onUpdateStatus(a.id, "cancelled")}
                         >
-                          Thanh toán
+                          Hủy
                         </Button>
-                        <select
-                          className="rounded-lg border border-[var(--color-border)] bg-white px-2 py-1 text-xs"
-                          value={a.status}
-                          disabled={busyApptId === a.id}
-                          onChange={(e) => void onUpdateStatus(a.id, e.target.value)}
-                        >
-                          {APPOINTMENT_STATUSES.map((s) => (
-                            <option key={s} value={s}>
-                              {APPOINTMENT_STATUS_LABELS[s] ?? s}
-                            </option>
-                          ))}
-                        </select>
                       </div>
                     </td>
                   </tr>
@@ -432,6 +535,17 @@ export function ScheduleView({ uid, branchId, onPay }: ScheduleViewProps) {
               )}
             </tbody>
           </table>
+          {totalPages > 1 && (
+            <div className="mt-3 flex items-center justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={() => setPage(Math.max(1, page - 1))}>
+                Prev
+              </Button>
+              <div className="text-sm text-[var(--color-text-secondary)]">Trang {page} / {totalPages}</div>
+              <Button type="button" variant="secondary" onClick={() => setPage(Math.min(totalPages, page + 1))}>
+                Next
+              </Button>
+            </div>
+          )}
         </div>
         </div>
       </section>

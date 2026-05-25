@@ -31,7 +31,7 @@ class AppointmentCard extends StatelessWidget {
 
   String _fmt(double v) {
     final formatter = NumberFormat('#,###', 'vi_VN');
-    return formatter.format(v.round()) + 'đ';
+    return '${formatter.format(v.round())}đ';
   }
 
   @override
@@ -53,7 +53,7 @@ class AppointmentCard extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withOpacity(0.15),
+                color: AppTheme.primaryColor.withAlpha((0.15 * 255).round()),
                 shape: BoxShape.circle,
               ),
               child: Center(

@@ -8,6 +8,8 @@ import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
 import { Button, StatCard } from "@/components/DesignSystemComponents";
 import { Navbar } from "@/components/Navbar";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Calendar, UserCheck, UserX, Users } from "lucide-react";
 import {
   deleteSchedule,
@@ -103,6 +105,29 @@ export default function ManagerDashboardPage() {
   const [apptStatus, setApptStatus] = useState("");
   const [apptBarberId, setApptBarberId] = useState<number>(0);
   const [apptServiceId, setApptServiceId] = useState<number>(0);
+  // Debounced filters to reduce refetch rate when user types/changes filters quickly
+  const [debouncedApptFilters, setDebouncedApptFilters] = useState({
+    from: apptFrom,
+    to: apptTo,
+    status: apptStatus,
+    barber_id: apptBarberId,
+    service_id: apptServiceId,
+  });
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedApptFilters({
+        from: apptFrom,
+        to: apptTo,
+        status: apptStatus,
+        barber_id: apptBarberId,
+        service_id: apptServiceId,
+      });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [apptFrom, apptTo, apptStatus, apptBarberId, apptServiceId]);
+
+  // Prevent stale/duplicate responses by tracking a fetch id
+  const apptFetchIdRef = useRef(0);
   const [busyAppt, setBusyAppt] = useState<number | null>(null);
   const [branches, setBranches] = useState<ManagerBranchRow[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
@@ -254,21 +279,25 @@ export default function ManagerDashboardPage() {
   useEffect(() => {
     if (!uid || !branchesLoaded) return;
     let cancelled = false;
+    const fetchId = ++apptFetchIdRef.current;
     void (async () => {
       try {
-        setApptPage(1); // Mặc định về trang 1 khi lọc
+        // keep API pagination unchanged; page reset handled by UI when user changes filters
         const list = await fetchManagerAppointments(
           uid,
           {
-            from: apptFrom || undefined,
-            to: apptTo || undefined,
-            status: apptStatus || undefined,
-            barber_id: apptBarberId || undefined,
-            service_id: apptServiceId || undefined,
+            from: debouncedApptFilters.from || undefined,
+            to: debouncedApptFilters.to || undefined,
+            status: debouncedApptFilters.status || undefined,
+            barber_id: debouncedApptFilters.barber_id || undefined,
+            service_id: debouncedApptFilters.service_id || undefined,
           },
           selectedBranchId ?? undefined,
         );
-        if (!cancelled) setAppointments(list);
+        if (cancelled) return;
+        // ignore out-of-order responses
+        if (fetchId !== apptFetchIdRef.current) return;
+        setAppointments(list);
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : String(e));
@@ -279,16 +308,7 @@ export default function ManagerDashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [
-    uid,
-    branchesLoaded,
-    selectedBranchId,
-    apptFrom,
-    apptTo,
-    apptStatus,
-    apptBarberId,
-    apptServiceId,
-  ]);
+  }, [uid, branchesLoaded, selectedBranchId, debouncedApptFilters, apptPage]);
 
   async function onAppointmentStatus(id: number, status: string) {
     if (!uid) return;
@@ -301,11 +321,11 @@ export default function ManagerDashboardPage() {
         await fetchManagerAppointments(
           uid,
           {
-            from: apptFrom || undefined,
-            to: apptTo || undefined,
-            status: apptStatus || undefined,
-            barber_id: apptBarberId || undefined,
-            service_id: apptServiceId || undefined,
+            from: debouncedApptFilters.from || undefined,
+            to: debouncedApptFilters.to || undefined,
+            status: debouncedApptFilters.status || undefined,
+            barber_id: debouncedApptFilters.barber_id || undefined,
+            service_id: debouncedApptFilters.service_id || undefined,
           },
           branch,
         ),
@@ -319,6 +339,11 @@ export default function ManagerDashboardPage() {
       setBusyAppt(null);
     }
   }
+
+  // stabilize reference to avoid unnecessary re-renders when passed down
+  const handleAppointmentStatus = useCallback((id: number, status: string) => {
+    void onAppointmentStatus(id, status);
+  }, [onAppointmentStatus]);
 
   async function onOrderStatus(id: number, status: string) {
     if (!uid) return;
@@ -335,7 +360,7 @@ export default function ManagerDashboardPage() {
     }
   }
 
-  async function toggleBarberStatus(barber: BarberOption) {
+  const toggleBarberStatus = useCallback(async (barber: BarberOption) => {
     if (!uid || !selectedBranchId) return;
     setError(null);
     try {
@@ -351,7 +376,7 @@ export default function ManagerDashboardPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }
+  }, [uid, selectedBranchId]);
 
   async function reloadSchedules() {
     if (!uid) return;
@@ -488,6 +513,71 @@ export default function ManagerDashboardPage() {
 
   const totalApptPages = Math.max(1, Math.ceil(appointments.length / APPT_PAGE_SIZE));
   const currentAppointments = appointments.slice((apptPage - 1) * APPT_PAGE_SIZE, apptPage * APPT_PAGE_SIZE);
+  
+
+  // Virtualizer for the appointments table body. We virtualize only the current page
+  // to keep API pagination and behavior unchanged while reducing DOM cost for large pages.
+  const parentRef = useRef<HTMLDivElement | null>(null);
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  // Feature flag: runtime check (env + localStorage override) to enable virtualization pilot.
+  const [flagOverride, setFlagOverride] = useState<boolean | null>(null);
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("virtualize_appointments");
+      if (v === "1" || v === "true") setFlagOverride(true);
+      else if (v === "0" || v === "false") setFlagOverride(false);
+      else setFlagOverride(null);
+    } catch {
+      setFlagOverride(null);
+    }
+  }, []);
+  const envFlag = process.env.NEXT_PUBLIC_VIRTUALIZE_APPTS === "1" || process.env.NEXT_PUBLIC_VIRTUALIZE_APPTS === "true";
+  const virtualizeEnabled = flagOverride !== null ? flagOverride : envFlag;
+  const rowVirtualizer = useVirtualizer({
+    count: currentAppointments.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 56,
+    overscan: 5,
+  });
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const totalSize = rowVirtualizer.getTotalSize();
+
+  // Reset scroll position when changing page or filters to avoid confusing scroll jumps.
+  useEffect(() => {
+    try {
+      if (parentRef.current) parentRef.current.scrollTop = 0;
+      if (parentRef.current) parentRef.current.scrollLeft = 0;
+      if (headerRef.current) headerRef.current.scrollLeft = 0;
+    } catch {
+      /* ignore */
+    }
+  }, [apptPage, apptFrom, apptTo, apptStatus, apptBarberId, apptServiceId]);
+
+  // Synchronize horizontal scrolling between header and body to preserve column alignment.
+  useEffect(() => {
+    const parent = parentRef.current;
+    const header = headerRef.current;
+    if (!parent || !header) return;
+    let syncing = false;
+    const onParentScroll = () => {
+      if (syncing) return;
+      syncing = true;
+      header.scrollLeft = parent.scrollLeft;
+      syncing = false;
+    };
+    const onHeaderScroll = () => {
+      if (syncing) return;
+      syncing = true;
+      parent.scrollLeft = header.scrollLeft;
+      syncing = false;
+    };
+    parent.addEventListener("scroll", onParentScroll, { passive: true });
+    header.addEventListener("scroll", onHeaderScroll, { passive: true });
+    return () => {
+      parent.removeEventListener("scroll", onParentScroll);
+      header.removeEventListener("scroll", onHeaderScroll);
+    };
+  }, []);
 
   const totalOrderPages = Math.max(1, Math.ceil(orders.length / ORDER_PAGE_SIZE));
   const currentOrders = orders.slice((orderPage - 1) * ORDER_PAGE_SIZE, orderPage * ORDER_PAGE_SIZE);
@@ -618,74 +708,148 @@ export default function ManagerDashboardPage() {
               </select>
             </label>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-gray-600">
-                  <th className="py-2 pr-2">#</th>
-                  <th className="py-2 pr-2">Khách</th>
-                  <th className="py-2 pr-2">Thợ</th>
-                  <th className="py-2 pr-2">Dịch vụ</th>
-                  <th className="py-2 pr-2">Ngày/Giờ</th>
-                  <th className="py-2 pr-2">Giá</th>
-                  <th className="py-2">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentAppointments.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-6 text-center text-gray-500">
-                      Chưa có Lịch hẹn (hoặc không khớp bộ lọc).
-                    </td>
+          {/* Appointments table: keep header as regular table but virtualize tbody rows using @tanstack/react-virtual.
+              This renders only the visible rows while preserving existing row markup, keys, and click handlers.
+              We wrap the table body in a fixed-height scroll container to allow virtualization without changing layout. */}
+          <div className="mt-4 overflow-x-auto">
+            {/* Table header remains static so column widths are preserved */}
+            <div ref={headerRef} style={{ overflowX: 'auto', overflowY: 'hidden' }}>
+              <table data-test="appointments-table" className="w-full min-w-[720px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 text-gray-600">
+                    <th className="py-2 pr-2">#</th>
+                    <th className="py-2 pr-2">Khách</th>
+                    <th className="py-2 pr-2">Thợ</th>
+                    <th className="py-2 pr-2">Dịch vụ</th>
+                    <th className="py-2 pr-2">Ngày/Giờ</th>
+                    <th className="py-2 pr-2">Giá</th>
+                    <th className="py-2">Trạng thái</th>
                   </tr>
-                ) : (
-                  currentAppointments.map((a) => {
-                    const statusKey = a.status as (typeof APPOINTMENT_STATUSES)[number];
-                    return (
-                      <tr key={a.id} className="border-b border-gray-100 hover:bg-gray-50/50 cursor-pointer" onClick={() => setSelectedAppt(a)}>
-                        <td className="py-2 pr-2 font-mono">{a.id}</td>
-                        <td className="py-2 pr-2">
-                          <div className="font-medium">
-                            {a.customer_name ?? "-”"}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {a.customer_phone ?? ""}
-                          </div>
-                        </td>
-                        <td className="py-2 pr-2">
-                          {a.barber_name ?? `#${a.barber_id}`}
-                        </td>
-                        <td className="py-2 pr-2">{a.service_name ?? "-"}</td>
-                        <td className="py-2 pr-2 text-xs text-gray-700">
-                          {formatApptDate(a.appt_date, a.start_time, a.end_time)}
-                        </td>
-                        <td className="py-2 pr-2">{String(a.total_price)}</td>
-                        <td className="py-2 pr-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <StatusBadge status={APPOINTMENT_STATUS_LABELS[statusKey] ?? a.status} />
-                            <select
-                              className="rounded-lg border border-gray-200 bg-bb-input px-2 py-1 text-xs"
-                              value={a.status}
-                              disabled={busyAppt === a.id}
-                              onChange={(e) =>
-                                void onAppointmentStatus(a.id, e.target.value)
-                              }
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {APPOINTMENT_STATUSES.map((s) => (
-                                <option key={s} value={s}>
-                                  {APPOINTMENT_STATUS_LABELS[s]}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                </thead>
+              </table>
+            </div>
+
+            {/* Scroll container for virtualized rows - parentRef is used by the virtualizer */}
+            <div
+              ref={parentRef}
+              style={{ height: Math.min(400, currentAppointments.length * 56), overflow: 'auto' }}
+            >
+              <table className="w-full min-w-[720px] text-left text-sm">
+                {virtualizeEnabled ? (
+                  <tbody style={{ position: 'relative', height: `${Math.max(0, totalSize)}px` }}>
+                    {currentAppointments.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-6 text-center text-gray-500">
+                          Chưa có Lịch hẹn (hoặc không khớp bộ lọc).
                         </td>
                       </tr>
-                    );
-                  })
+                    ) : (
+                      virtualItems.map((v) => {
+                        const a = currentAppointments[v.index];
+                        if (!a) return null;
+                        const statusKey = a.status as (typeof APPOINTMENT_STATUSES)[number];
+                        const style: React.CSSProperties = {
+                          position: 'absolute',
+                          top: v.start,
+                          left: 0,
+                          right: 0,
+                          height: v.size,
+                        };
+                        return (
+                          <tr
+                            key={a.id}
+                            style={style}
+                            className="border-b border-gray-100 hover:bg-gray-50/50 cursor-pointer"
+                            onClick={() => setSelectedAppt(a)}
+                            tabIndex={0}
+                            role="row"
+                            aria-rowindex={v.index + 1}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") setSelectedAppt(a);
+                            }}
+                          >
+                            <td className="py-2 pr-2 font-mono">{a.id}</td>
+                            <td className="py-2 pr-2">
+                              <div className="font-medium">{a.customer_name ?? "-"}</div>
+                              <div className="text-xs text-gray-500">{a.customer_phone ?? ""}</div>
+                            </td>
+                            <td className="py-2 pr-2">{a.barber_name ?? `#${a.barber_id}`}</td>
+                            <td className="py-2 pr-2">{a.service_name ?? "-"}</td>
+                            <td className="py-2 pr-2 text-xs text-gray-700">
+                              {formatApptDate(a.appt_date, a.start_time, a.end_time)}
+                            </td>
+                            <td className="py-2 pr-2">{String(a.total_price)}</td>
+                            <td className="py-2 pr-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <StatusBadge status={APPOINTMENT_STATUS_LABELS[statusKey] ?? a.status} />
+                                <select
+                                  className="rounded-lg border border-gray-200 bg-bb-input px-2 py-1 text-xs"
+                                  value={a.status}
+                                  disabled={busyAppt === a.id}
+                                  onChange={(e) => void handleAppointmentStatus(a.id, e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {APPOINTMENT_STATUSES.map((s) => (
+                                    <option key={s} value={s}>
+                                      {APPOINTMENT_STATUS_LABELS[s]}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                ) : (
+                  <tbody>
+                    {currentAppointments.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-6 text-center text-gray-500">
+                          Chưa có Lịch hẹn (hoặc không khớp bộ lọc).
+                        </td>
+                      </tr>
+                    ) : (
+                      currentAppointments.map((a) => {
+                        const statusKey = a.status as (typeof APPOINTMENT_STATUSES)[number];
+                        return (
+                          <tr key={a.id} className="border-b border-gray-100 hover:bg-gray-50/50 cursor-pointer" onClick={() => setSelectedAppt(a)}>
+                            <td className="py-2 pr-2 font-mono">{a.id}</td>
+                            <td className="py-2 pr-2">
+                              <div className="font-medium">{a.customer_name ?? "-"}</div>
+                              <div className="text-xs text-gray-500">{a.customer_phone ?? ""}</div>
+                            </td>
+                            <td className="py-2 pr-2">{a.barber_name ?? `#${a.barber_id}`}</td>
+                            <td className="py-2 pr-2">{a.service_name ?? "-"}</td>
+                            <td className="py-2 pr-2 text-xs text-gray-700">{formatApptDate(a.appt_date, a.start_time, a.end_time)}</td>
+                            <td className="py-2 pr-2">{String(a.total_price)}</td>
+                            <td className="py-2 pr-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <StatusBadge status={APPOINTMENT_STATUS_LABELS[statusKey] ?? a.status} />
+                                <select
+                                  className="rounded-lg border border-gray-200 bg-bb-input px-2 py-1 text-xs"
+                                  value={a.status}
+                                  disabled={busyAppt === a.id}
+                                  onChange={(e) => void handleAppointmentStatus(a.id, e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {APPOINTMENT_STATUSES.map((s) => (
+                                    <option key={s} value={s}>
+                                      {APPOINTMENT_STATUS_LABELS[s]}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
                 )}
-              </tbody>
-            </table>
+              </table>
+            </div>
           </div>
           {totalApptPages > 1 && (
             <div className="mt-4 flex items-center justify-between text-sm">
@@ -1108,7 +1272,7 @@ export default function ManagerDashboardPage() {
                   disabled={busyAppt === selectedAppt?.id}
                   onChange={(e) => {
                     if (selectedAppt) {
-                      void onAppointmentStatus(selectedAppt.id, e.target.value);
+                      void handleAppointmentStatus(selectedAppt.id, e.target.value);
                     }
                   }}
                 >

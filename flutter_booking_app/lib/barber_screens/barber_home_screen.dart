@@ -29,7 +29,6 @@ class _StatCard extends StatelessWidget {
   final Color textColor;
 
   const _StatCard({
-    super.key,
     required this.label,
     required this.value,
     required this.bgColor,

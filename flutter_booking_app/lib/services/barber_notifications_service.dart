@@ -48,8 +48,6 @@ class BarberNotificationsService {
   final ValueNotifier<List<BarberNotificationItem>> notifications =
       ValueNotifier<List<BarberNotificationItem>>(const []);
 
-  int _nextId = 1;
-
   int? _currentUserId;
   Timer? _pollingTimer;
 

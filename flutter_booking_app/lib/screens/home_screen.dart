@@ -175,7 +175,7 @@ class _HomeTabState extends State<HomeTab> {
 }
 
 class _HomeScreenStateSync extends StatefulWidget {
-  const _HomeScreenStateSync({super.key, required this.child});
+  const _HomeScreenStateSync({required this.child});
   final Widget child;
   @override
   State<_HomeScreenStateSync> createState() => _HomeScreenStateSyncState();

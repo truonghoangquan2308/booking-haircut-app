@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'text_theme_extensions.dart';
 
 class AppTheme {
   // Colors
@@ -37,7 +36,6 @@ class AppTheme {
       primaryColor: primaryColor,
       colorScheme: base.colorScheme.copyWith(
         primary: primaryColor,
-        background: backgroundColor,
         surface: surfaceColor,
       ),
       appBarTheme: const AppBarTheme(

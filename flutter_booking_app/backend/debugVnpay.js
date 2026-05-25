@@ -30,7 +30,5 @@ const params = {
 };
 const secret = 'K2QO8601YBCKL93WP3GJ33M0JYYEMCOY';
 const out = buildVnpayQuery(params, secret);
-console.log('rawData:', out.rawData);
-console.log('secureHash:', out.secureHash);
-console.log('query:', out.query);
-console.log('full:', out.query + '&vnp_SecureHashType=SHA512&vnp_SecureHash=' + out.secureHash);
+
+module.exports = out;

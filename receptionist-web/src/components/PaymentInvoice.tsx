@@ -71,7 +71,7 @@ export function PaymentInvoice({
   const handleCashPay = async () => {
     setLoading(true);
     try {
-      await patchAppointmentStatus(uid, appointmentId, "completed", branchId);
+      await patchAppointmentStatus(uid, appointmentId, "paid_and_done", branchId);
       show("Đã xác nhận thanh toán tiền mặt.", "success");
       onSuccess();
     } catch (e) {

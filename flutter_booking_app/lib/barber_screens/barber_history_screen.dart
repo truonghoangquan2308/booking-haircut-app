@@ -61,7 +61,10 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
       final appts = await ApiService.getBarberAppointments(barberId);
       // Chỉ lấy completed để hiển thị lịch sử/đánh giá
       final completed = appts
-          .where((a) => (a['status']?.toString() ?? '') == 'completed')
+          .where((a) {
+            final s = (a['status']?.toString() ?? '');
+            return s == 'completed' || s == 'paid_and_done';
+          })
           .toList(growable: false);
 
       setState(() {
@@ -111,7 +114,10 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+                BoxShadow(
+                  color: Colors.black.withAlpha((0.04 * 255).round()),
+                  blurRadius: 8,
+                ),
               ],
             ),
             child: Row(
@@ -305,128 +311,6 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
       ),
     );
   }
-
-  Widget _buildFilterTab(String label, bool isSelected) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _filter = label),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xffffc107) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.black87 : Colors.black54,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _fmtPrice(dynamic raw) {
-    final n = double.tryParse(raw?.toString() ?? '');
-    if (n == null) return '';
-    return '${n.toStringAsFixed(0)}đ';
-  }
-
-  Widget _buildHistoryTile(Map<String, dynamic> a) {
-    final time = a['start_time']?.toString() ?? '';
-    final timeLabel = time.length >= 5 ? time.substring(0, 5) : time;
-    final customer =
-        a['customer_name']?.toString() ??
-        a['customer_full_name']?.toString() ??
-        '---';
-    final service = a['service_name']?.toString() ?? '---';
-    final price = a['total_price'];
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                timeLabel,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  customer,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(service, style: TextStyle(color: Colors.grey.shade600)),
-              ],
-            ),
-          ),
-          SizedBox(
-            width: 150,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        _fmtPrice(price),
-                        style: TextStyle(
-                          color: Colors.orange.shade800,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CustomerReviewsScreen(),
-                            ),
-                          );
-                        },
-                        child: const Text('Đánh giá'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _FilterTab extends StatelessWidget {
@@ -435,7 +319,6 @@ class _FilterTab extends StatelessWidget {
   final VoidCallback onTap;
 
   const _FilterTab({
-    super.key,
     required this.label,
     required this.selected,
     required this.onTap,

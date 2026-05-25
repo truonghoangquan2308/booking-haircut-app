@@ -6,6 +6,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
 import { Button, StatCard } from "@/components/DesignSystemComponents";
+import { DollarSign, ShoppingBag, CalendarDays } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import {
   fetchManagerBranchList,
@@ -291,14 +292,23 @@ export default function ManagerStatsPage() {
               <StatCard
                 label={"Doanh thu l\u1ecbch ho\u00e0n th\u00e0nh"}
                 value={fmtMoney(stats.summary.revenue_completed)}
+                icon={<DollarSign className="h-5 w-5" />}
+                iconBg={"var(--status-pending-bg)"}
+                iconColor={"var(--brand-amber)"}
               />
               <StatCard
                 label={"Doanh thu t\u1eeb shop"}
                 value={fmtMoney(stats.summary.revenue_shop ?? 0)}
+                icon={<ShoppingBag className="h-5 w-5" />}
+                iconBg={"var(--status-pending-bg)"}
+                iconColor={"var(--brand-amber)"}
               />
               <StatCard
                 label={"S\u1ed1 l\u1ecbch h\u1eb9n trong k\u1ef3"}
                 value={stats.summary.appointment_count}
+                icon={<CalendarDays className="h-5 w-5" />}
+                iconBg={"var(--status-pending-bg)"}
+                iconColor={"var(--brand-amber)"}
               />
             </div>
 

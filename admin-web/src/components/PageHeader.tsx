@@ -1,4 +1,6 @@
-export default function PageHeader({
+import React from "react";
+
+function PageHeader({
   title,
   subtitle,
 }: {
@@ -18,3 +20,5 @@ export default function PageHeader({
     </div>
   );
 }
+
+export default React.memo(PageHeader);

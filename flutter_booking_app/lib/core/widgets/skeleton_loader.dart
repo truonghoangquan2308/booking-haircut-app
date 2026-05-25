@@ -7,7 +7,12 @@ class SkeletonBox extends StatelessWidget {
   final double height;
   final BorderRadius? radius;
 
-  const SkeletonBox({super.key, required this.width, required this.height, this.radius});
+  const SkeletonBox({
+    super.key,
+    required this.width,
+    required this.height,
+    this.radius,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +44,14 @@ class SkeletonAppointmentCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(width: 42, height: 42, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+            Container(
+              width: 42,
+              height: 42,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -69,8 +81,8 @@ class SkeletonScheduleList extends StatelessWidget {
     return ListView.separated(
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
-      itemBuilder: (_, __) => const SkeletonAppointmentCard(),
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (_, _) => const SkeletonAppointmentCard(),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemCount: itemCount,
     );
   }

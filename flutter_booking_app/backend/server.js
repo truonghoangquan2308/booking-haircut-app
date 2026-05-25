@@ -14,6 +14,7 @@ const {
   ensureShopOrdersBranchId,
   ensureShopOrdersStatusEnumCompleted,
   ensureAppointmentsPaymentColumns,
+  ensureAppointmentsStatusEnumExtended,
   ensureShopOrdersPaymentColumns,
   ensureStockHistoryTable,
 } = require('./lib/ensureSchemaExtensions');
@@ -878,6 +879,12 @@ async function start() {
     console.log('Đã chạy ensureAppointmentsPaymentColumns.');
   } catch (e) {
     console.error('ensureAppointmentsPaymentColumns:', e.message);
+  }
+  try {
+    await ensureAppointmentsStatusEnumExtended();
+    console.log('Đã chạy ensureAppointmentsStatusEnumExtended (thêm technician_completed, paid_and_done).');
+  } catch (e) {
+    console.error('ensureAppointmentsStatusEnumExtended:', e.message);
   }
   try {
     await ensureShopOrdersPaymentColumns();
