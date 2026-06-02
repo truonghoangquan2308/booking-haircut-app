@@ -371,6 +371,7 @@ export type CustomerRow = {
   full_name: string | null;
   phone: string | null;
   avatar_url: string | null;
+  firebase_uid?: string | null;
   last_booking: string | null;
 };
 

@@ -74,18 +74,37 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
 
       final barber = await ApiService.getBarberByUserId(userId);
 
+      // Debug: log userId and barber row to verify stability
+      try {
+        debugPrint('WorkSchedule: AppSession.userId=$userId');
+        debugPrint('WorkSchedule: barber row => $barber');
+      } catch (_) {}
+
       final barberId = (barber['barber_id'] as num?)?.toInt() ?? 0;
       if (barberId <= 0) {
         throw Exception('barber_id không hợp lệ');
       }
 
       final appts = await ApiService.getBarberAppointments(barberId);
+      // Temporary debug logs to help investigate schedule reset issue
+      try {
+        // Use debugPrint to avoid truncation in release builds' consoles
+        debugPrint(
+          'WorkSchedule: loaded ${appts.length} appointments for barberId=$barberId',
+        );
+        if (appts.isNotEmpty) {
+          debugPrint('WorkSchedule: first appt sample: ${appts[0]}');
+        }
+      } catch (_) {}
+
       setState(() {
         _appointments = appts;
         _loading = false;
       });
     } catch (e) {
       if (mounted) {
+        // Log error for debugging
+        debugPrint('WorkSchedule: _load error => $e');
         setState(() {
           _error = e.toString();
           _loading = false;

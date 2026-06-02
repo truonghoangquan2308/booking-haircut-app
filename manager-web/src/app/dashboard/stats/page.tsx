@@ -503,7 +503,7 @@ export default function ManagerStatsPage() {
                   </thead>
                   <tbody>
                     {barberStats.length === 0 ? (
-                      <tr><td colSpan={3} className="py-4 text-center text-gray-500">KhÔng cã¡ dá»¯ liá»‡u.</td></tr>
+                      <tr><td colSpan={3} className="py-4 text-center text-gray-500">Không có dữ liệu.</td></tr>
                     ) : (
                       barberStats.map((row, idx) => (
                         <tr key={idx} className="border-b border-gray-100">

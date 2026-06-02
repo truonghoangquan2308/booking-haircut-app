@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import 'booking_screen.dart';
+import 'home_screen.dart';
 
 class PromotionsScreen extends StatefulWidget {
   const PromotionsScreen({
@@ -229,9 +231,12 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
                               Navigator.of(context).pop(selected);
                               return;
                             }
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Đã chọn: $title')),
-                            );
+                            // Send the selected promotion to the existing BookingScreen
+                            // and switch the Home tab to the booking tab.
+                            BookingScreen.promotionNotifier.value = selected;
+                            HomeScreen.tabIndexNotifier.value = 2;
+                            // Pop back to the app root (HomeScreen) so the tab change is visible.
+                            Navigator.of(context).popUntil((r) => r.isFirst);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xffffc107),

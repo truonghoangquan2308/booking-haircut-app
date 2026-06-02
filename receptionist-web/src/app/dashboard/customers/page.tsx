@@ -85,6 +85,7 @@ export default function ReceptionistCustomersPage() {
               <tr>
                 <th className="py-2 pr-2">#ID</th>
                 <th className="py-2 pr-2">Khách hàng</th>
+                  <th className="py-2 pr-2">Loại</th>
                 <th className="py-2 pr-2">Số điện thoại</th>
                 <th className="py-2 pr-2">Lần đặt gần nhất</th>
                 <th className="py-2">Liên hệ</th>
@@ -102,28 +103,37 @@ export default function ReceptionistCustomersPage() {
                   <tr key={c.id} className="border-b border-gray-100">
                     <td className="py-2 pr-2 font-mono">{c.id}</td>
                     <td className="py-2 pr-2 font-medium">{c.full_name ?? "Khách chưa cập nhật tên"}</td>
+                    <td className="py-2 pr-2">
+                      {c.firebase_uid ? (
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">Thành viên</span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">Vãng lai</span>
+                      )}
+                    </td>
                     <td className="py-2 pr-2">{c.phone ?? "—"}</td>
                     <td className="py-2 pr-2 text-xs text-gray-600">
                       {c.last_booking ? new Date(c.last_booking).toLocaleString("vi-VN") : "Chưa có lịch đặt"}
                     </td>
                     <td className="py-2">
                       <div className="flex flex-wrap gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => void copyPhone(c.phone)}
-                                      className="rounded-md border border-[#D1D5DB] px-2 py-1 text-xs font-semibold text-[#374151]"
-                                    >
-                                      Copy
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setSelectedCustomer(c)}
-                                      style={{ backgroundColor: "var(--brand-primary)" }}
-                                      className="rounded-md px-2 py-1 text-xs font-semibold text-white"
-                                    >
-                                      Chat
-                                    </button>
-                                  </div>
+                        <button
+                          type="button"
+                          onClick={() => void copyPhone(c.phone)}
+                          className="rounded-md border border-[#D1D5DB] px-2 py-1 text-xs font-semibold text-[#374151]"
+                        >
+                          Copy
+                        </button>
+                        {c.firebase_uid ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCustomer(c)}
+                            style={{ backgroundColor: "var(--brand-primary)" }}
+                            className="rounded-md px-2 py-1 text-xs font-semibold text-white"
+                          >
+                            Chat
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))

@@ -52,6 +52,10 @@ class _BarberHistoryScreenState extends State<BarberHistoryScreen> {
       if (userId <= 0) throw Exception('Missing AppSession.userId');
 
       final m = await ApiService.getBarberByUserId(userId);
+      try {
+        debugPrint('BarberHistory: AppSession.userId=$userId');
+        debugPrint('BarberHistory: barber row => $m');
+      } catch (_) {}
       final barberId = (m['barber_id'] as num?)?.toInt() ?? 0;
 
       if (barberId <= 0) {

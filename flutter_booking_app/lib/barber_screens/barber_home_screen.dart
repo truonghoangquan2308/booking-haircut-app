@@ -145,6 +145,11 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
       // 1) Lấy barberId + rating theo userId (API nhẹ /api/barbers/by-user/:id)
       final barberRow = await ApiService.getBarberByUserId(userId);
 
+      try {
+        debugPrint('BarberHome: AppSession.userId=$userId');
+        debugPrint('BarberHome: barberRow => $barberRow');
+      } catch (_) {}
+
       final barberId =
           (barberRow['barber_id'] as num?)?.toInt() ??
           (barberRow['id'] as num?)?.toInt() ??
@@ -154,6 +159,11 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
 
       // 2) Lấy lịch của barber
       final appts = await ApiService.getBarberAppointments(barberId);
+      try {
+        debugPrint(
+          'BarberHome: loaded ${appts.length} appointments for barberId=$barberId',
+        );
+      } catch (_) {}
       final ymdToday = _todayYmd();
 
       // Loại cancelled khỏi thống kê + lịch hiển thị.

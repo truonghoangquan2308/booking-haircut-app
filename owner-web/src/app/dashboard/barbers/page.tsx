@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid } from "@/lib/api";
+import { getApiBase } from "@/lib/api";
+import { resolveAvatarUrl } from "@/lib/image";
 import { fetchManagerBranchList, type ManagerBranchRow } from "@/lib/managerApi";
 import { PageHeader } from "@/components/PageHeader";
 import {
@@ -384,7 +386,7 @@ export default function OwnerBarbersPage() {
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-3">
                         <Image
-                          src={b.avatar_url || "/default-avatar.svg"}
+                          src={resolveAvatarUrl(b.avatar_url)}
                           alt={b.full_name ?? "Avatar"}
                           width={32}
                           height={32}

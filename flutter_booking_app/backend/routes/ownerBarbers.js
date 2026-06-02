@@ -5,6 +5,27 @@ const { normalizeBarberBio } = require('../lib/barberBio');
 
 const router = express.Router();
 
+function normalizeAvatarForResponse(raw) {
+  if (!raw) return null;
+  let s = String(raw).trim();
+  if (!s) return null;
+  // normalize backslashes
+  s = s.replace(/\\+/g, '/');
+  try {
+    const u = new URL(s);
+    // prefer returning uploads path if present
+    if (u.pathname && u.pathname.includes('/uploads/')) return u.pathname + (u.search || '');
+    // otherwise return the original full url
+    return s;
+  } catch (e) {
+    // not a full URL
+    if (s.startsWith('/')) return s;
+    const idx = s.indexOf('/uploads/');
+    if (idx !== -1) return s.slice(idx);
+    return s;
+  }
+}
+
 async function requireOwner(req, res, next) {
   const uid = (req.headers['x-firebase-uid'] || '').trim();
   if (!uid) return res.status(401).json({ error: 'Thiếu header x-firebase-uid' });
@@ -174,6 +195,8 @@ router.get('/barbers/:barberId/details', requireOwner, async (req, res) => {
     );
     if (!barberRows.length) return res.status(404).json({ error: 'Không tìm thấy thợ' });
     const barber = barberRows[0];
+    // Normalize avatar_url for client
+    barber.avatar_url = normalizeAvatarForResponse(barber.avatar_url);
 
     // Thống kê cá nhân
     const [statsRows] = await pool.execute(
@@ -296,6 +319,10 @@ router.get('/barbers', requireOwner, async (req, res) => {
       `,
       usesBranchId ? [ownerId, ownerId] : [ownerId],
     );
+    // Normalize avatar_url in each row before returning
+    for (const r of rows) {
+      r.avatar_url = normalizeAvatarForResponse(r.avatar_url);
+    }
     return res.json({ barbers: rows });
   } catch (e) {
     console.error(e);

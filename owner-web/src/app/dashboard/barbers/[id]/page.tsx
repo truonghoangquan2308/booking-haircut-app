@@ -8,6 +8,7 @@ import { StatCard } from "@/components/DesignSystemComponents";
 import { CalendarDays, DollarSign, Star, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { fetchUserByFirebaseUid } from "@/lib/api";
+import { resolveAvatarUrl } from "@/lib/image";
 import { fetchOwnerBarberDetails, type BarberDetails } from "@/lib/ownerBarbersApi";
 
 function formatDate(dateStr: string): string {
@@ -159,17 +160,17 @@ export default function BarberDetailsPage({ params }: { params: Promise<{ id: st
           <h2 className="mb-4 text-lg font-bold text-bb-navy">Thông tin cơ bản</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="flex items-center gap-4">
-              <img
-                src={barber.avatar_url || "/default-avatar.svg"}
-                alt="Avatar"
-                className="h-16 w-16 rounded-full border-2 border-gray-200"
-                onError={(event) => {
-                  const img = event.currentTarget;
-                  if (!img.src.endsWith("/default-avatar.svg")) {
-                    img.src = "/default-avatar.svg";
-                  }
-                }}
-              />
+                <img
+                  src={resolveAvatarUrl(barber.avatar_url)}
+                  alt="Avatar"
+                  className="h-16 w-16 rounded-full border-2 border-gray-200"
+                  onError={(event) => {
+                    const img = event.currentTarget;
+                    if (!img.src.endsWith("/default-avatar.svg")) {
+                      img.src = "/default-avatar.svg";
+                    }
+                  }}
+                />
               <div>
                 <div className="text-lg font-semibold">{barber.full_name || "Chưa cập nhật"}</div>
                 <div className="text-sm text-gray-500">#{barber.barber_id}</div>

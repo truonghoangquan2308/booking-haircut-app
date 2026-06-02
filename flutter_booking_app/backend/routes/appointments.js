@@ -287,6 +287,7 @@ router.get('/appointments/barber/:barberId', async (req, res) => {
   }
 
   try {
+    console.log(`[API] GET /api/appointments/barber/${barberId} - received barberId=${barberId}`);
     const [rows] = await pool.execute(
       `
       SELECT
@@ -312,6 +313,7 @@ router.get('/appointments/barber/:barberId', async (req, res) => {
 
     return res.status(200).json({ appointments: rows });
   } catch (err) {
+    console.error(`[API] GET /api/appointments/barber/${barberId} - error:`, err?.message || err);
     console.error(err);
     return res.status(500).json({ error: err.message ?? 'Server error' });
   }

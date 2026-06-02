@@ -1214,7 +1214,7 @@ export default function ManagerDashboardPage() {
                       </td>
                       <td className="py-2 pr-2">{String(s.work_date)}</td>
                       <td className="py-2 pr-2">
-                        {String(s.start_time).slice(0, 5)} _“{" "}
+                        {String(s.start_time).slice(0, 5)} :{" "}
                         {String(s.end_time).slice(0, 5)}
                       </td>
                       <td className="py-2 pr-2">

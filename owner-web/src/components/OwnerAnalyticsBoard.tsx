@@ -592,7 +592,7 @@ export function OwnerAnalyticsBoard({ analytics, userLabel }: Props) {
         {(analytics.revenueByShop || []).length > 0 && (
           <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <h2 className="mb-4 font-semibold text-gray-900">
-              Doanh thu theo chi nhánh (cần gán <code className="rounded bg-bb-yellow/30 px-1 text-bb-navy">barbers.shop_id</code>)
+              Doanh thu theo chi nhánh
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">

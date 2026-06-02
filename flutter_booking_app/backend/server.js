@@ -173,6 +173,7 @@ app.get('/api/barbers/by-user/:userId', async (req, res) => {
     return res.status(400).json({ error: 'userId không hợp lệ' });
   }
   try {
+    console.log(`[API] GET /api/barbers/by-user/${userId} - received userId=${userId}`);
     const [branchCol] = await pool.execute(
       `
       SELECT 1 AS ok FROM information_schema.COLUMNS
@@ -206,8 +207,10 @@ app.get('/api/barbers/by-user/:userId', async (req, res) => {
       [userId],
     );
     if (rows.length === 0) {
+      console.log(`[API] GET /api/barbers/by-user/${userId} - not found`);
       return res.status(404).json({ error: 'Không tìm thấy thợ theo user_id' });
     }
+    console.log(`[API] GET /api/barbers/by-user/${userId} - returning barber_id=${rows[0].barber_id || rows[0].id}`);
     return res.status(200).json({ status: 'success', barber: rows[0] });
   } catch (err) {
     console.error(err);
@@ -637,8 +640,9 @@ app.post('/api/users/:id/avatar', upload.single('avatar'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Thiếu file ảnh hoặc định dạng không hợp lệ' });
   }
-  const host = req.get('host') || `localhost:${PORT}`;
-  const publicUrl = `${req.protocol}://${host}/uploads/${req.file.filename}`;
+  // Store a relative uploads path instead of an absolute host-specific URL.
+  // This avoids emulator-host-specific hosts like 10.0.2.2 being persisted in DB.
+  const publicUrl = `/uploads/${req.file.filename}`;
   try {
     await pool.execute(
       'UPDATE users SET avatar_url = ? WHERE id = ?',

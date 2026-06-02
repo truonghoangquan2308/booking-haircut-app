@@ -739,15 +739,20 @@ router.get('/customers', requireManagerOrOwner, requireManagerBranch, async (req
   try {
     const [rows] = await pool.execute(
       `
-      SELECT u.id, u.full_name, u.phone, u.avatar_url, MAX(a.appt_date) AS last_booking
+      SELECT u.id, u.full_name, u.phone, u.avatar_url, u.firebase_uid, MAX(a.appt_date) AS last_booking
       FROM users u
-      JOIN appointments a ON a.customer_id = u.id
-      WHERE a.branch_id = ?
+      LEFT JOIN appointments a ON a.customer_id = u.id AND a.branch_id = ?
+      LEFT JOIN chat_messages cm ON cm.customer_id = u.id AND cm.branch_id = ?
+      WHERE u.id IN (
+        SELECT customer_id FROM appointments WHERE branch_id = ?
+        UNION
+        SELECT customer_id FROM chat_messages WHERE branch_id = ?
+      )
       GROUP BY u.id
       ORDER BY last_booking DESC
       LIMIT 200
       `,
-      [bid]
+      [bid, bid, bid, bid]
     );
     return res.json({ customers: rows });
   } catch (e) {

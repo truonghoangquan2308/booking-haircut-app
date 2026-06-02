@@ -12,7 +12,14 @@ import 'promotions_screen.dart';
 import 'package:flutter_booking_app/widgets/boxed_icon.dart';
 
 class BookingScreen extends StatefulWidget {
-  const BookingScreen({super.key});
+  final Map<String, String>? initialPromotion;
+
+  /// Notifier used to send a promotion to the already-mounted `BookingScreen`.
+  /// Other screens can set this value and then switch the Home tab to show booking.
+  static final ValueNotifier<Map<String, String>?> promotionNotifier =
+      ValueNotifier<Map<String, String>?>(null);
+
+  const BookingScreen({super.key, this.initialPromotion});
 
   @override
   State<BookingScreen> createState() => _BookingScreenState();
@@ -112,14 +119,29 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedPromotion = widget.initialPromotion;
+    // Listen for external promotion selections (set by PromotionsScreen).
+    BookingScreen.promotionNotifier.addListener(_handleExternalPromotion);
     _fetchServices();
     _fetchBranches();
   }
 
   @override
   void dispose() {
+    BookingScreen.promotionNotifier.removeListener(_handleExternalPromotion);
     _noteController.dispose();
     super.dispose();
+  }
+
+  void _handleExternalPromotion() {
+    final promo = BookingScreen.promotionNotifier.value;
+    if (promo == null) return;
+    if (!mounted) return;
+    setState(() {
+      _selectedPromotion = promo;
+    });
+    // Clear after consuming so future selections can be detected.
+    BookingScreen.promotionNotifier.value = null;
   }
 
   String _formatPrice(dynamic raw) {
