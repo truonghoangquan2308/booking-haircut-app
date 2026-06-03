@@ -1,11 +1,13 @@
 import { getApiBase } from './managerApi';
 
+export type ClosureType = 'temporary_close'|'holiday'|'incident'|'maintenance';
+
 export type BranchClosureRow = {
   id: number;
   branch_id: number;
   start_date: string;
   end_date: string;
-  closure_type: 'holiday'|'incident'|'maintenance'|'temporary_close';
+  closure_type: ClosureType;
   start_time: string | null;
   end_time: string | null;
   reason: string | null;

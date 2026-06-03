@@ -19,6 +19,7 @@ import {
   updateBranchClosure,
   cancelBranchClosure,
   type BranchClosureRow,
+  type ClosureType,
 } from '@/lib/branchClosuresApi';
 
 const BRANCH_STORAGE_KEY = "manager-dashboard-branch-id";
@@ -36,7 +37,14 @@ export default function ManagerDashboardPage() {
   const [closures, setClosures] = useState<BranchClosureRow[]>([]);
   const [loadingClosures, setLoadingClosures] = useState(false);
   const [editing, setEditing] = useState<BranchClosureRow | null>(null);
-  const [formState, setFormState] = useState({
+  const [formState, setFormState] = useState<{
+    start_date: string;
+    end_date: string;
+    closure_type: ClosureType;
+    start_time: string;
+    end_time: string;
+    reason: string;
+  }>({
     start_date: '',
     end_date: '',
     closure_type: 'temporary_close',
