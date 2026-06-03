@@ -1,4 +1,4 @@
-import { getApiBase } from './managerApi';
+import { getApiBase } from './api';
 
 export type ClosureType = 'temporary_close'|'holiday'|'incident'|'maintenance';
 
