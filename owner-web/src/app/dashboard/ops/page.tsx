@@ -291,7 +291,7 @@ export default function ManagerDashboardPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700">Kiểu đóng</label>
-                  <select value={formState.closure_type} onChange={(e)=>setFormState(s=>({...s,closure_type:e.target.value}))} className="mt-1 block w-full rounded border px-2 py-1">
+                  <select value={formState.closure_type} onChange={(e)=>setFormState(s=>({...s,closure_type: e.target.value as ClosureType}))} className="mt-1 block w-full rounded border px-2 py-1">
                     <option value="temporary_close">Temporary</option>
                     <option value="holiday">Holiday</option>
                     <option value="incident">Incident</option>
