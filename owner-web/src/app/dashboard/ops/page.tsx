@@ -13,6 +13,13 @@ import {
   fetchManagerBranchList,
   type ManagerBranchRow,
 } from "@/lib/managerApi";
+import {
+  fetchBranchClosures,
+  createBranchClosure,
+  updateBranchClosure,
+  cancelBranchClosure,
+  type BranchClosureRow,
+} from '@/lib/branchClosuresApi';
 
 const BRANCH_STORAGE_KEY = "manager-dashboard-branch-id";
 
@@ -26,6 +33,18 @@ export default function ManagerDashboardPage() {
     null,
   );
   const [branchesLoaded, setBranchesLoaded] = useState(false);
+  const [closures, setClosures] = useState<BranchClosureRow[]>([]);
+  const [loadingClosures, setLoadingClosures] = useState(false);
+  const [editing, setEditing] = useState<BranchClosureRow | null>(null);
+  const [formState, setFormState] = useState({
+    start_date: '',
+    end_date: '',
+    closure_type: 'temporary_close',
+    start_time: '',
+    end_time: '',
+    reason: '',
+  });
+  const [branchStatus, setBranchStatus] = useState<'Open'|'Closed'>('Open');
   const [appointmentSummary, setAppointmentSummary] = useState<{
     today: number;
     pending: number;
@@ -174,6 +193,39 @@ export default function ManagerDashboardPage() {
     };
   }, [uid, branches]);
 
+  // Load closures when branch changes
+  useEffect(() => {
+    if (!selectedBranchId) return;
+    void loadClosures();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBranchId]);
+
+  async function loadClosures() {
+    if (!selectedBranchId) return;
+    setLoadingClosures(true);
+    try {
+      const today = new Date().toISOString().slice(0,10);
+      const rows = await fetchBranchClosures(selectedBranchId, today);
+      setClosures(rows ?? []);
+      const isClosed = (rows || []).some(r => r.start_date <= today && r.end_date >= today && !r.canceled_at);
+      setBranchStatus(isClosed ? 'Closed' : 'Open');
+    } catch (e:any) {
+      console.error('loadClosures', e?.message || e);
+      setError(e?.message || String(e));
+    } finally {
+      setLoadingClosures(false);
+    }
+  }
+
+  function resetForm() {
+    setFormState({ start_date: '', end_date: '', closure_type: 'temporary_close', start_time: '', end_time: '', reason: '' });
+    setEditing(null);
+  }
+
+  function setFormFromClosure(c: BranchClosureRow) {
+    setFormState({ start_date: c.start_date ?? '', end_date: c.end_date ?? c.start_date ?? '', closure_type: c.closure_type ?? 'temporary_close', start_time: c.start_time ?? '', end_time: c.end_time ?? '', reason: c.reason ?? '' });
+  }
+
   return (
     <div className="min-h-screen bg-bb-surface">
       <PageHeader
@@ -216,8 +268,92 @@ export default function ManagerDashboardPage() {
               Lịch hẹn và lịch làm việc thợ theo chi nhánh đã chọn. Đơn shop là
               toàn hệ thống.
             </p>
+            {/* Branch Closure Management */}
+            <div className="mt-4 border-t pt-4">
+              <h3 className="text-sm font-semibold text-bb-navy">Quản lý đóng cửa chi nhánh</h3>
+              <p className="text-xs text-gray-600 mb-2">Trạng thái hiện tại: <strong className="ml-2">{branchStatus}</strong></p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Ngày bắt đầu</label>
+                  <input type="date" value={formState.start_date} onChange={(e)=>setFormState(s=>({...s,start_date:e.target.value}))} className="mt-1 block w-full rounded border px-2 py-1" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Ngày kết thúc</label>
+                  <input type="date" value={formState.end_date} onChange={(e)=>setFormState(s=>({...s,end_date:e.target.value}))} className="mt-1 block w-full rounded border px-2 py-1" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Kiểu đóng</label>
+                  <select value={formState.closure_type} onChange={(e)=>setFormState(s=>({...s,closure_type:e.target.value}))} className="mt-1 block w-full rounded border px-2 py-1">
+                    <option value="temporary_close">Temporary</option>
+                    <option value="holiday">Holiday</option>
+                    <option value="incident">Incident</option>
+                    <option value="maintenance">Maintenance</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Bắt đầu (giờ, optional)</label>
+                  <input type="time" value={formState.start_time ?? ''} onChange={(e)=>setFormState(s=>({...s,start_time:e.target.value}))} className="mt-1 block w-full rounded border px-2 py-1" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700">Kết thúc (giờ, optional)</label>
+                  <input type="time" value={formState.end_time ?? ''} onChange={(e)=>setFormState(s=>({...s,end_time:e.target.value}))} className="mt-1 block w-full rounded border px-2 py-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700">Lý do (optional)</label>
+                  <textarea value={formState.reason ?? ''} onChange={(e)=>setFormState(s=>({...s,reason:e.target.value}))} className="mt-1 block w-full rounded border px-2 py-1" />
+                </div>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button className="rounded bg-bb-navy px-3 py-1 text-white" onClick={async ()=>{
+                  if (!selectedBranchId) return;
+                  try {
+                    if (editing) {
+                      const updated = await updateBranchClosure(editing.id, { ...formState, branch_id: selectedBranchId });
+                      setEditing(null);
+                    } else {
+                      const created = await createBranchClosure({ ...formState, branch_id: selectedBranchId });
+                    }
+                    await loadClosures();
+                    resetForm();
+                  } catch (e:any) {
+                    alert(e?.message || String(e));
+                  }
+                }}>{editing ? 'Cập nhật' : 'Tạo đóng cửa'}</button>
+                <button className="rounded border px-3 py-1" onClick={()=>{ setEditing(null); resetForm(); }}>Huỷ</button>
+              </div>
+
+              <div className="mt-4">
+                <h4 className="text-sm font-medium">Danh sách đóng cửa (active/upcoming)</h4>
+                <div className="overflow-x-auto mt-2">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-gray-600 border-b"><th className="py-2">Khoảng</th><th className="py-2">Giờ</th><th className="py-2">Kiểu</th><th className="py-2">Lý do</th><th className="py-2">Hành động</th></tr>
+                    </thead>
+                    <tbody>
+                      {closures.length === 0 ? (
+                        <tr><td colSpan={5} className="py-4 text-center text-gray-500">Không có đóng cửa</td></tr>
+                      ) : (
+                        closures.map(c => (
+                          <tr key={c.id} className="border-b">
+                            <td className="py-2">{c.start_date}{c.end_date && c.end_date !== c.start_date ? ` — ${c.end_date}` : ''}</td>
+                            <td className="py-2">{c.start_time ? `${c.start_time} - ${c.end_time ?? ''}` : 'Cả ngày'}</td>
+                            <td className="py-2">{c.closure_type}</td>
+                            <td className="py-2">{c.reason ?? ''}</td>
+                            <td className="py-2">
+                              <button className="mr-2 text-sm text-blue-600" onClick={()=>{ setEditing(c); setFormFromClosure(c); }}>Sửa</button>
+                              <button className="text-sm text-red-600" onClick={async ()=>{ if (!confirm('Huỷ closure này?')) return; try{ await cancelBranchClosure(c.id); await loadClosures(); }catch(e:any){ alert(e?.message||String(e)) } }}>Huỷ</button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </section>
         )}
+
 
         {branchesLoaded && branches.length === 0 && uid && !error && (
           <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
