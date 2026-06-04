@@ -30,6 +30,48 @@ CREATE TABLE users (
 ) ENGINE=InnoDB;
 
 -- ================================================
+-- STOCK HISTORY (theo dõi thay đổi tồn kho)
+-- ================================================
+CREATE TABLE stock_history (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  product_id  INT NOT NULL,
+  change_type ENUM('import', 'export', 'adjust') NOT NULL,
+  quantity    INT NOT NULL,
+  previous_stock INT NOT NULL,
+  new_stock   INT NOT NULL,
+  note        TEXT NULL,
+  user_id     INT NULL,
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_stock_history_product
+    FOREIGN KEY (product_id) REFERENCES products(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_stock_history_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE,
+  INDEX idx_stock_history_product (product_id),
+  INDEX idx_stock_history_created (created_at)
+) ENGINE=InnoDB;
+
+-- ================================================
+-- ADMIN AUDIT LOGS (ghi chi tiết hành động admin)
+-- ================================================
+CREATE TABLE admin_audit_logs (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  admin_user_id INT NOT NULL,
+  action VARCHAR(64) NOT NULL,
+  target_type VARCHAR(32) NULL,
+  target_id BIGINT NULL,
+  detail TEXT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_admin_audit_admin (admin_user_id),
+  INDEX idx_admin_audit_created (created_at),
+  CONSTRAINT fk_admin_audit_admin FOREIGN KEY (admin_user_id) REFERENCES users(id)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- ================================================
 -- 2. BRANCHES (chi nhánh)
 -- ================================================
 CREATE TABLE branches (
@@ -148,8 +190,13 @@ CREATE TABLE appointments (
   end_time        TIME NOT NULL,
   total_price     DECIMAL(10,2) NOT NULL,
   note            TEXT NULL,
-  status          ENUM('pending','confirmed','in_progress','completed','cancelled')
+  status          ENUM('pending','confirmed','in_progress','technician_completed','paid_and_done','completed','cancelled')
                   NOT NULL DEFAULT 'pending',
+  -- Payment tracking
+  payment_method  ENUM('cod','vnpay') NOT NULL DEFAULT 'cod',
+  payment_status  ENUM('unpaid','pending','paid','failed') NOT NULL DEFAULT 'unpaid',
+  payment_txn_ref VARCHAR(128) NULL,
+  paid_at         DATETIME NULL,
   created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_appt_customer
     FOREIGN KEY (customer_id) REFERENCES users(id)
@@ -175,6 +222,7 @@ CREATE TABLE appointments (
     FOREIGN KEY (receptionist_id) REFERENCES users(id)
     ON DELETE SET NULL
     ON UPDATE CASCADE,
+  UNIQUE KEY uq_appointments_payment_txn_ref (payment_txn_ref),
   INDEX idx_appt_customer (customer_id),
   INDEX idx_appt_barber_date (barber_id, appt_date),
   INDEX idx_appt_branch (branch_id),
@@ -271,6 +319,7 @@ CREATE TABLE admin_logs (
 CREATE TABLE product_categories (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   name        VARCHAR(100) NOT NULL,
+  code_prefix VARCHAR(16) NOT NULL DEFAULT '',
   description TEXT NULL,
   image_url   VARCHAR(255) NULL,
   is_active   TINYINT(1) NOT NULL DEFAULT 1,
@@ -284,6 +333,7 @@ CREATE TABLE product_categories (
 CREATE TABLE products (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   category_id INT NOT NULL,
+  sku         VARCHAR(32) NULL,
   name        VARCHAR(150) NOT NULL,
   description TEXT NULL,
   price       DECIMAL(10,2) NOT NULL,
@@ -297,6 +347,7 @@ CREATE TABLE products (
     ON DELETE RESTRICT
     ON UPDATE CASCADE,
   INDEX idx_products_category (category_id),
+  UNIQUE KEY uk_products_sku (sku),
   INDEX idx_products_active (is_active)
 ) ENGINE=InnoDB;
 
@@ -345,13 +396,25 @@ CREATE TABLE shop_orders (
   total_price      DECIMAL(10,2) NOT NULL,
   shipping_address TEXT NULL,
   note             TEXT NULL,
-  status           ENUM('pending','confirmed','shipping','delivered','cancelled')
+  status           ENUM('pending','confirmed','shipping','delivered','completed','cancelled')
                    NOT NULL DEFAULT 'pending',
+  -- Branch that will fulfill the order (optional)
+  branch_id        INT NULL,
+  -- Payment tracking for shop orders
+  payment_method   ENUM('cod','vnpay') NOT NULL DEFAULT 'cod',
+  payment_status   ENUM('unpaid','pending','paid','failed') NOT NULL DEFAULT 'unpaid',
+  payment_txn_ref  VARCHAR(128) NULL,
+  paid_at          DATETIME NULL,
   created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_shop_orders_customer
     FOREIGN KEY (customer_id) REFERENCES users(id)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
+  CONSTRAINT fk_shop_orders_branch
+    FOREIGN KEY (branch_id) REFERENCES branches(id)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE,
+  UNIQUE KEY uq_shop_orders_payment_txn_ref (payment_txn_ref),
   INDEX idx_shop_orders_customer (customer_id),
   INDEX idx_shop_orders_status (status)
 ) ENGINE=InnoDB;
@@ -376,6 +439,42 @@ CREATE TABLE shop_order_items (
     ON UPDATE CASCADE,
   INDEX idx_shop_order_items_order (order_id)
 ) ENGINE=InnoDB;
+
+-- ================================================
+-- ================================================
+-- OFFERS (ưu đãi) - bảng cho backend routes /api/offers
+-- ================================================
+CREATE TABLE IF NOT EXISTS offers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  description TEXT NULL,
+  discount_percent INT NOT NULL DEFAULT 10,
+  usage_type ENUM('unlimited','single_customer') NOT NULL DEFAULT 'single_customer',
+  assigned_customer_id INT NULL,
+  points_reward INT NOT NULL DEFAULT 0,
+  expires_at DATE NOT NULL,
+  accent_color VARCHAR(16) NOT NULL DEFAULT '#FF6B6B',
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_offers_usage_type (usage_type),
+  INDEX idx_offers_assigned_customer (assigned_customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Bảng lưu lịch sử dùng phiếu (dùng bởi API track-usage)
+CREATE TABLE IF NOT EXISTS used_promotions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  promotion_id INT NOT NULL,
+  customer_id INT NOT NULL,
+  order_id INT NULL,
+  used_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_used_promo_promotion_customer (promotion_id, customer_id),
+  INDEX idx_used_promo_customer (customer_id),
+  INDEX idx_used_promo_order (order_id),
+  CONSTRAINT fk_used_promo_promotion FOREIGN KEY (promotion_id) REFERENCES offers(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_used_promo_customer FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ================================================
 -- TRIGGERS: Auto sync barber rating
@@ -509,7 +608,7 @@ VALUES (
 INSERT INTO users (email, firebase_uid, full_name, role, status, branch_id)
 VALUES (
   'receptionist@gmail.com',
-  NULL,
+  '7dqI3PDy86YZfLJQm25wK5ta1UP2',
   'Lễ Tân 1',
   'receptionist',
   'available',

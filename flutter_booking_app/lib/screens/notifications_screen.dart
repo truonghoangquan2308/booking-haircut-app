@@ -34,14 +34,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<List<Map<String, dynamic>>> _loadApiNotifications() async {
     final userId = AppSession.userId;
-    if (userId == null) return [];
+    debugPrint(
+      '[NotificationsScreen] loading API notifications for userId=$userId',
+    );
+    if (userId == null) {
+      debugPrint('[NotificationsScreen] AppSession.userId is null');
+      return [];
+    }
 
-    final raw = await ApiService.getNotifications(userId);
-    return raw.whereType<Map>().map((e) {
-      final m = Map<String, dynamic>.from(e);
-      m['source'] = 'api';
-      return m;
-    }).toList();
+    try {
+      final raw = await ApiService.getNotifications(userId);
+      final list = raw.whereType<Map>().map((e) {
+        final m = Map<String, dynamic>.from(e);
+        m['source'] = 'api';
+        return m;
+      }).toList();
+      debugPrint(
+        '[NotificationsScreen] api returned ${list.length} items for userId=$userId',
+      );
+      return list;
+    } catch (e, st) {
+      debugPrint(
+        '[NotificationsScreen] getNotifications error for userId=$userId: $e',
+      );
+      debugPrint('$st');
+      return [];
+    }
   }
 
   Future<void> _markAsRead(Map<String, dynamic> item) async {

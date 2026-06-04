@@ -29,6 +29,8 @@ require('dotenv').config();
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
+const http = require('http');
+const { Server: IoServer } = require('socket.io');
 
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
@@ -85,6 +87,10 @@ app.use('/api/admin', require('./routes/adminPlatform'));
 app.use('/api', require('./routes/chatMessages'));
 app.use('/api/manager', require('./routes/managerOps'));
 app.use('/api/manager', require('./routes/managerVnpay'));
+// Branch closures routes
+app.use('/api', require('./routes/branchClosures'));
+// Branch closure requests (manager -> owner approval workflow)
+app.use('/api', require('./routes/branchClosureRequests'));
 
 // ─────────────────────────────────────────────
 // BARBERS (theo schema: barbers JOIN users)
@@ -878,6 +884,28 @@ async function start() {
   } catch (e) {
     console.error('ensureNotificationsTable:', e.message);
   }
+  // Fallback cleanup: in case MySQL EVENTs are not enabled/allowed, run a periodic cleanup from app
+  try {
+    // run once immediately
+    await pool.execute('DELETE FROM notifications WHERE created_at < (NOW() - INTERVAL 10 DAY)');
+    // schedule daily cleanup
+    setInterval(async () => {
+      try {
+        await pool.execute('DELETE FROM notifications WHERE created_at < (NOW() - INTERVAL 10 DAY)');
+      } catch (e) {
+        console.error('periodic notifications cleanup failed:', e?.message || e);
+      }
+    }, 24 * 60 * 60 * 1000);
+  } catch (e) {
+    console.error('setup periodic notifications cleanup:', e?.message || e);
+  }
+  try {
+    const { ensureBranchClosuresTable } = require('./lib/ensureBranchClosuresTable');
+    await ensureBranchClosuresTable();
+    console.log('Đã chạy ensureBranchClosuresTable.');
+  } catch (e) {
+    console.error('ensureBranchClosuresTable:', e.message);
+  }
   try {
     await ensureAppointmentsPaymentColumns();
     console.log('Đã chạy ensureAppointmentsPaymentColumns.');
@@ -938,7 +966,33 @@ async function start() {
   } catch (e) {
     console.error('ensureChatMessagesTable:', e.message);
   }
-  app.listen(PORT, () => {
+  // Create HTTP server and attach Socket.IO for realtime notifications
+  const server = http.createServer(app);
+  const io = new IoServer(server, {
+    cors: { origin: process.env.CLIENT_CORS_ORIGIN || '*', methods: ['GET','POST','PATCH','PUT'] },
+  });
+  // expose io globally so route handlers can emit events
+  global.io = io;
+
+  io.on('connection', (socket) => {
+    console.log('Realtime client connected:', socket.id);
+    // Clients should send a `register` event with { userId }
+    socket.on('register', (payload) => {
+      try {
+        const userId = payload && (payload.userId || payload.user_id || payload.uid);
+        if (userId) {
+          const room = `user_${userId}`;
+          socket.join(room);
+          console.log(`Socket ${socket.id} joined room ${room}`);
+        }
+      } catch (e) { /* ignore */ }
+    });
+    socket.on('disconnect', () => {
+      console.log('Realtime client disconnected:', socket.id);
+    });
+  });
+
+  server.listen(PORT, () => {
     console.log(`Server chạy tại http://localhost:${PORT}`);
   });
 }

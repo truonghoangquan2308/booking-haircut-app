@@ -83,12 +83,16 @@ async function ensureBranchClosuresTable() {
   if (hasClosureDate) {
     try {
       // Only update rows where start_date IS NULL or start_date = '0000-00-00'
+      // Guard against legacy zero-date values ('0000-00-00') which are invalid
+      // in strict SQL modes by treating them as NULL via NULLIF and excluding
+      // them from the WHERE clause.
       await pool.execute(`
         UPDATE branch_closures
-        SET start_date = COALESCE(start_date, closure_date),
-            end_date = COALESCE(end_date, closure_date)
+        SET start_date = COALESCE(start_date, NULLIF(closure_date, '0000-00-00')),
+            end_date = COALESCE(end_date, NULLIF(closure_date, '0000-00-00'))
         WHERE (start_date IS NULL OR DATE(start_date) = '0000-00-00')
           AND closure_date IS NOT NULL
+          AND closure_date <> '0000-00-00'
       `);
 
       if (hasIsFullDay) {

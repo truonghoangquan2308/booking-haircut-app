@@ -62,6 +62,7 @@ export default function ManagerStatsPage() {
   const [stats, setStats] = useState<ManagerStatsResponse | null>(null);
   const [appointments, setAppointments] = useState<ManagerAppointmentRow[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
+  const COMPLETED_STATUSES = new Set(["completed", "paid_and_done", "technician_completed"]);
 
   useEffect(() => {
     const storedUid = localStorage.getItem("bb_firebase_uid");
@@ -154,8 +155,9 @@ export default function ManagerStatsPage() {
         setStats(data);
         setFrom(data.from);
         setTo(data.to);
-        const appts = await fetchManagerAppointments(uid, { status: "completed" }, selectedBranchId);
-        if (!cancelled) setAppointments(appts);
+        // fetch appointments and keep only those considered "completed" in our system
+        const appts = await fetchManagerAppointments(uid, {}, selectedBranchId);
+        if (!cancelled) setAppointments(appts.filter(a => COMPLETED_STATUSES.has(String(a.status))));
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : String(e));
@@ -183,9 +185,8 @@ export default function ManagerStatsPage() {
       const appts = await fetchManagerAppointments(uid, {
         from: from || undefined,
         to: to || undefined,
-        status: "completed"
       }, selectedBranchId);
-      setAppointments(appts);
+      setAppointments(appts.filter(a => COMPLETED_STATUSES.has(String(a.status))));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

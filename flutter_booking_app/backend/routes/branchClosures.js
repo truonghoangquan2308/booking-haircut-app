@@ -3,6 +3,42 @@ const pool = require('../db');
 
 const router = express.Router();
 
+function fmtDateYMD(d) {
+  if (!d) return null;
+  try {
+    if (d instanceof Date) {
+      const pad = (n) => String(n).padStart(2,'0');
+      return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+    }
+    const s = String(d).slice(0,10);
+    // expect YYYY-MM-DD
+    if (s.indexOf('-') >= 0) {
+      const [y,m,day] = s.split('-');
+      if (y && m && day) return `${day}/${m}/${y}`;
+    }
+    return s;
+  } catch (e) { return String(d); }
+}
+
+function fmtTimeShort(t) {
+  if (!t) return null;
+  try {
+    // accept HH:MM:SS or HH:MM
+    const parts = String(t).split(':');
+    if (parts.length >= 2) return `${parts[0].padStart(2,'0')}:${parts[1].padStart(2,'0')}`;
+    return String(t);
+  } catch (e) { return String(t); }
+}
+
+function enrichClosureRow(row) {
+  if (!row) return row;
+  const startDate = row.start_date ? fmtDateYMD(row.start_date) : null;
+  const endDate = row.end_date ? fmtDateYMD(row.end_date) : null;
+  const timeRange = (row.start_time || row.end_time) ? `${fmtTimeShort(row.start_time) || ''}${row.start_time && row.end_time ? ' - ' + fmtTimeShort(row.end_time) : ''}` : null;
+  const dateRange = startDate && endDate && startDate !== endDate ? `${startDate} - ${endDate}` : startDate || null;
+  return Object.assign({}, row, { display_start_date: startDate, display_end_date: endDate, display_date_range: dateRange, display_time_range: timeRange });
+}
+
 // GET /api/branch-closures?branch_id=&from=&to=&include_cancelled=1
 // Returns closures that overlap the [from,to] range (or all if omitted)
 router.get('/branch-closures', async (req, res) => {
@@ -40,7 +76,8 @@ router.get('/branch-closures', async (req, res) => {
       params,
     );
 
-    return res.json({ closures: rows });
+    const enriched = (rows || []).map(enrichClosureRow);
+    return res.json({ closures: enriched });
   } catch (e) {
     console.error('GET /api/branch-closures', e?.message || e);
     return res.status(500).json({ error: e?.message || 'Server error' });
@@ -104,12 +141,46 @@ router.post('/branch-closures', async (req, res) => {
       const [barbers] = await pool.execute('SELECT b.id AS barber_id, b.user_id FROM barbers b JOIN users u ON u.id = b.user_id WHERE u.branch_id = ?', [branchId]);
       for (const br of barbers) {
         if (br.user_id) {
-          const msg = `Chi nhánh đóng cửa từ ${sDate}${eDate && eDate !== sDate ? ` đến ${eDate}` : ''}` + (reason ? ` — ${reason}` : '');
+          const dispStart = fmtDateYMD(sDate);
+          const dispEnd = eDate && eDate !== sDate ? fmtDateYMD(eDate) : null;
+          const timePart = start_time && end_time ? ` ${fmtTimeShort(start_time)} - ${fmtTimeShort(end_time)}` : '';
+          const dateText = dispEnd ? `${dispStart} - ${dispEnd}` : dispStart;
+          const msg = `Chi nhánh đóng cửa từ ${dateText}${timePart}` + (reason ? `.
+Lý do: ${reason}` : '');
           await pool.execute('INSERT INTO notifications (user_id, type, title, message) VALUES (?, ?, ?, ?)', [br.user_id, 'branch_closure', 'Chi nhánh đóng cửa', msg]);
         }
       }
     } catch (e) {
       console.error('notify branch closure:', e?.message || e);
+    }
+
+    // 5b) notify customers who are associated with this branch
+    // Strategy: notify customers who either have `users.branch_id = branchId` OR
+    // have an appointment at this branch within the last/next 30 days.
+    try {
+      const [customers] = await pool.execute(
+        `
+        SELECT DISTINCT u.id FROM users u
+        LEFT JOIN appointments a ON a.customer_id = u.id
+        WHERE u.role = 'customer' AND (
+          u.branch_id = ? OR (a.branch_id = ? AND a.appt_date >= (CURDATE() - INTERVAL 30 DAY))
+        )
+        `,
+        [branchId, branchId],
+      );
+      for (const c of customers) {
+        if (c.id) {
+          const dispStart = fmtDateYMD(sDate);
+          const dispEnd = eDate && eDate !== sDate ? fmtDateYMD(eDate) : null;
+          const timePart = start_time && end_time ? ` ${fmtTimeShort(start_time)} - ${fmtTimeShort(end_time)}` : '';
+          const dateText = dispEnd ? `${dispStart} - ${dispEnd}` : dispStart;
+          const msg = `Chi nhánh đóng cửa từ ${dateText}${timePart}` + (reason ? `.
+Lý do: ${reason}` : '');
+          await pool.execute('INSERT INTO notifications (user_id, type, title, message) VALUES (?, ?, ?, ?)', [c.id, 'branch_closure', 'Chi nhánh đóng cửa', msg]);
+        }
+      }
+    } catch (e) {
+      console.error('notify customers branch closure:', e?.message || e);
     }
 
     // 6) admin log if exists
@@ -120,7 +191,7 @@ router.post('/branch-closures', async (req, res) => {
     }
 
     const [[row]] = await pool.execute('SELECT id, branch_id, start_date, end_date, closure_type, start_time, end_time, reason, created_by, created_at FROM branch_closures WHERE id = ? LIMIT 1', [closureId]);
-    return res.status(201).json({ closure: row });
+    return res.status(201).json({ closure: enrichClosureRow(row) });
   } catch (e) {
     console.error('POST /api/branch-closures', e?.message || e);
     if ((e?.message || '').toLowerCase().includes('duplicate') || (e?.code && e.code === 'ER_DUP_ENTRY')) {
@@ -153,6 +224,28 @@ router.post('/branch-closures/:id/cancel', async (req, res) => {
       }
     } catch (e) {
       console.error('notify closure cancel:', e?.message || e);
+    }
+
+    // notify customers: branch active again (same selection strategy as above)
+    try {
+      const [customers] = await pool.execute(
+        `
+        SELECT DISTINCT u.id FROM users u
+        LEFT JOIN appointments a ON a.customer_id = u.id
+        WHERE u.role = 'customer' AND (
+          u.branch_id = ? OR (a.branch_id = ? AND a.appt_date >= (CURDATE() - INTERVAL 30 DAY))
+        )
+        `,
+        [row.branch_id, row.branch_id],
+      );
+      for (const c of customers) {
+        if (c.id) {
+          const msg = `Chi nhánh hoạt động trở lại (dự kiến ${row.start_date}${row.end_date && row.end_date !== row.start_date ? ` - ${row.end_date}` : ''})`;
+          await pool.execute('INSERT INTO notifications (user_id, type, title, message) VALUES (?, ?, ?, ?)', [c.id, 'branch_closure', 'Chi nhánh hoạt động lại', msg]);
+        }
+      }
+    } catch (e) {
+      console.error('notify customers closure cancel:', e?.message || e);
     }
 
     try {
@@ -209,12 +302,44 @@ router.put('/branch-closures/:id', async (req, res) => {
       const [barbers] = await pool.execute('SELECT b.id AS barber_id, b.user_id FROM barbers b JOIN users u ON u.id = b.user_id WHERE u.branch_id = ?', [row.branch_id]);
       for (const br of barbers) {
         if (br.user_id) {
-          const msg = `Chi nhánh cập nhật lịch đóng cửa từ ${sDate}${eDate && eDate !== sDate ? ` đến ${eDate}` : ''}` + (reason ? ` — ${reason}` : '');
+          const dispStart = fmtDateYMD(sDate);
+          const dispEnd = eDate && eDate !== sDate ? fmtDateYMD(eDate) : null;
+          const timePart = start_time && end_time ? ` ${fmtTimeShort(start_time)} - ${fmtTimeShort(end_time)}` : '';
+          const dateText = dispEnd ? `${dispStart} - ${dispEnd}` : dispStart;
+          const msg = `Chi nhánh cập nhật lịch đóng cửa từ ${dateText}${timePart}` + (reason ? `.
+Lý do: ${reason}` : '');
           await pool.execute('INSERT INTO notifications (user_id, type, title, message) VALUES (?, ?, ?, ?)', [br.user_id, 'branch_closure', 'Cập nhật đóng cửa', msg]);
         }
       }
     } catch (e) {
       console.error('notify branch closure update:', e?.message || e);
+    }
+
+    // notify customers about update (same selection strategy)
+    try {
+      const [customers] = await pool.execute(
+        `
+        SELECT DISTINCT u.id FROM users u
+        LEFT JOIN appointments a ON a.customer_id = u.id
+        WHERE u.role = 'customer' AND (
+          u.branch_id = ? OR (a.branch_id = ? AND a.appt_date >= (CURDATE() - INTERVAL 30 DAY))
+        )
+        `,
+        [row.branch_id, row.branch_id],
+      );
+      for (const c of customers) {
+        if (c.id) {
+          const dispStart = fmtDateYMD(sDate);
+          const dispEnd = eDate && eDate !== sDate ? fmtDateYMD(eDate) : null;
+          const timePart = start_time && end_time ? ` ${fmtTimeShort(start_time)} - ${fmtTimeShort(end_time)}` : '';
+          const dateText = dispEnd ? `${dispStart} - ${dispEnd}` : dispStart;
+          const msg = `Chi nhánh cập nhật lịch đóng cửa từ ${dateText}${timePart}` + (reason ? `.
+Lý do: ${reason}` : '');
+          await pool.execute('INSERT INTO notifications (user_id, type, title, message) VALUES (?, ?, ?, ?)', [c.id, 'branch_closure', 'Cập nhật đóng cửa', msg]);
+        }
+      }
+    } catch (e) {
+      console.error('notify customers branch closure update:', e?.message || e);
     }
 
     try {
@@ -224,7 +349,7 @@ router.put('/branch-closures/:id', async (req, res) => {
     }
 
     const [[updated]] = await pool.execute('SELECT id, branch_id, start_date, end_date, closure_type, start_time, end_time, reason, updated_at FROM branch_closures WHERE id = ? LIMIT 1', [id]);
-    return res.json({ closure: updated });
+    return res.json({ closure: enrichClosureRow(updated) });
   } catch (e) {
     console.error('PUT /api/branch-closures/:id', e?.message || e);
     return res.status(500).json({ error: e?.message || 'Server error' });

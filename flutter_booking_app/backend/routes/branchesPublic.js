@@ -121,7 +121,41 @@ router.get('/branches', async (_req, res) => {
       ORDER BY name ASC
       `,
     );
-    return res.json({ branches: rows });
+
+    // enrich with today's closure status (single query)
+    const today = new Date().toISOString().slice(0, 10);
+    const branchIds = (rows || []).map((r) => r.id).filter(Boolean);
+    let closuresMap = new Map();
+    if (branchIds.length > 0) {
+      const placeholders = branchIds.map(() => '?').join(',');
+      const [cr] = await pool.execute(
+        `SELECT branch_id, start_date, end_date, closure_type, start_time, end_time, reason FROM branch_closures WHERE branch_id IN (${placeholders}) AND start_date <= ? AND end_date >= ? AND canceled_at IS NULL`,
+        [...branchIds, today, today],
+      );
+      for (const c of cr || []) {
+        closuresMap.set(Number(c.branch_id), c);
+      }
+    }
+
+    const enrichedBranches = (rows || []).map((r) => {
+      const c = closuresMap.get(Number(r.id)) || null;
+      return {
+        ...r,
+        closure: c
+          ? {
+              closed: true,
+              closure_type: c.closure_type,
+              reason: c.reason,
+              start_date: c.start_date,
+              end_date: c.end_date,
+              start_time: c.start_time,
+              end_time: c.end_time,
+            }
+          : { closed: false },
+      };
+    });
+
+    return res.json({ branches: enrichedBranches });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: err.message });

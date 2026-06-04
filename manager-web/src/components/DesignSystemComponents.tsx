@@ -107,7 +107,7 @@ export function Card({
   return (
     <div className={`card ${noPadding ? "p-0" : ""} ${className}`.trim()}>
       {title ? (
-        <div className="mb-4">
+        <div className="mb-4 flex-shrink-0">
           <h2 className="section-title">{title}</h2>
           {description ? <p className="section-description">{description}</p> : null}
         </div>

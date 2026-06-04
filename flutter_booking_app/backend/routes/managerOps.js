@@ -26,7 +26,20 @@ router.get('/branches', async (req, res) => {
         'SELECT id, name, address, phone FROM branches WHERE id = ? LIMIT 1',
         [bid],
       );
-      return res.json({ branches: br.length ? br : [] });
+      const branch = br.length ? br[0] : null;
+      if (branch) {
+        const today = new Date().toISOString().slice(0,10);
+        const [c] = await pool.execute('SELECT start_date, end_date, closure_type, start_time, end_time, reason FROM branch_closures WHERE branch_id = ? AND start_date <= ? AND end_date >= ? AND canceled_at IS NULL LIMIT 1', [branch.id, today, today]);
+        if (c && c.length > 0) {
+          branch.closure = c[0];
+          branch.closed = true;
+        } else {
+          branch.closure = null;
+          branch.closed = false;
+        }
+        return res.json({ branches: [branch] });
+      }
+      return res.json({ branches: [] });
     }
 
     if (role === 'owner') {
@@ -411,6 +424,42 @@ router.get('/working-schedules', requireManagerOrOwner, requireManagerBranch, as
     }
     sql += ' ORDER BY ws.work_date ASC, ws.start_time ASC';
     const [rows] = await pool.execute(sql, params);
+
+    // enrich schedules with branch closure info for each work_date
+    if (rows && rows.length > 0) {
+      const dates = Array.from(new Set(rows.map((r) => r.work_date)));
+      const placeholders = dates.map(() => '?').join(',');
+      // fetch closures that intersect any of these dates for this branch
+      const [closures] = await pool.execute(
+        `SELECT branch_id, start_date, end_date, closure_type, start_time, end_time, reason FROM branch_closures WHERE branch_id = ? AND NOT (end_date < ? OR start_date > ?) AND canceled_at IS NULL`,
+        [branchId, dates[0], dates[dates.length - 1]],
+      );
+      // map by date - to simplify, pick first matching closure for a date
+      const closureByDate = new Map();
+      for (const c of closures || []) {
+        // fill all dates between start_date and end_date where applicable
+        const s = new Date(c.start_date);
+        const e = new Date(c.end_date);
+        for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+          const key = d.toISOString().slice(0, 10);
+          if (!closureByDate.has(key)) closureByDate.set(key, c);
+        }
+      }
+
+      for (const r of rows) {
+        const c = closureByDate.get(r.work_date) || null;
+        if (c) {
+          r.branch_closed = true;
+          r.closure_type = c.closure_type;
+          r.closure_reason = c.reason;
+          r.closure_start_time = c.start_time;
+          r.closure_end_time = c.end_time;
+        } else {
+          r.branch_closed = false;
+        }
+      }
+    }
+
     return res.json({ schedules: rows });
   } catch (e) {
     console.error(e);

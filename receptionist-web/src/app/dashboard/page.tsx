@@ -171,15 +171,25 @@ export default function ReceptionistDashboardPage() {
         )}
 
         {activeTab === "walkin" && uid && selectedBranchId && (
-          <WalkIn
-            uid={uid}
-            branchId={selectedBranchId}
-            onSuccess={(apptId: number) => {
-              setSelectedAppointmentId(apptId);
-              setActiveTab("payment");
-            }}
-            key={selectedBranchId}
-          />
+          // Disable walk-in when branch closed
+          branches.find((b) => b.id === selectedBranchId && (b as any).closed)
+            ? (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+                <strong>Chi nhánh hiện đang tạm ngừng hoạt động.</strong>
+                <div>Lý do: {(branches.find((b) => b.id === selectedBranchId) as any)?.closure?.reason ?? 'Không rõ'}</div>
+                <div className="mt-2">Tính năng tiếp khách (Walk-in/manual booking) đã bị vô hiệu hóa.</div>
+              </div>
+            ) : (
+              <WalkIn
+                uid={uid}
+                branchId={selectedBranchId}
+                onSuccess={(apptId: number) => {
+                  setSelectedAppointmentId(apptId);
+                  setActiveTab("payment");
+                }}
+                key={selectedBranchId}
+              />
+            )
         )}
 
         {activeTab === "payment" && uid && selectedBranchId && selectedAppointmentId && (

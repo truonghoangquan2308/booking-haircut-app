@@ -60,6 +60,13 @@ class _BarberAccountScreenState extends State<BarberAccountScreen> {
       final p = UserProfile.fromJson(Map<String, dynamic>.from(map));
       AppSession.setFromUserMap(map);
 
+      // load API notifications for barber so unread badge updates
+      try {
+        if (p.id > 0) {
+          await _notifications.load(p.id);
+        }
+      } catch (_) {}
+
       var branchLabel = 'chưa thêm';
       var isAssigned = false;
       String? barberBio;

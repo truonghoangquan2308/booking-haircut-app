@@ -116,6 +116,28 @@ class ApiService {
     }
   }
 
+  static Future<http.Response> _patch(
+    Uri uri, {
+    Map<String, String>? headers,
+    Object? body,
+  }) async {
+    try {
+      return await http
+          .patch(uri, headers: headers, body: body)
+          .timeout(_httpTimeout);
+    } on TimeoutException {
+      throw Exception(
+        'Timeout gọi API (${uri.path}). Base URL hiện tại: $_baseUrl. '
+        'Nếu chạy trên máy thật, dùng --dart-define=API_BASE_URL=http://<IP_MAY_TINH>:3000',
+      );
+    } on SocketException {
+      throw Exception(
+        'Không kết nối được backend tại $_baseUrl. '
+        'Nếu chạy trên máy thật, dùng --dart-define=API_BASE_URL=http://<IP_MAY_TINH>:3000',
+      );
+    }
+  }
+
   // ================================================
   // USERS
   // ================================================
@@ -941,6 +963,27 @@ class ApiService {
     if (response.statusCode != 200) {
       final data = jsonDecode(response.body);
       throw Exception(data['error'] ?? 'Lỗi cập nhật trạng thái');
+    }
+  }
+
+  /// Khách hủy lịch (gọi endpoint mới trên backend)
+  static Future<void> cancelAppointment({
+    required int appointmentId,
+    required int customerId,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/api/appointments/$appointmentId/cancel');
+    final response = await _patch(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'customer_id': customerId}),
+    );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      try {
+        final data = jsonDecode(response.body);
+        throw Exception(data['error'] ?? 'Lỗi hủy lịch');
+      } catch (e) {
+        throw Exception('Lỗi hủy lịch: ${response.statusCode}');
+      }
     }
   }
 

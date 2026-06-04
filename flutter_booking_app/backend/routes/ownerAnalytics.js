@@ -198,9 +198,28 @@ router.get('/analytics', requireOwner, async (_req, res) => {
       shop_revenue = 0;
     }
 
+      // closure counts for today
+      let closureSummary = {};
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const [cs] = await pool.execute(
+          `SELECT closure_type, COUNT(DISTINCT branch_id) AS cnt FROM branch_closures WHERE start_date <= ? AND end_date >= ? AND canceled_at IS NULL GROUP BY closure_type`,
+          [today, today],
+        );
+        const totalClosed = cs.reduce((acc, cur) => acc + Number(cur.cnt || 0), 0);
+        closureSummary = {
+          total_closed_branches: totalClosed,
+          by_type: {},
+        };
+        for (const r of cs) closureSummary.by_type[r.closure_type] = Number(r.cnt || 0);
+      } catch (e) {
+        closureSummary = { total_closed_branches: 0, by_type: {} };
+      }
+
     return res.json({
       generatedAt: new Date().toISOString(),
       kpis: { ...kpis, shop_revenue },
+        closureSummary,
       appointmentsByDay: byDay,
       revenueByDay,
       appointmentsByStatus: byStatus,

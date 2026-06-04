@@ -50,17 +50,19 @@ export function Navbar({ onLogout }: { onLogout: () => void }) {
           })}
         </div>
 
-        <button
-          type="button"
-          onClick={onLogout}
-          className="ml-auto inline-flex items-center rounded-[var(--radius-btn)] border px-3 py-1.5 text-sm font-semibold transition-colors hover:bg-[rgba(153,27,27,0.08)]"
-          style={{
-            borderColor: "var(--status-cancelled-text)",
-            color: "var(--status-cancelled-text)",
-          }}
-        >
-          Đăng xuất
-        </button>
+        <div className="ml-auto flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onLogout}
+            className="inline-flex items-center rounded-[var(--radius-btn)] border px-3 py-1.5 text-sm font-semibold transition-colors hover:bg-[rgba(153,27,27,0.08)]"
+            style={{
+              borderColor: "var(--status-cancelled-text)",
+              color: "var(--status-cancelled-text)",
+            }}
+          >
+            Đăng xuất
+          </button>
+        </div>
       </nav>
     </header>
   );

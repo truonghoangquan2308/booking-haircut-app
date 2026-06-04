@@ -7,6 +7,7 @@ import { auth } from "@/lib/firebase";
 import { fetchUserByFirebaseUid, type StaffUser } from "@/lib/api";
 import { Button, StatCard } from "@/components/DesignSystemComponents";
 import { Navbar } from "@/components/Navbar";
+import ManagerIncidentManagement from "@/components/ManagerIncidentManagement";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -875,6 +876,8 @@ export default function ManagerDashboardPage() {
             </div>
           )}
         </section>
+
+        <ManagerIncidentManagement uid={uid} branchId={selectedBranchId} onDone={() => { if (uid) void loadMain(uid, selectedBranchId ?? undefined); }} />
 
         <section className="rounded-2xl bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

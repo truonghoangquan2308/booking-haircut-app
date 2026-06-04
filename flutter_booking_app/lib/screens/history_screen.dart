@@ -446,6 +446,67 @@ class _HistoryScreenState extends State<HistoryScreen>
                     ),
                   ),
                 ),
+              // only allow customer cancellation when status is 'pending' (chưa được thợ xác nhận)
+              if (status == 'pending' && appointmentId > 0 && customerId > 0)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  tooltip: 'Hủy lịch hẹn',
+                  onPressed: () async {
+                    final navigator = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
+
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Hủy lịch hẹn'),
+                        content: const Text(
+                          'Bạn có chắc muốn hủy lịch này không?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            child: const Text('Không'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(true),
+                            child: const Text('Có'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm != true) return;
+
+                    // show loading indicator
+                    if (!mounted) return;
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (ctx) => const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xffffc107),
+                        ),
+                      ),
+                    );
+                    try {
+                      await ApiService.cancelAppointment(
+                        appointmentId: appointmentId,
+                        customerId: customerId,
+                      );
+                      if (!mounted) return;
+                      navigator.pop(); // close loading
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('Đã hủy lịch hẹn')),
+                      );
+                      _loadHistory(silent: true);
+                    } catch (e) {
+                      if (mounted) navigator.pop();
+                      if (!mounted) return;
+                      messenger.showSnackBar(
+                        SnackBar(content: Text('Lỗi: ${e.toString()}')),
+                      );
+                    }
+                  },
+                ),
             ],
           ),
         ],

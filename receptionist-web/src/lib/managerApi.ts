@@ -37,6 +37,15 @@ export type ManagerBranchRow = {
   name: string | null;
   address: string | null;
   phone: string | null;
+  closed?: boolean;
+  closure?: {
+    start_date: string;
+    end_date: string;
+    closure_type: string;
+    start_time?: string | null;
+    end_time?: string | null;
+    reason?: string | null;
+  } | null;
 };
 
 /** GET /api/manager/branches */

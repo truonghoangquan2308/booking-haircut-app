@@ -12,6 +12,7 @@ import {
   fetchManagerAppointments,
   fetchManagerBranchList,
   type ManagerBranchRow,
+  fetchSchedules,
 } from "@/lib/managerApi";
 import {
   fetchBranchClosures,
@@ -21,6 +22,12 @@ import {
   type BranchClosureRow,
   type ClosureType,
 } from '@/lib/branchClosuresApi';
+import {
+  fetchBranchClosureRequests,
+  approveBranchClosureRequest,
+  rejectBranchClosureRequest,
+  type BCRequestRow,
+} from '@/lib/branchClosureRequestsApi';
 
 const BRANCH_STORAGE_KEY = "manager-dashboard-branch-id";
 
@@ -35,6 +42,7 @@ export default function ManagerDashboardPage() {
   );
   const [branchesLoaded, setBranchesLoaded] = useState(false);
   const [closures, setClosures] = useState<BranchClosureRow[]>([]);
+  const [requests, setRequests] = useState<BCRequestRow[]>([]);
   const [loadingClosures, setLoadingClosures] = useState(false);
   const [editing, setEditing] = useState<BranchClosureRow | null>(null);
   const [formState, setFormState] = useState<{
@@ -201,11 +209,43 @@ export default function ManagerDashboardPage() {
     };
   }, [uid, branches]);
 
+  // Load today's working schedules summary for each branch
+  useEffect(() => {
+    if (!uid || branches.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const sums: Array<{ branchId: number; branchName: string; working: number; off: number }> = [];
+        for (const branch of branches) {
+          const schedules = await fetchSchedules(uid, { from: today, to: today }, branch.id);
+          if (cancelled) return;
+          let working = 0;
+          let off = 0;
+          for (const s of schedules) {
+            if (s.is_day_off && Number(s.is_day_off) === 1) off++;
+            else working++;
+          }
+          const branchName = branch.name?.trim() ? branch.name : `Chi nhánh #${branch.id}`;
+          sums.push({ branchId: branch.id, branchName, working, off });
+        }
+        setScheduleSummary(sums);
+      } catch (e:any) {
+        if (!cancelled) setError(e?.message || String(e));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [uid, branches]);
+
   // Load closures when branch changes
   useEffect(() => {
     if (!selectedBranchId) return;
     void loadClosures();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBranchId]);
+  useEffect(() => {
+    if (!selectedBranchId) return;
+    void loadRequests();
   }, [selectedBranchId]);
 
   async function loadClosures() {
@@ -225,9 +265,55 @@ export default function ManagerDashboardPage() {
     }
   }
 
+  async function loadRequests() {
+    if (!selectedBranchId) return;
+    try {
+      const rows = await fetchBranchClosureRequests(selectedBranchId);
+      setRequests(rows ?? []);
+    } catch (e:any) {
+      console.error('loadRequests', e?.message || e);
+    }
+  }
+
+  function fmtDateDisplay(d?: string|null) {
+    if (!d) return '';
+    try { return `${d.slice(8,10)}/${d.slice(5,7)}/${d.slice(0,4)}`; } catch(e) { return d; }
+  }
+
   function resetForm() {
     setFormState({ start_date: '', end_date: '', closure_type: 'temporary_close', start_time: '', end_time: '', reason: '' });
     setEditing(null);
+  }
+
+  async function handleApproveRequest(id: number) {
+    try {
+      // call API to approve
+      await approveBranchClosureRequest(id, Number(user?.id ?? 0));
+      await loadRequests();
+      await loadClosures();
+      alert('Đã phê duyệt yêu cầu và tạo đóng cửa.');
+    } catch (e:any) {
+      console.error('approve', e?.message || e);
+      alert('Phê duyệt thất bại');
+    }
+  }
+
+  async function handleRejectRequest(id: number) {
+    const raw = window.prompt('Lý do từ chối:');
+    if (raw === null) return; // user cancelled
+    const reason = String(raw).trim();
+    if (!reason) {
+      alert('Lý do từ chối bắt buộc');
+      return;
+    }
+    try {
+      await rejectBranchClosureRequest(id, Number(user?.id ?? 0), reason);
+      await loadRequests();
+      alert('Đã từ chối yêu cầu.');
+    } catch (e:any) {
+      console.error('reject', e?.message || e);
+      alert('Từ chối thất bại');
+    }
   }
 
   function setFormFromClosure(c: BranchClosureRow) {
@@ -280,6 +366,30 @@ export default function ManagerDashboardPage() {
             <div className="mt-4 border-t pt-4">
               <h3 className="text-sm font-semibold text-bb-navy">Quản lý đóng cửa chi nhánh</h3>
               <p className="text-xs text-gray-600 mb-2">Trạng thái hiện tại: <strong className="ml-2">{branchStatus}</strong></p>
+              <div className="mb-3">
+                <h4 className="text-sm font-medium">Yêu cầu đóng cửa chờ phê duyệt</h4>
+                <div className="mt-2">
+                  {(!requests || requests.filter(r=>r.status === 'pending').length === 0) && <div className="text-sm text-gray-500">Không có yêu cầu chờ phê duyệt.</div>}
+                  <ul className="space-y-2">
+                    {requests.filter(r=>r.status === 'pending').map(r => (
+                      <li key={r.id} className="p-3 border rounded">
+                        <div className="text-sm space-y-1">
+                          <div className="font-semibold text-bb-navy">{r.title ?? (r.request_type ?? 'Yêu cầu')}</div>
+                          <div className="text-xs text-gray-700">Loại: <strong className="ml-1">{r.request_type}</strong> — Mức độ: <strong className="ml-1">{r.impact_level ?? '-'}</strong></div>
+                          <div className="text-xs text-gray-700">Từ: <strong className="ml-1">{fmtDateDisplay(r.start_date)}</strong>  Đến: <strong className="ml-1">{fmtDateDisplay(r.end_date)}</strong></div>
+                          <div className="text-xs text-gray-700">Nguyên nhân: <div className="mt-1 text-gray-600">{r.detailed_reason ?? r.reason ?? '-'}</div></div>
+                          <div className="text-xs text-gray-700">Dự kiến mở lại: <strong className="ml-1">{r.estimated_reopen_date ? fmtDateDisplay(r.estimated_reopen_date) : '-'}</strong></div>
+                          <div className="text-xs text-gray-500">Người yêu cầu: {r.manager_name ?? 'Manager'}</div>
+                        </div>
+                        <div className="mt-2 flex gap-2">
+                          <button className="btn btn-sm btn-primary" onClick={() => handleApproveRequest(r.id)}>Phê duyệt</button>
+                          <button className="btn btn-sm btn-secondary" onClick={() => handleRejectRequest(r.id)}>Từ chối</button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-700">Ngày bắt đầu</label>
@@ -343,8 +453,8 @@ export default function ManagerDashboardPage() {
                       ) : (
                         closures.map(c => (
                           <tr key={c.id} className="border-b">
-                            <td className="py-2">{c.start_date}{c.end_date && c.end_date !== c.start_date ? ` — ${c.end_date}` : ''}</td>
-                            <td className="py-2">{c.start_time ? `${c.start_time} - ${c.end_time ?? ''}` : 'Cả ngày'}</td>
+                            <td className="py-2">{(c as any).display_date_range ?? (c.start_date + (c.end_date && c.end_date !== c.start_date ? ` — ${c.end_date}` : ''))}</td>
+                            <td className="py-2">{(c as any).display_time_range ?? (c.start_time ? `${c.start_time} - ${c.end_time ?? ''}` : 'Cả ngày')}</td>
                             <td className="py-2">{c.closure_type}</td>
                             <td className="py-2">{c.reason ?? ''}</td>
                             <td className="py-2">
