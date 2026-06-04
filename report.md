@@ -150,9 +150,79 @@ Tổng hợp các logic đáng chú ý và vị trí file:
 
 ---
 
-Nếu bạn muốn, tôi có thể:
-- Chạy một phân tích file-by-file chi tiết hơn để mở rộng phần "Thuật toán & Logic" (liệt kê chức năng trong từng route),
-- Hoặc mở rộng báo cáo thành checklist để chuẩn bị deploy (env vars cần thiết, migration steps, run commands).
+## Bổ sung: Auth flow, Socket.io, API endpoints và Environment variables
 
-Yêu cầu tiếp theo?:
-- In-depth audit về bảo mật/transaction race conditions, hay sinh file `DEPENDENCIES.md` tách theo workspace? 
+**Auth flow (tóm tắt)**
+- Frontends (Next.js, Flutter) use Firebase for authentication. Frontends exchange Firebase UIDs with backend to map users.
+- Endpoint `/api/users/verify` (server.js) accepts `{ phone, firebase_uid, role }` to upsert a `users` row and link `firebase_uid`.
+- Many protected routes expect the header `x-firebase-uid` (e.g., `managerVnpay.js`, `adminPlatform.js`) — middleware functions read this header and validate it by querying `users` WHERE `firebase_uid = ?` then check `role`, `is_locked`, and `branch_id` where applicable.
+- There are also public helper endpoints: `/api/users/by-firebase/:firebaseUid` (get user by Firebase UID) and `/api/users/:phone` (resolve by phone).
+
+**Socket.IO usage (realtime notifications)**
+- Server initializes Socket.IO in `server.js` and exposes it as `global.io`:
+  - `const io = new IoServer(server, { cors: { origin: process.env.CLIENT_CORS_ORIGIN || '*', methods: ['GET','POST','PATCH','PUT'] } });`
+  - Clients should `connect` then emit `register` with payload `{ userId }` (server joins socket to room `user_<userId>`).
+  - Routes emit events using `global.io.to('user_<id>').emit(...)` (e.g., `appointments.js` emits booking/cancellation notifications to barber user rooms).
+
+**Environment variables (found in README, admin-web examples, and code)**
+- DB / server:
+  - `PORT` (server port)
+  - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+  - `CLIENT_CORS_ORIGIN` (Socket.IO CORS origin)
+- Firebase / frontend:
+  - `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_*` (frontend envs in `admin-web/.env.local.example`)
+- VNPay / payments:
+  - `VNPAY_URL`, `VNPAY_TMNCODE`, `VNPAY_HASHSECRET`, `VNPAY_RETURN_URL`, (README lists `VNPAY_TMN_CODE` / `VNPAY_HASH_SECRET` — code expects `VNPAY_URL`, `VNPAY_TMNCODE`, `VNPAY_HASHSECRET`, `VNPAY_RETURN_URL`)
+- Other:
+  - `JWT_SECRET` (mentioned in README sample though JWT is not prominent in server code)
+  - `SERVER_URL` (used in some scripts like `scripts/test_concurrent_booking.js`)
+
+**Các router / mount points (tổng quan các API endpoint chính)**
+Ảnh hưởng bởi cách `server.js` đăng ký các router. Dưới đây là mount point + ví dụ các route con (không liệt kê mọi route nhỏ):
+
+- `/api/services` — `routes/services.js`
+  - `GET /api/services/`, `POST /api/services/` (quản lý dịch vụ shop)
+
+- `/api` — `routes/branchesPublic.js`
+  - `GET /api/branches/nearest`, `GET /api/branches` (tìm chi nhánh)
+
+- `/api` — `routes/shopCheckout.js`
+  - `POST /api/shop/checkout`, `GET /api/shop/orders/:id/payment-status`, `GET /api/shop/vnpay/ipn`, `GET /api/shop/vnpay/return`
+
+- `/api` — `routes/shopProductsRoutesFixed.js`
+  - Product/shop admin endpoints: `/api/product-categories`, `/api/products`, `/api/admin/products`, `/api/shop/orders`, `/api/shop/stats`, etc.
+
+- `/api` — `routes/appointments.js`
+  - `GET /api/timeslots/:barberId/:date`
+  - `GET /api/appointments` (admin list)
+  - `GET /api/admin/appointments`
+  - `GET /api/appointments/customer/:customerId`
+  - `GET /api/appointments/barber/:barberId`
+  - `POST /api/appointments` (booking — transactional)
+  - `PATCH /api/appointments/:id/cancel`
+
+- `/api/owner` — owner routes (`routes/ownerAnalytics.js`, `routes/ownerOffers.js`, `routes/ownerBarbers.js`)
+  - `GET /api/owner/analytics`, `GET /api/owner/offers`, `POST /api/owner/offers`, `GET /api/owner/barbers`, etc.
+
+- `/api` — `routes/offersPublic.js`
+  - `GET /api/offers`, `POST /api/promotions/validate`, `GET /api/promotions/usage-history`
+
+- `/api/admin` — admin routes (`routes/adminShopsApi.js`, `routes/adminPlatform.js`)
+  - `GET /api/admin/shops`, `PATCH /api/admin/shops/:id`, `GET /api/admin/platform/stats`, `GET /api/admin/platform/users`, `PATCH /api/admin/platform/users/:id`, `GET /api/admin/platform/notifications`, `GET /api/admin/platform/audit-log`
+
+- `/api/manager` — manager routes (`routes/managerOps.js`, `routes/managerVnpay.js`)
+  - Manager ops: `/api/manager/branches`, `/api/manager/barbers`, `/api/manager/appointments`, `/api/manager/working-schedules`, `/api/manager/messages`, `/api/manager/appointments-on-behalf`, etc.
+  - Payments: `POST /api/manager/vnpay/checkout`, `GET /api/manager/appointments/:id/payment-status`
+
+- `/api` — `routes/branchClosures.js`, `routes/branchClosureRequests.js`
+  - `GET /api/branch-closures`, `POST /api/branch-closures`, `POST /api/branch-closures/:id/cancel`, `PUT /api/branch-closures/:id`
+  - `GET /api/branch-closure-requests`, `POST /api/branch-closure-requests`, `/approve`, `/reject`
+
+- `/api` — `routes/chatMessages.js`
+  - `POST /api/messages`, `GET /api/messages` (chat support between customers and receptionist)
+
+- Misc (direct routes in `server.js`)
+  - User endpoints: `POST /api/users/verify`, `GET /api/users/by-firebase/:firebaseUid`, `GET /api/users/:phone`, `GET /api/users`, `PUT /api/users/:id`, and admin alias `GET /api/admin/users`.
+  - Barber endpoints exposed on `/api/barbers`, `/api/barbers/by-user/:userId`, `POST /api/barbers`, `PUT /api/barbers/:barberId/availability`.
+
+---
